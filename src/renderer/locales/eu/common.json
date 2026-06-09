@@ -6,5 +6,47 @@
     "ca": "Katalana",
     "eu": "Euskara",
     "en": "Ingelesa"
+  },
+  "welcome": {
+    "title": "RevOps Assistant",
+    "subtitle": "Revenue eragiketetarako tresna.",
+    "recentProjects": "Azken proiektuak",
+    "newProject": "Proiektu berria",
+    "emptyState": "Lehen aldia? Konfiguratu zure lehen proiektua.",
+    "openProject": "Ireki {{name}} proiektua",
+    "deleteProject": "Ezabatu {{name}} proiektua"
+  },
+  "dialog": {
+    "title": "Proiektu berria",
+    "nameLabel": "Proiektuaren izena",
+    "descriptionLabel": "Deskribapena (aukerakoa)",
+    "cancel": "Utzi",
+    "create": "Sortu",
+    "errors": {
+      "nameRequired": "Izena beharrezkoa da",
+      "nameTooLong": "Izenak ezin ditu {{max}} karaktere gainditu"
+    }
+  },
+  "sidebar": {
+    "label": "Gaitasunen menua",
+    "dashboard": "Aginte-panela",
+    "crm": "CRM",
+    "maps": "Mapak",
+    "reporting": "Txostenak",
+    "config": "Konfigurazioa",
+    "collapse": "Tolestu menua",
+    "expand": "Zabaldu menua",
+    "backToProjects": "Proiektuak"
+  },
+  "topbar": {
+    "activeProject": "Proiektua: {{name}}",
+    "notifications": "Jakinarazpenak"
+  },
+  "update": {
+    "available": "{{version}} bertsioa eskuragarri. Berrabiaraztean instalatuko da.",
+    "downloaded": "{{version}} eguneraketa prest. Berrabiarazi aplikatzeko."
+  },
+  "sections": {
+    "placeholder": "Atal hau geroko SPEC batean osatuko da."
   }
 }
