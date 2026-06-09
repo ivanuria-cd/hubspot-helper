@@ -1,4 +1,4 @@
-import type { TypographyOptions } from '@mui/material/styles';
+import type { TypographyVariantsOptions } from '@mui/material/styles';
 
 const POPPINS = '"Poppins", "Helvetica", "Arial", sans-serif';
 
@@ -7,7 +7,7 @@ const POPPINS = '"Poppins", "Helvetica", "Arial", sans-serif';
  * y semibold (600) para énfasis. Libre Baskerville Italic se reserva para
  * grupos semánticos puntuales y se aplica de forma manual donde corresponda.
  */
-export const muiTypography: TypographyOptions = {
+export const muiTypography: TypographyVariantsOptions = {
   fontFamily: POPPINS,
   h1: { fontFamily: POPPINS, fontWeight: 300, fontSize: '3rem', lineHeight: 1.1 },
   h2: { fontFamily: POPPINS, fontWeight: 300, fontSize: '2.25rem', lineHeight: 1.15 },
