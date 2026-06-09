@@ -6,5 +6,47 @@
     "ca": "Catalan",
     "eu": "Basque",
     "en": "English"
+  },
+  "welcome": {
+    "title": "RevOps Assistant",
+    "subtitle": "Revenue operations toolkit.",
+    "recentProjects": "Recent projects",
+    "newProject": "New project",
+    "emptyState": "First time? Set up your first project.",
+    "openProject": "Open project {{name}}",
+    "deleteProject": "Delete project {{name}}"
+  },
+  "dialog": {
+    "title": "New project",
+    "nameLabel": "Project name",
+    "descriptionLabel": "Description (optional)",
+    "cancel": "Cancel",
+    "create": "Create",
+    "errors": {
+      "nameRequired": "Name is required",
+      "nameTooLong": "Name cannot exceed {{max}} characters"
+    }
+  },
+  "sidebar": {
+    "label": "Capabilities menu",
+    "dashboard": "Dashboard",
+    "crm": "CRM",
+    "maps": "Maps",
+    "reporting": "Reporting",
+    "config": "Settings",
+    "collapse": "Collapse menu",
+    "expand": "Expand menu",
+    "backToProjects": "Projects"
+  },
+  "topbar": {
+    "activeProject": "Project: {{name}}",
+    "notifications": "Notifications"
+  },
+  "update": {
+    "available": "Version {{version}} available. It will install on restart.",
+    "downloaded": "Update {{version}} ready. Restart to apply it."
+  },
+  "sections": {
+    "placeholder": "This section will be completed in a later SPEC."
   }
 }

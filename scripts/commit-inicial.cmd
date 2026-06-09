@@ -10,7 +10,7 @@ git config user.email "ivan.uria@clouddistrict.com"
 
 REM 2) Anadir SOLO los ficheros tocados en SPEC-0001
 git add .gitignore .env.example .eslintrc.cjs .prettierrc.json README.md CLAUDE.md
-git add package.json pnpm-workspace.yaml tsconfig.json tsconfig.main.json tsconfig.renderer.json
+git add package.json package-lock.json tsconfig.json tsconfig.main.json tsconfig.renderer.json
 git add electron-builder.yml electron.vite.config.ts vitest.config.ts playwright.config.ts
 git add specs/README.md specs/SPEC-0001-fundacion-del-proyecto.md
 git add doc/instalacion.md doc/arquitectura.md

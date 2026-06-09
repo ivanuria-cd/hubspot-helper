@@ -7,5 +7,47 @@
     "eu": "Euskera",
     "en": "Inglés"
   },
+  "welcome": {
+    "title": "RevOps Assistant",
+    "subtitle": "Herramienta de operaciones de revenue.",
+    "recentProjects": "Proyectos recientes",
+    "newProject": "Nuevo proyecto",
+    "emptyState": "¿Primer uso? Configura tu primer proyecto.",
+    "openProject": "Abrir proyecto {{name}}",
+    "deleteProject": "Eliminar proyecto {{name}}"
+  },
+  "dialog": {
+    "title": "Nuevo proyecto",
+    "nameLabel": "Nombre del proyecto",
+    "descriptionLabel": "Descripción (opcional)",
+    "cancel": "Cancelar",
+    "create": "Crear",
+    "errors": {
+      "nameRequired": "El nombre es obligatorio",
+      "nameTooLong": "El nombre no puede superar {{max}} caracteres"
+    }
+  },
+  "sidebar": {
+    "label": "Menú de capacidades",
+    "dashboard": "Dashboard",
+    "crm": "CRM",
+    "maps": "Mapas",
+    "reporting": "Reporting",
+    "config": "Configuración",
+    "collapse": "Colapsar menú",
+    "expand": "Expandir menú",
+    "backToProjects": "Proyectos"
+  },
+  "topbar": {
+    "activeProject": "Proyecto: {{name}}",
+    "notifications": "Notificaciones"
+  },
+  "update": {
+    "available": "Versión {{version}} disponible. Se instalará al reiniciar.",
+    "downloaded": "Actualización {{version}} lista. Reinicia para aplicarla."
+  },
+  "sections": {
+    "placeholder": "Esta sección se completará en un SPEC posterior."
+  },
   "_fallbackProbe": "valor por defecto (es)"
 }

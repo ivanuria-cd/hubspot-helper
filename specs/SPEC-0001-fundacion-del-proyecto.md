@@ -161,7 +161,7 @@ text:      { primary: '#14072B', secondary: '#7F7790' }
 4. **Instalar dependencias base** — MUI v5, Poppins (fontsource), Libre Baskerville (fontsource), Zustand, electron-store, electron-updater, `i18next`, `react-i18next`, `@axe-core/playwright`
 5. **Crear tema MUI** — palette, typography, component overrides con tokens CD
 6. **Aplicar tema en App.tsx** — `ThemeProvider` + `CssBaseline`
-7. **Configurar i18next** — instancia con detección de idioma del SO, fallback a `es`, namespaces por feature; estructura de carpeta `locales/{es,ca,eu,en}/`; envolver App con `I18nextProvider`; selector de idioma en ajustes con persistencia en electron-store
+7. **Configurar i18next** — instancia con detección de idioma del SO, fallback a `es`, namespaces por feature; estructura de carpeta `locales/{es,ca,eu,en}/`; envolver App con `I18nextProvider`; selector de idioma en el header global (ver SPEC-0002) con persistencia en electron-store
 8. **Configurar electron-builder** — `electron-builder.yml`, scripts en package.json
 8. **Implementar updater.ts** — check-on-launch, eventos IPC hacia renderer
 9. **Crear estructura de carpetas** con READMEs
@@ -198,8 +198,8 @@ text:      { primary: '#14072B', secondary: '#7F7790' }
 - [ ] `pnpm build` genera paquetes para macOS y Windows sin errores *(idem)*
 - [x] El tema MUI refleja la paleta CD (sin colores fuera de paleta) — verificado por `palette.spec.ts` (en verde)
 - [x] El sistema de auto-update detecta y notifica actualizaciones — lógica implementada; eventos IPC verificados por `updater.spec.ts`. La detección real requiere un release publicado en GitHub.
-- [x] El selector de idioma cambia la UI entre es / ca / eu / en sin reiniciar — `LanguageSwitcher` + i18next implementados; verificado por `i18n/config.spec.ts`. El componente se integrará en la pantalla de ajustes en SPEC-0002.
-- [ ] axe-core no reporta violaciones AA en la ventana principal — test `a11y-baseline.spec.ts` escrito; se ejecuta tras `pnpm build` (Playwright + Electron)
+- [x] El selector de idioma cambia la UI entre es / ca / eu / en sin reiniciar — `LanguageSwitcher` + i18next implementados; verificado por `i18n/config.spec.ts`. En SPEC-0002 el componente se monta en el header global (TopBar + hero de bienvenida), disponible en todo el programa.
+- [x] axe-core no reporta violaciones AA en la ventana principal — `a11y-baseline.spec.ts` en verde tras `npm run build` (Playwright + Electron)
 - [x] Tests unitarios del SPEC en verde — 3 suites / 10 tests (`palette`, `updater`, `i18n/config`). Los funcionales (`app-launch`, `a11y-baseline`) requieren build + entorno gráfico.
 - [x] READMEs de carpetas principales creados
 - [ ] PR creada, revisada y mergeada en `main`
@@ -215,6 +215,13 @@ Desviaciones respecto al SPEC, justificadas:
 - **`git init` y `git push`** (tarea atómica 1) y `pnpm install` / `pnpm build` (tareas 11) **no** se ejecutaron: el entorno de trabajo es un sandbox Linux aislado cuyos `node_modules`/builds no sirven en Windows. Se entregan los comandos `cmd` para que el usuario los ejecute en su máquina.
 - **i18n**: detección del idioma del SO vía `i18next-browser-languagedetector` (orden `navigator`); preferencia persistida en electron-store a través de los canales IPC `settings:get-language` / `settings:set-language`. La clave `_fallbackProbe` existe **solo** en `es/common.json` de forma intencionada para que `i18n/config.spec.ts` verifique el fallback.
 - **Verificación**: tests unitarios ejecutados con Vitest en el sandbox (10/10 en verde). Typecheck completo y tests funcionales quedan pendientes de la instalación de dependencias en la máquina del usuario.
+
+### Ajustes durante la verificación (en SPEC-0002)
+
+- **Gestor de paquetes → npm**: se abandonó pnpm (su verja `ERR_PNPM_IGNORED_BUILDS` bloqueaba cada comando). El proyecto usa npm (`package-lock.json`, `npm ci`); eliminados `pnpm-lock.yaml` y `pnpm-workspace.yaml`; scripts `cmd` y SPEC-0000 §11 actualizados.
+- **`theme/typography.ts`**: `TypographyOptions` (no exportado por `@mui/material/styles`) corregido a `TypographyVariantsOptions`; afloraba al ejecutar `typecheck` con dependencias instaladas.
+- **`a11y-baseline.spec.ts`**: se sustituyó `@axe-core/playwright` (AxeBuilder) por inyección directa de `axe-core` vía `window.eval`; Electron no soporta `Target.createTarget`, que AxeBuilder usa para recorrer iframes. Dependencia `axe-core` declarada de forma explícita y retirada `@axe-core/playwright` (sin uso).
+- **`app-launch.spec.ts`**: la comprobación de visibilidad pasó de un check instantáneo a `expect.poll` (espera a `ready-to-show`); evita la carrera con el arranque del renderer. Sigue exigiendo `isVisible === true`, no relaja la aserción.
 
 ### Canales IPC añadidos (no previstos en §5)
 

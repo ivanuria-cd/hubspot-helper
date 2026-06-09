@@ -6,5 +6,47 @@
     "ca": "Català",
     "eu": "Basc",
     "en": "Anglès"
+  },
+  "welcome": {
+    "title": "RevOps Assistant",
+    "subtitle": "Eina d'operacions de revenue.",
+    "recentProjects": "Projectes recents",
+    "newProject": "Nou projecte",
+    "emptyState": "Primer cop? Configura el teu primer projecte.",
+    "openProject": "Obre el projecte {{name}}",
+    "deleteProject": "Elimina el projecte {{name}}"
+  },
+  "dialog": {
+    "title": "Nou projecte",
+    "nameLabel": "Nom del projecte",
+    "descriptionLabel": "Descripció (opcional)",
+    "cancel": "Cancel·la",
+    "create": "Crea",
+    "errors": {
+      "nameRequired": "El nom és obligatori",
+      "nameTooLong": "El nom no pot superar els {{max}} caràcters"
+    }
+  },
+  "sidebar": {
+    "label": "Menú de capacitats",
+    "dashboard": "Tauler",
+    "crm": "CRM",
+    "maps": "Mapes",
+    "reporting": "Informes",
+    "config": "Configuració",
+    "collapse": "Replega el menú",
+    "expand": "Desplega el menú",
+    "backToProjects": "Projectes"
+  },
+  "topbar": {
+    "activeProject": "Projecte: {{name}}",
+    "notifications": "Notificacions"
+  },
+  "update": {
+    "available": "Versió {{version}} disponible. S'instal·larà en reiniciar.",
+    "downloaded": "Actualització {{version}} a punt. Reinicia per aplicar-la."
+  },
+  "sections": {
+    "placeholder": "Aquesta secció es completarà en un SPEC posterior."
   }
 }
