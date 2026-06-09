@@ -59,7 +59,10 @@ Se aplica la guía de marca **Cloud District** en su totalidad. Resumen de restr
 - Ritmo dark/light obligatorio en transiciones de sección
 - Sin bullet points: usar em dashes (`—`) o numeración con badge lima
 - MUI theme personalizado con tokens CD — ningún componente usará colores MUI por defecto
+<<<<<<< HEAD
 - **Contraste del tono apagado (`#7F7790`, tertiary)**: sobre fondo claro `#FFFFFF` su ratio es 4.24:1, que **no** cumple AA para texto normal (≥4.5:1) pero **sí** para texto grande (≥3:1). Regla: `#7F7790` solo se usa en texto grande (≥24px, o ≥18.66px en negrita) o en elementos decorativos/bordes. Para texto pequeño secundario se usa `#14072B` (deepNavy / `text.primary`). Así se concilian la marca (§4) y la accesibilidad AA (§3).
+=======
+>>>>>>> 17940ea55cdc1fa46bc12fdc89972681cd549711
 
 ---
 
@@ -248,8 +251,13 @@ Los ataques de cadena de suministro sobre paquetes npm son una amenaza activa y 
 ### Reglas obligatorias al añadir dependencias
 
 - **Antigüedad mínima de 10 días**: antes de añadir o actualizar un paquete, verificar en [npmjs.com](https://www.npmjs.com) que la versión específica tiene al menos 10 días de publicación. Las versiones recién publicadas no han tenido tiempo de revisión por la comunidad.
+<<<<<<< HEAD
 - **Auditoría previa**: ejecutar `npm audit` y revisar el resultado antes de hacer commit de cualquier cambio en `package.json` o `package-lock.json`.
 - **Lockfile obligatorio**: `package-lock.json` siempre versionado. Nunca instalar sin lockfile en CI.
+=======
+- **Auditoría previa**: ejecutar `pnpm audit` y revisar el resultado antes de hacer commit de cualquier cambio en `package.json` o `pnpm-lock.yaml`.
+- **Lockfile obligatorio**: `pnpm-lock.yaml` siempre versionado. Nunca instalar sin lockfile en CI.
+>>>>>>> 17940ea55cdc1fa46bc12fdc89972681cd549711
 - **Scripts de instalación**: evaluar la necesidad de hooks `preinstall`/`postinstall` en cualquier dependencia nueva. Si un paquete legítimo no los necesita y los tiene, es señal de alerta.
 - **Alcance de scopes desconocidos**: desconfiar de paquetes bajo scopes de organizaciones conocidas (ej: `@redhat-cloud-services`, `@aws-sdk`) publicados recientemente sin historial largo de versiones.
 

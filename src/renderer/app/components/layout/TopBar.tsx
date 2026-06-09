@@ -11,7 +11,10 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useShellStore } from '@renderer/app/store/shell-store';
+<<<<<<< HEAD
 import { LanguageSwitcher } from '@shared/components/LanguageSwitcher';
+=======
+>>>>>>> 17940ea55cdc1fa46bc12fdc89972681cd549711
 import { NAV_ITEMS } from './nav-items';
 
 function useSectionLabelKey(projectBase: string): string | null {
@@ -47,7 +50,11 @@ export function TopBar(): JSX.Element {
           <Link
             component="button"
             underline="hover"
+<<<<<<< HEAD
             color="text.primary"
+=======
+            color="text.secondary"
+>>>>>>> 17940ea55cdc1fa46bc12fdc89972681cd549711
             onClick={() => navigate('/')}
           >
             {t('sidebar.backToProjects')}
@@ -57,17 +64,28 @@ export function TopBar(): JSX.Element {
               {activeProject.name}
             </Typography>
           ) : null}
+<<<<<<< HEAD
           {sectionKey ? <Typography color="text.primary">{t(sectionKey)}</Typography> : null}
         </Breadcrumbs>
 
         {activeProject ? (
           <Typography variant="body2" color="text.primary" noWrap>
+=======
+          {sectionKey ? <Typography color="text.secondary">{t(sectionKey)}</Typography> : null}
+        </Breadcrumbs>
+
+        {activeProject ? (
+          <Typography variant="body2" color="text.secondary" noWrap>
+>>>>>>> 17940ea55cdc1fa46bc12fdc89972681cd549711
             {t('topbar.activeProject', { name: activeProject.name })}
           </Typography>
         ) : null}
 
+<<<<<<< HEAD
         <LanguageSwitcher />
 
+=======
+>>>>>>> 17940ea55cdc1fa46bc12fdc89972681cd549711
         <IconButton aria-label={t('topbar.notifications')} color="inherit">
           <Badge color="secondary" variant="dot" invisible={!hasUpdate}>
             <NotificationsIcon />

@@ -40,8 +40,12 @@ export function ProjectCard({ project, index, onOpen, onDelete }: ProjectCardPro
             {project.name}
           </Typography>
           {project.description ? (
+<<<<<<< HEAD
             // texto pequeño: deepNavy (text.primary) en vez de tertiary para cumplir AA
             <Typography variant="body2" color="text.primary" noWrap>
+=======
+            <Typography variant="body2" color="text.secondary" noWrap>
+>>>>>>> 17940ea55cdc1fa46bc12fdc89972681cd549711
               {project.description}
             </Typography>
           ) : null}

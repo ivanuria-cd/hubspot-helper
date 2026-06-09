@@ -3,7 +3,10 @@ import { Box, Button, Container, List, Stack, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { useTranslation } from 'react-i18next';
 import { cdPalette } from '@renderer/theme';
+<<<<<<< HEAD
 import { LanguageSwitcher } from '@shared/components/LanguageSwitcher';
+=======
+>>>>>>> 17940ea55cdc1fa46bc12fdc89972681cd549711
 import type { NewProjectInput, Project } from '@shared/types/project';
 import { ProjectCard } from './ProjectCard';
 import { NewProjectDialog } from './NewProjectDialog';
@@ -65,6 +68,7 @@ export function WelcomeScreen({
                 {t('welcome.subtitle')}
               </Typography>
             </Box>
+<<<<<<< HEAD
             <Stack spacing={2} alignItems="flex-end">
               <LanguageSwitcher onDark />
               <Typography
@@ -75,6 +79,15 @@ export function WelcomeScreen({
                 Cloud District
               </Typography>
             </Stack>
+=======
+            <Typography
+              component="span"
+              aria-label="Cloud District"
+              sx={{ fontWeight: 600, whiteSpace: 'nowrap', opacity: 0.9 }}
+            >
+              Cloud District
+            </Typography>
+>>>>>>> 17940ea55cdc1fa46bc12fdc89972681cd549711
           </Stack>
         </Container>
       </Box>
@@ -110,11 +123,15 @@ export function WelcomeScreen({
               ))}
             </List>
           ) : (
+<<<<<<< HEAD
             <Typography
               variant="body1"
               color="text.secondary"
               sx={{ py: 4, fontSize: '1.5rem', fontWeight: 300 }}
             >
+=======
+            <Typography variant="body1" color="text.secondary" sx={{ py: 4 }}>
+>>>>>>> 17940ea55cdc1fa46bc12fdc89972681cd549711
               {t('welcome.emptyState')}
             </Typography>
           )}

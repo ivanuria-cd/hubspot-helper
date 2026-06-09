@@ -1,0 +1,9 @@
+packages:
+  - '.'
+  - 'connectors/*'
+allowBuilds:
+  electron: true
+  esbuild: true
+onlyBuiltDependencies:
+  - electron
+  - esbuild
