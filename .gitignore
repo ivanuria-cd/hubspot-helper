@@ -1,0 +1,14 @@
+node_modules/
+dist/
+out/
+.vite/
+*.log
+.env
+.DS_Store
+sandbox/
+coverage/
+test-results/
+playwright-report/
+.idea/
+.vscode/*
+!.vscode/extensions.json

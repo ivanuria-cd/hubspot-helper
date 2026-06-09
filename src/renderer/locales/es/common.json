@@ -1,0 +1,11 @@
+{
+  "appName": "RevOps Assistant",
+  "language": {
+    "label": "Idioma",
+    "es": "Castellano",
+    "ca": "Catalán",
+    "eu": "Euskera",
+    "en": "Inglés"
+  },
+  "_fallbackProbe": "valor por defecto (es)"
+}

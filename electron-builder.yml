@@ -1,0 +1,23 @@
+appId: com.clouddistrict.revops
+productName: RevOps Assistant
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+publish:
+  provider: github
+  owner: cloud-district
+  repo: revops-app
+mac:
+  target: dmg
+  category: public.app-category.productivity
+win:
+  target: nsis
+linux:
+  target: AppImage
+  category: Office
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
