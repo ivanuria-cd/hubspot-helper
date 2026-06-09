@@ -13,9 +13,16 @@ test('la app arranca y la ventana principal es visible', async () => {
   const window = await app.firstWindow();
   await expect(window).toHaveTitle('RevOps Assistant');
 
-  const isVisible = await app.evaluate(({ BrowserWindow }) => {
-    const win = BrowserWindow.getAllWindows()[0];
-    return Boolean(win && win.isVisible());
-  });
-  expect(isVisible).toBe(true);
+  // La ventana se muestra en 'ready-to-show'; se espera a que sea visible
+  // en lugar de comprobarlo de inmediato (evita la carrera con el arranque del renderer).
+  await expect
+    .poll(
+      () =>
+        app.evaluate(({ BrowserWindow }) => {
+          const win = BrowserWindow.getAllWindows()[0];
+          return Boolean(win && win.isVisible());
+        }),
+      { timeout: 10_000 },
+    )
+    .toBe(true);
 });
