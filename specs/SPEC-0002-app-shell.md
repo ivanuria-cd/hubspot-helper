@@ -40,16 +40,12 @@ Implementar la estructura visual y de navegación completa de la aplicación: pa
 
 ### Layout principal
 - Tres zonas: `<Sidebar>` | `<TopBar>` | `<MainContent>`.
-<<<<<<< HEAD
 - `<TopBar>` muestra breadcrumb del contexto actual + nombre del proyecto activo + **selector de idioma global** + indicador de update.
 
 ### Selección de idioma
 - El selector de idioma (`LanguageSwitcher`, definido en SPEC-0001) es **global** y vive en el header de la ventana, no en la configuración del proyecto.
 - Se monta en el `<TopBar>` (todas las pantallas dentro de un proyecto) y en el hero de la pantalla de bienvenida (variante `onDark`), de modo que está disponible en todo el programa, incluido el primer arranque sin proyecto.
 - Cambia el idioma en caliente (sin reiniciar) y persiste la preferencia vía electron-store.
-=======
-- `<TopBar>` muestra breadcrumb del contexto actual + nombre del proyecto activo + indicador de update.
->>>>>>> 17940ea55cdc1fa46bc12fdc89972681cd549711
 
 ---
 
@@ -61,11 +57,7 @@ Implementar la estructura visual y de navegación completa de la aplicación: pa
 ┌─────────────────────────────────────────────────────────┐
 │  [DARK #090017]                                         │
 │                                                         │
-<<<<<<< HEAD
 │  RevOps Assistant       [Idioma▾]  [Cloud District]     │
-=======
-│  RevOps Assistant          [Cloud District logo]        │
->>>>>>> 17940ea55cdc1fa46bc12fdc89972681cd549711
 │  *Herramienta de operaciones de revenue.*               │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
@@ -91,11 +83,7 @@ Campos: Nombre del proyecto, Descripción (opcional). La configuración de conec
 
 ```
 ┌──────┬────────────────────────────────────────────────┐
-<<<<<<< HEAD
 │  S   │  TopBar: [Breadcrumb]  [Proyecto: X] [Idioma▾] [🔔] │
-=======
-│  S   │  TopBar: [Breadcrumb]  [Proyecto: X]  [🔔]     │
->>>>>>> 17940ea55cdc1fa46bc12fdc89972681cd549711
 │  I   ├────────────────────────────────────────────────┤
 │  D   │                                                │
 │  E   │              <MainContent />                   │
@@ -201,12 +189,8 @@ interface Project {
 - [x] La navegación entre rutas funciona sin recargas (React Router memory)
 - [x] El banner de update aparece cuando hay una versión nueva disponible (`UpdateBanner`)
 - [x] Los colores y tipografía respetan la guía CD (sin verde lima sobre fondo oscuro; lima solo en badge/Chip e indicador de activo)
-<<<<<<< HEAD
 - [x] El selector de idioma está en el header global (`TopBar` + hero de bienvenida) y cambia el idioma en todo el programa sin reiniciar
 - [x] Todos los tests del SPEC en verde — `npm run typecheck` y `npm run test:unit` pasan en local
-=======
-- [ ] Todos los tests del SPEC en verde — _tests escritos; ejecutar `npm install` + `npm run test` en local para verificar_
->>>>>>> 17940ea55cdc1fa46bc12fdc89972681cd549711
 - [ ] PR creada, revisada y mergeada en `main`
 
 ---
@@ -222,7 +206,6 @@ Implementado en esta iteración:
 - **Layout** — `Sidebar` (Drawer permanent + rail mode + grupos + indicador lima), `TopBar` (breadcrumb + proyecto activo + badge de update), `MainLayout` (carga el proyecto activo vía IPC), `UpdateBanner`.
 - **Router** — `renderer/app/router.tsx` con memory router: `/`, `/project/:projectId/*` (dashboard, crm, crm/maps, reporting, config) y fallback.
 - **i18n** — claves `welcome|dialog|sidebar|topbar|update|sections` en los cuatro locales (es, ca, eu, en).
-<<<<<<< HEAD
 - **Selector de idioma global** — el `LanguageSwitcher` se trasladó al header: se monta en `TopBar` y en el hero de `WelcomeScreen` (variante `onDark`), y se retiró de `ConfigSection` (ahora placeholder). Disponible en todo el programa, incluido el arranque sin proyecto. La preferencia sigue persistiéndose vía electron-store (`settings:*`).
 - **Tests** — unitarios `projects.spec.ts`, `shell-store.spec.ts`, `WelcomeScreen.spec.tsx`, `NewProjectDialog.spec.tsx`; funcionales `welcome-flow.spec.ts`, `project-switch.spec.ts`. Vitest configurado con `jsdom` para `.tsx`.
 - **Dependencias** — añadidas `react-router-dom`, `@mui/icons-material`, y dev: `@testing-library/{react,jest-dom,user-event}`, `jsdom`.
@@ -235,9 +218,3 @@ Arreglos durante la verificación:
 - **Contraste AA del texto secundario** — `a11y-baseline.spec.ts` (ya operativo) detectó que el tono apagado `#7F7790` sobre blanco no cumple AA para texto normal (4.24:1). Aplicada la regla de SPEC-0000 §4: el estado vacío de bienvenida se sube a texto grande (24px) y el resto de texto secundario pequeño (descripciones de tarjeta, breadcrumb/topbar, placeholders de sección) pasa a `text.primary` (deepNavy).
 
 Estado: `npm run typecheck` y `npm run test:unit` en verde. Pendiente: reejecutar `npm run test:e2e` tras el fix de contraste, y abrir la PR.
-=======
-- **Tests** — unitarios `projects.spec.ts`, `shell-store.spec.ts`, `WelcomeScreen.spec.tsx`, `NewProjectDialog.spec.tsx`; funcionales `welcome-flow.spec.ts`, `project-switch.spec.ts`. Vitest configurado con `jsdom` para `.tsx`.
-- **Dependencias** — añadidas `react-router-dom`, `@mui/icons-material`, y dev: `@testing-library/{react,jest-dom,user-event}`, `jsdom`. `onlyBuiltDependencies: [electron, esbuild]` en `pnpm-workspace.yaml` (ubicación que pnpm v11 lee en proyectos workspace) para autorizar de forma explícita y versionada solo esos dos scripts de build (pnpm los ignora por defecto; ambos requieren su binario nativo). Alineado con SPEC-0000 §11.
-
-Pendiente (entorno local): ejecutar `npm install` y `npm run typecheck && npm run test`, y abrir la PR. No se pudo correr la batería completa en el sandbox de generación (instalación de Electron/Playwright no viable bajo sus límites).
->>>>>>> 17940ea55cdc1fa46bc12fdc89972681cd549711
