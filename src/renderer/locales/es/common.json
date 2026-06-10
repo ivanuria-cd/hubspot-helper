@@ -34,13 +34,55 @@
     "maps": "Mapas",
     "reporting": "Reporting",
     "config": "Configuración",
+    "help": "Ayuda",
     "collapse": "Colapsar menú",
     "expand": "Expandir menú",
     "backToProjects": "Proyectos"
   },
+  "help": {
+    "empty": "Todavía no hay tutoriales disponibles.",
+    "listLabel": "Lista de tutoriales",
+    "features": {
+      "hubspot": "HubSpot"
+    }
+  },
   "topbar": {
     "activeProject": "Proyecto: {{name}}",
-    "notifications": "Notificaciones"
+    "notifications": "Notificaciones",
+    "environmentLabel": "Entorno activo de HubSpot: {{environment}}",
+    "environment": {
+      "production": "PROD",
+      "sandbox": "SANDBOX"
+    }
+  },
+  "environment": {
+    "production": "Producción",
+    "sandbox": "Sandbox"
+  },
+  "connectors": {
+    "title": "Conectores",
+    "hubspot": "HubSpot",
+    "hubspotDescription": "Conecta tu portal de HubSpot mediante un Private App Token."
+  },
+  "hubspot": {
+    "title": "Conectores / HubSpot",
+    "environmentTabs": "Selección de entorno",
+    "tokenLabel": "Private App Token",
+    "tokenHelp": "El token se guarda cifrado en el keychain del sistema; nunca se muestra.",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "revoke": "Revocar",
+    "connectionStatus": "Estado de conexión",
+    "connected": "Conectado",
+    "notConfigured": "No configurado",
+    "activeBadge": "Entorno activo",
+    "useAsActive": "Usar como entorno activo",
+    "portal": "Portal: {{name}} ({{id}})",
+    "apiVersion": "Versión API en uso: {{version}}",
+    "scopes": "Scopes detectados",
+    "loading": "Comprobando conexión…",
+    "saveSuccess": "Conectado correctamente a {{portal}}.",
+    "saveError": "No se pudo conectar: {{error}}"
   },
   "update": {
     "available": "Versión {{version}} disponible. Se instalará al reiniciar.",

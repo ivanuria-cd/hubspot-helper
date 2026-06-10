@@ -2,6 +2,7 @@ import {
   AppBar,
   Badge,
   Breadcrumbs,
+  Chip,
   IconButton,
   Link,
   Toolbar,
@@ -29,6 +30,7 @@ export function TopBar(): JSX.Element {
   const navigate = useNavigate();
   const activeProject = useShellStore((state) => state.activeProject);
   const updateStatus = useShellStore((state) => state.updateStatus);
+  const hubspotEnvironment = useShellStore((state) => state.hubspotEnvironment);
 
   const projectBase = activeProject ? `/project/${activeProject.id}` : '';
   const sectionKey = useSectionLabelKey(projectBase);
@@ -64,6 +66,17 @@ export function TopBar(): JSX.Element {
           <Typography variant="body2" color="text.primary" noWrap>
             {t('topbar.activeProject', { name: activeProject.name })}
           </Typography>
+        ) : null}
+
+        {hubspotEnvironment ? (
+          <Chip
+            size="small"
+            color={hubspotEnvironment === 'sandbox' ? 'secondary' : 'primary'}
+            label={t(`topbar.environment.${hubspotEnvironment}`)}
+            aria-label={t('topbar.environmentLabel', {
+              environment: t(`topbar.environment.${hubspotEnvironment}`),
+            })}
+          />
         ) : null}
 
         <LanguageSwitcher />

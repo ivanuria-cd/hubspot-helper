@@ -34,13 +34,55 @@
     "maps": "Mapak",
     "reporting": "Txostenak",
     "config": "Konfigurazioa",
+    "help": "Laguntza",
     "collapse": "Tolestu menua",
     "expand": "Zabaldu menua",
     "backToProjects": "Proiektuak"
   },
+  "help": {
+    "empty": "Oraindik ez dago tutorialik eskuragarri.",
+    "listLabel": "Tutorialen zerrenda",
+    "features": {
+      "hubspot": "HubSpot"
+    }
+  },
   "topbar": {
     "activeProject": "Proiektua: {{name}}",
-    "notifications": "Jakinarazpenak"
+    "notifications": "Jakinarazpenak",
+    "environmentLabel": "HubSpot ingurune aktiboa: {{environment}}",
+    "environment": {
+      "production": "PROD",
+      "sandbox": "SANDBOX"
+    }
+  },
+  "environment": {
+    "production": "Ekoizpena",
+    "sandbox": "Sandbox"
+  },
+  "connectors": {
+    "title": "Konektoreak",
+    "hubspot": "HubSpot",
+    "hubspotDescription": "Konektatu zure HubSpot ataria Private App Token baten bidez."
+  },
+  "hubspot": {
+    "title": "Konektoreak / HubSpot",
+    "environmentTabs": "Ingurune-hautaketa",
+    "tokenLabel": "Private App Token",
+    "tokenHelp": "Tokena sistemaren keychain-ean zifratuta gordetzen da; ez da inoiz erakusten.",
+    "save": "Gorde",
+    "saving": "Gordetzen…",
+    "revoke": "Errebokatu",
+    "connectionStatus": "Konexio-egoera",
+    "connected": "Konektatuta",
+    "notConfigured": "Konfiguratu gabe",
+    "activeBadge": "Ingurune aktiboa",
+    "useAsActive": "Erabili ingurune aktibo gisa",
+    "portal": "Ataria: {{name}} ({{id}})",
+    "apiVersion": "Erabilitako API bertsioa: {{version}}",
+    "scopes": "Detektatutako scope-ak",
+    "loading": "Konexioa egiaztatzen…",
+    "saveSuccess": "{{portal}} atarira behar bezala konektatuta.",
+    "saveError": "Ezin izan da konektatu: {{error}}"
   },
   "update": {
     "available": "{{version}} bertsioa eskuragarri. Berrabiaraztean instalatuko da.",

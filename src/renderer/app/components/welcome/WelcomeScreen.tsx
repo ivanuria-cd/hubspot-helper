@@ -4,6 +4,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { useTranslation } from 'react-i18next';
 import { cdPalette } from '@renderer/theme';
 import { LanguageSwitcher } from '@shared/components/LanguageSwitcher';
+import cloudDistrictLogo from '@shared/assets/cloud-district-logo.svg';
 import type { NewProjectInput, Project } from '@shared/types/project';
 import { ProjectCard } from './ProjectCard';
 import { NewProjectDialog } from './NewProjectDialog';
@@ -41,41 +42,33 @@ export function WelcomeScreen({
         }}
       >
         <Container maxWidth="md">
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="flex-start"
-            spacing={2}
-          >
-            <Box>
-              <Typography variant="h1" component="h1">
-                {t('welcome.title')}
-              </Typography>
-              <Typography
-                variant="h5"
-                component="p"
-                sx={{
-                  mt: 2,
-                  fontFamily: '"Libre Baskerville", serif',
-                  fontStyle: 'italic',
-                  fontWeight: 400,
-                  color: cdPalette.secondary,
-                }}
-              >
-                {t('welcome.subtitle')}
-              </Typography>
-            </Box>
-            <Stack spacing={2} alignItems="flex-end">
-              <LanguageSwitcher onDark />
-              <Typography
-                component="span"
-                aria-label="Cloud District"
-                sx={{ fontWeight: 600, whiteSpace: 'nowrap', opacity: 0.9 }}
-              >
-                Cloud District
-              </Typography>
-            </Stack>
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
+            <Box
+              component="img"
+              src={cloudDistrictLogo}
+              alt="Cloud District"
+              sx={{ height: 48, display: 'block', mb: { xs: 4, md: 5 } }}
+            />
+            <LanguageSwitcher onDark />
           </Stack>
+          <Box>
+            <Typography variant="h1" component="h1">
+              {t('welcome.title')}
+            </Typography>
+            <Typography
+              variant="h5"
+              component="p"
+              sx={{
+                mt: 2,
+                fontFamily: '"Libre Baskerville", serif',
+                fontStyle: 'italic',
+                fontWeight: 400,
+                color: cdPalette.secondary,
+              }}
+            >
+              {t('welcome.subtitle')}
+            </Typography>
+          </Box>
         </Container>
       </Box>
 

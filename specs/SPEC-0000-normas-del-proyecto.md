@@ -215,6 +215,7 @@ Toda característica de la aplicación — empezando por los conectores (HubSpot
 - Si la tarea tiene prerrequisitos (ej: "debes tener configurado el conector HubSpot"), se indican al inicio.
 - Los tutoriales se escriben en castellano como idioma base; el resto de idiomas se añaden cuando el texto de la UI esté traducido.
 - Cada SPEC de característica debe listar en su sección §9 los tutoriales que genera y su ruta en `doc/tutoriales/`.
+- **Visibilidad en la app**: los tutoriales son para el usuario final de la aplicación y **deben poder verse desde la interfaz**, no solo como ficheros Markdown del repositorio. Se exponen en una sección **Ayuda** accesible desde el menú lateral, que lista los tutoriales por característica y los renderiza dentro de la app. El visor de Ayuda (componente, ruta y carga de los `.md`) queda definido en **SPEC-0002 (App Shell)**; cada SPEC de característica solo aporta sus ficheros en `doc/tutoriales/<feature>/` y se muestran automáticamente.
 
 ### Estructura de un tutorial
 

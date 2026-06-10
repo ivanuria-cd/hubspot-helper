@@ -4,13 +4,20 @@ import { createMainWindow } from './window';
 import { checkForUpdates, registerUpdaterEvents } from './updater';
 import { getLanguage, setLanguage } from './settings';
 import { createElectronProjectsService } from './projects';
+import { createElectronHubSpotConnector } from './connectors/hubspot';
 import type { SupportedLanguage } from '@shared/i18n/languages';
 import type { NewProjectInput, Project } from '@shared/types/project';
+import type {
+  HubSpotEnvironmentInput,
+  HubSpotRequest,
+  HubSpotSaveTokenInput,
+} from '@shared/types/hubspot';
 
 let mainWindow: BrowserWindow | null = null;
 
 function registerIpcHandlers(): void {
   const projects = createElectronProjectsService();
+  const hubspot = createElectronHubSpotConnector();
 
   ipcMain.handle(IpcChannels.appGetVersion, () => app.getVersion());
   ipcMain.handle(IpcChannels.updaterCheck, () => checkForUpdates());
@@ -25,6 +32,21 @@ function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.projectsUpdate, (_event, project: Project) => projects.update(project));
   ipcMain.handle(IpcChannels.projectsDelete, (_event, id: string) => projects.remove(id));
   ipcMain.handle(IpcChannels.projectsSetActive, (_event, id: string) => projects.setActive(id));
+  ipcMain.handle(IpcChannels.hubspotSaveToken, (_event, input: HubSpotSaveTokenInput) =>
+    hubspot.saveToken(input),
+  );
+  ipcMain.handle(IpcChannels.hubspotGetStatus, (_event, projectId: string) =>
+    hubspot.getStatus(projectId),
+  );
+  ipcMain.handle(IpcChannels.hubspotRevokeToken, (_event, input: HubSpotEnvironmentInput) =>
+    hubspot.revokeToken(input),
+  );
+  ipcMain.handle(IpcChannels.hubspotSetEnvironment, (_event, input: HubSpotEnvironmentInput) =>
+    hubspot.setEnvironment(input),
+  );
+  ipcMain.handle(IpcChannels.hubspotRequest, (_event, request: HubSpotRequest) =>
+    hubspot.request(request),
+  );
 }
 
 function applyContentSecurityPolicy(): void {

@@ -12,6 +12,7 @@ export function MainLayout(): JSX.Element | null {
   const navigate = useNavigate();
   const activeProject = useShellStore((state) => state.activeProject);
   const setActiveProject = useShellStore((state) => state.setActiveProject);
+  const setHubspotEnvironment = useShellStore((state) => state.setHubspotEnvironment);
   const [resolved, setResolved] = useState(false);
 
   useEffect(() => {
@@ -35,6 +36,18 @@ export function MainLayout(): JSX.Element | null {
       cancelled = true;
     };
   }, [projectId, activeProject, setActiveProject, navigate]);
+
+  useEffect(() => {
+    if (!projectId) return undefined;
+    let cancelled = false;
+    void window.api.hubspotGetStatus(projectId).then((status) => {
+      if (!cancelled) setHubspotEnvironment(status?.activeEnvironment ?? null);
+    });
+    return () => {
+      cancelled = true;
+      setHubspotEnvironment(null);
+    };
+  }, [projectId, setHubspotEnvironment]);
 
   if (!resolved) return null;
 

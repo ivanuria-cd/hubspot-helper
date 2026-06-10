@@ -34,13 +34,55 @@
     "maps": "Mapes",
     "reporting": "Informes",
     "config": "Configuració",
+    "help": "Ajuda",
     "collapse": "Replega el menú",
     "expand": "Desplega el menú",
     "backToProjects": "Projectes"
   },
+  "help": {
+    "empty": "Encara no hi ha tutorials disponibles.",
+    "listLabel": "Llista de tutorials",
+    "features": {
+      "hubspot": "HubSpot"
+    }
+  },
   "topbar": {
     "activeProject": "Projecte: {{name}}",
-    "notifications": "Notificacions"
+    "notifications": "Notificacions",
+    "environmentLabel": "Entorn actiu de HubSpot: {{environment}}",
+    "environment": {
+      "production": "PROD",
+      "sandbox": "SANDBOX"
+    }
+  },
+  "environment": {
+    "production": "Producció",
+    "sandbox": "Sandbox"
+  },
+  "connectors": {
+    "title": "Connectors",
+    "hubspot": "HubSpot",
+    "hubspotDescription": "Connecta el teu portal de HubSpot mitjançant un Private App Token."
+  },
+  "hubspot": {
+    "title": "Connectors / HubSpot",
+    "environmentTabs": "Selecció d'entorn",
+    "tokenLabel": "Private App Token",
+    "tokenHelp": "El token es desa xifrat al keychain del sistema; mai no es mostra.",
+    "save": "Desa",
+    "saving": "Desant…",
+    "revoke": "Revoca",
+    "connectionStatus": "Estat de connexió",
+    "connected": "Connectat",
+    "notConfigured": "No configurat",
+    "activeBadge": "Entorn actiu",
+    "useAsActive": "Usa com a entorn actiu",
+    "portal": "Portal: {{name}} ({{id}})",
+    "apiVersion": "Versió de l'API en ús: {{version}}",
+    "scopes": "Scopes detectats",
+    "loading": "Comprovant la connexió…",
+    "saveSuccess": "Connectat correctament a {{portal}}.",
+    "saveError": "No s'ha pogut connectar: {{error}}"
   },
   "update": {
     "available": "Versió {{version}} disponible. S'instal·larà en reiniciar.",

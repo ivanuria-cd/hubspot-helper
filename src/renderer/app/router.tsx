@@ -3,6 +3,8 @@ import { MainLayout } from './components/layout/MainLayout';
 import { WelcomeRoute } from './components/welcome/WelcomeRoute';
 import { SectionPlaceholder } from './components/sections/SectionPlaceholder';
 import { ConfigSection } from './components/sections/ConfigSection';
+import { HubSpotConnectorScreen } from '@renderer/features/connector-hubspot';
+import { HelpSection } from '@renderer/features/help';
 
 export const routes: RouteObject[] = [
   { path: '/', element: <WelcomeRoute /> },
@@ -15,6 +17,8 @@ export const routes: RouteObject[] = [
       { path: 'crm/maps', element: <SectionPlaceholder titleKey="sidebar.maps" /> },
       { path: 'reporting', element: <SectionPlaceholder titleKey="sidebar.reporting" /> },
       { path: 'config', element: <ConfigSection /> },
+      { path: 'config/connectors/hubspot', element: <HubSpotConnectorScreen /> },
+      { path: 'help', element: <HelpSection /> },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },

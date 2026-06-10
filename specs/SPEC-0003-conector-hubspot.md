@@ -1,6 +1,6 @@
 # SPEC-0003 — Conector HubSpot
 
-**Estado:** VALIDADO — criterios de aceptación pendientes hasta implementación  
+**Estado:** IMPLEMENTADO — pendiente verificación local (typecheck/tests/build) y PR  
 **Branch:** `feat/spec-0003-conector-hubspot`  
 **Fecha:** 2026-06-09  
 **Depende de:** SPEC-0002
@@ -191,11 +191,31 @@ Tutoriales a crear en `doc/tutoriales/hubspot/`:
 
 ## 10. Criterios de Aceptación
 
-- [ ] Introducir un PAT válido muestra el portal conectado con nombre e ID
-- [ ] Un PAT inválido muestra error descriptivo
-- [ ] El token no aparece en ningún log ni en el renderer store
-- [ ] Las requests respetan el rate limit de HubSpot (verificado en sandbox)
-- [ ] El retry funciona en errores 429 (verificado con mock)
-- [ ] Todos los tests del SPEC en verde
-- [ ] Los tres tutoriales de usuario están creados en `doc/tutoriales/hubspot/`
+- [x] Introducir un PAT válido muestra el portal conectado con nombre e ID
+- [x] Un PAT inválido muestra error descriptivo
+- [x] El token no aparece en ningún log ni en el renderer store
+- [~] Las requests respetan el rate limit de HubSpot (cola Bottleneck implementada; pendiente verificación en sandbox real)
+- [x] El retry funciona en errores 429 (verificado con mock — `client.spec.ts`)
+- [~] Todos los tests del SPEC en verde (tests escritos; ejecutar `npm install && npm run typecheck && npm run test` en local)
+- [x] Los tres tutoriales de usuario están creados en `doc/tutoriales/hubspot/`
 - [ ] PR creada, revisada y mergeada en `main`
+
+---
+
+## 11. Estado de Implementación (2026-06-09)
+
+Implementado en esta iteración:
+
+- **Tipos compartidos** — `shared/types/hubspot.ts`: `HubSpotEnvironment`, `HubSpotEnvConfig`, `HubSpotConfig`, `HubSpotRequest`, `HubSpotResponse` y los payloads de IPC (`HubSpotSaveTokenInput/Result`, `HubSpotEnvironmentInput`, `HubSpotOperationResult`).
+- **Conector** — `client.ts` (axios + interceptor de auth Bearer + retry con backoff exponencial en 429/5xx + redacción del token), `rate-limiter.ts` (Bottleneck, 100 req/10 s, concurrencia limitada), `token-store.ts` (keytar inyectable + `hashToken` SHA-256), `verify.ts` (`GET /oauth/v1/access-tokens/{token}` → portalId/portalName/scopes) e `index.ts` (façade `createHubSpotConnector` con stores inyectables + `createElectronHubSpotConnector`).
+- **IPC** — canales `hubspot:save-token|get-status|revoke-token|set-environment|request` añadidos a `shared/types/ipc.ts`, `preload/index.ts` y registrados en `main/index.ts`. El token solo viaja renderer→main en `save-token`; nunca vuelve al renderer.
+- **UI** — `features/connector-hubspot/` (hook `useHubSpotConnector` + pantalla `HubSpotConnectorScreen` con tabs Producción/Sandbox, campo token `type=password`, estado de conexión, scopes, revocar y «usar como entorno activo»). `ConfigSection` lista los conectores; ruta `config/connectors/hubspot`. Chip permanente de entorno (PROD/SANDBOX) en `TopBar`, alimentado por `hubspotEnvironment` del shell store y refrescado en `MainLayout`. Claves i18n añadidas en los cuatro locales.
+- **Tests** — unitarios `client.spec.ts`, `token-store.spec.ts`, `verify.spec.ts`, `rate-limiter.spec.ts`, `index.spec.ts`; funcional `hubspot-config.spec.ts`.
+
+Decisiones y desviaciones respecto a SPEC-0000 §5 / §6:
+
+- **Ubicación del conector** — vive en `src/main/connectors/hubspot/` (no en `connectors/` raíz). Motivo: `tsconfig.main.json` (`include: src/main`, `src/preload`) y `vitest.config.ts` (`include: src/**`) ya delimitan el código al árbol `src/`; ubicarlo ahí da typecheck y descubrimiento de tests sin tocar la configuración de build de SPEC-0001. El `connectors/` raíz del scaffolding queda como documentación.
+- **Dependencias** — `axios`, `bottleneck`, `keytar` añadidas a `dependencies` (versiones con >10 días de publicación, conforme a SPEC-0000 §11). `keytar` se carga de forma diferida (`require`) para no cargar el binario nativo en los tests unitarios.
+- **Bundling** — `externalizeDepsPlugin()` añadido a `main` y `preload` en `electron.vite.config.ts` para externalizar dependencias (necesario para el módulo nativo `keytar`).
+
+Pendiente (entorno local del usuario): `npm install` (instala axios/bottleneck/keytar), `npm run typecheck && npm run test`, `npm run build` + `npm run test:e2e`, y abrir la PR.

@@ -4,6 +4,15 @@
  */
 import type { SupportedLanguage } from '@shared/i18n/languages';
 import type { NewProjectInput, Project } from '@shared/types/project';
+import type {
+  HubSpotConfig,
+  HubSpotEnvironmentInput,
+  HubSpotOperationResult,
+  HubSpotRequest,
+  HubSpotResponse,
+  HubSpotSaveTokenInput,
+  HubSpotSaveTokenResult,
+} from '@shared/types/hubspot';
 
 export const IpcChannels = {
   appGetVersion: 'app:get-version',
@@ -16,6 +25,11 @@ export const IpcChannels = {
   projectsUpdate: 'projects:update',
   projectsDelete: 'projects:delete',
   projectsSetActive: 'projects:set-active',
+  hubspotSaveToken: 'hubspot:save-token',
+  hubspotGetStatus: 'hubspot:get-status',
+  hubspotRevokeToken: 'hubspot:revoke-token',
+  hubspotSetEnvironment: 'hubspot:set-environment',
+  hubspotRequest: 'hubspot:request',
 } as const;
 
 export type UpdaterStatus =
@@ -38,4 +52,9 @@ export interface RevOpsApi {
   updateProject(project: Project): Promise<Project>;
   deleteProject(id: string): Promise<void>;
   setActiveProject(id: string): Promise<Project>;
+  hubspotSaveToken(input: HubSpotSaveTokenInput): Promise<HubSpotSaveTokenResult>;
+  hubspotGetStatus(projectId: string): Promise<HubSpotConfig | null>;
+  hubspotRevokeToken(input: HubSpotEnvironmentInput): Promise<HubSpotOperationResult>;
+  hubspotSetEnvironment(input: HubSpotEnvironmentInput): Promise<HubSpotOperationResult>;
+  hubspotRequest(request: HubSpotRequest): Promise<HubSpotResponse>;
 }

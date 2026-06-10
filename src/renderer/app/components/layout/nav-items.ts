@@ -3,6 +3,7 @@ import HubIcon from '@mui/icons-material/Hub';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import InsightsIcon from '@mui/icons-material/Insights';
 import SettingsIcon from '@mui/icons-material/Settings';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import type { SvgIconComponent } from '@mui/icons-material';
 
 export interface NavItem {
@@ -22,5 +23,6 @@ export const NAV_ITEMS: NavItem[] = [
   { path: 'crm', labelKey: 'sidebar.crm', icon: HubIcon },
   { path: 'crm/maps', labelKey: 'sidebar.maps', icon: AccountTreeIcon, endsGroup: true },
   { path: 'reporting', labelKey: 'sidebar.reporting', icon: InsightsIcon, endsGroup: true },
+  { path: 'help', labelKey: 'sidebar.help', icon: HelpOutlineIcon, footer: true },
   { path: 'config', labelKey: 'sidebar.config', icon: SettingsIcon, footer: true },
 ];

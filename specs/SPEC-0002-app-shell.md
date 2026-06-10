@@ -113,6 +113,16 @@ Campos: Nombre del proyecto, Descripción (opcional). La configuración de conec
 
 Estado colapsado: solo iconos con tooltips.
 
+### Sección Ayuda (tutoriales in-app)
+
+Conforme a SPEC-0000 §10, los tutoriales de usuario deben poder verse desde la interfaz. El shell expone una sección **Ayuda** en el pie del menú lateral (junto a Configuración):
+
+- Entrada `Ayuda` en el sidebar (footer) → ruta `help` dentro del proyecto.
+- La pantalla de Ayuda lista los tutoriales disponibles **agrupados por característica** (carpeta de `doc/tutoriales/<feature>/`) y renderiza el Markdown seleccionado dentro de la app.
+- Los ficheros `.md` se cargan en tiempo de build con `import.meta.glob('…/doc/tutoriales/**/*.md', { query: '?raw', eager: true })`, de modo que se empaquetan con el renderer; no requiere IPC ni acceso a disco en runtime.
+- El renderizado de Markdown lo realiza un componente propio `MarkdownView` (sin dependencias externas) que soporta encabezados, párrafos, listas, énfasis y código en línea.
+- Cada nueva característica solo añade sus `.md` en `doc/tutoriales/<feature>/`; aparecen automáticamente en Ayuda sin tocar el shell.
+
 ---
 
 ## 4. Modelo de Datos
@@ -156,7 +166,8 @@ interface Project {
 9. **Componente `<MainLayout />`** — wrapper con Sidebar + TopBar + Outlet
 10. **Configurar React Router** — rutas `/`, `/project/:id/*`, layout anidado
 11. **Componente `<UpdateBanner />`** — banner no intrusivo cuando hay update disponible (consume evento IPC de SPEC-0001)
-12. **Commit** — `feat(shell): app shell con bienvenida, proyectos y menú lateral`
+12. **Sección Ayuda** — feature `help` (`tutorials.ts` con `import.meta.glob`, `MarkdownView`, `HelpSection`), ítem `Ayuda` en el sidebar (footer) y ruta `help`
+13. **Commit** — `feat(shell): app shell con bienvenida, proyectos y menú lateral`
 
 ---
 
@@ -171,6 +182,7 @@ interface Project {
 ### Funcionales
 - `welcome-flow.spec.ts` — flujo completo: abrir app → crear proyecto → entrar al proyecto → sidebar visible
 - `project-switch.spec.ts` — cambiar de proyecto desde el menú o botón de retorno
+- `help-section.spec.ts` — abrir Ayuda desde el sidebar, ver la lista de tutoriales y renderizar uno (añadido al ampliar el shell con la sección Ayuda)
 
 ---
 
@@ -190,6 +202,7 @@ interface Project {
 - [x] El banner de update aparece cuando hay una versión nueva disponible (`UpdateBanner`)
 - [x] Los colores y tipografía respetan la guía CD (sin verde lima sobre fondo oscuro; lima solo en badge/Chip e indicador de activo)
 - [x] El selector de idioma está en el header global (`TopBar` + hero de bienvenida) y cambia el idioma en todo el programa sin reiniciar
+- [x] La sección **Ayuda** del sidebar lista los tutoriales de `doc/tutoriales/` y los renderiza dentro de la app (SPEC-0000 §10)
 - [x] Todos los tests del SPEC en verde — `npm run typecheck` y `npm run test:unit` pasan en local
 - [ ] PR creada, revisada y mergeada en `main`
 
@@ -202,10 +215,11 @@ Implementado en esta iteración:
 - **Modelo y contrato** — `shared/types/project.ts` (`Project`, `NewProjectInput`); canales `projects:list|create|update|delete|set-active` añadidos a `shared/types/ipc.ts`, `preload/index.ts` y registrados en `main/index.ts`.
 - **Persistencia main** — `main/projects.ts`: servicio CRUD puro sobre `ProjectsStorage` inyectable + backend `electron-store`; `id` con `crypto.randomUUID()`; validación de nombre (requerido, máx. 80).
 - **Estado del shell** — `renderer/app/store/shell-store.ts` (Zustand): proyecto activo, sidebar colapsado, estado de update.
-- **Bienvenida** — `WelcomeScreen`, `ProjectCard` (badge lima), `NewProjectDialog` (validación), contenedor `WelcomeRoute` con `useProjects`.
+- **Bienvenida** — `WelcomeScreen`, `ProjectCard` (badge lima), `NewProjectDialog` (validación), contenedor `WelcomeRoute` con `useProjects`. Logo de marca (`shared/assets/cloud-district-logo.svg`) arriba a la izquierda del hero; selector de idioma a la derecha.
 - **Layout** — `Sidebar` (Drawer permanent + rail mode + grupos + indicador lima), `TopBar` (breadcrumb + proyecto activo + badge de update), `MainLayout` (carga el proyecto activo vía IPC), `UpdateBanner`.
 - **Router** — `renderer/app/router.tsx` con memory router: `/`, `/project/:projectId/*` (dashboard, crm, crm/maps, reporting, config) y fallback.
 - **i18n** — claves `welcome|dialog|sidebar|topbar|update|sections` en los cuatro locales (es, ca, eu, en).
+- **Ayuda (tutoriales in-app)** — feature `renderer/features/help/`: `tutorials.ts` carga los `.md` de `doc/tutoriales/**` con `import.meta.glob('?raw', eager)` y los agrupa por característica; `MarkdownView` renderiza el Markdown sin dependencias externas; `HelpSection` muestra la lista + visor. Ítem `Ayuda` en el footer del sidebar (`nav-items.ts`) y ruta `help` en el router. Claves i18n `sidebar.help` y `help.*` añadidas a los cuatro locales. Cumple SPEC-0000 §10 (visibilidad en la interfaz).
 - **Selector de idioma global** — el `LanguageSwitcher` se trasladó al header: se monta en `TopBar` y en el hero de `WelcomeScreen` (variante `onDark`), y se retiró de `ConfigSection` (ahora placeholder). Disponible en todo el programa, incluido el arranque sin proyecto. La preferencia sigue persistiéndose vía electron-store (`settings:*`).
 - **Tests** — unitarios `projects.spec.ts`, `shell-store.spec.ts`, `WelcomeScreen.spec.tsx`, `NewProjectDialog.spec.tsx`; funcionales `welcome-flow.spec.ts`, `project-switch.spec.ts`. Vitest configurado con `jsdom` para `.tsx`.
 - **Dependencias** — añadidas `react-router-dom`, `@mui/icons-material`, y dev: `@testing-library/{react,jest-dom,user-event}`, `jsdom`.
@@ -217,4 +231,4 @@ Arreglos durante la verificación:
 
 - **Contraste AA del texto secundario** — `a11y-baseline.spec.ts` (ya operativo) detectó que el tono apagado `#7F7790` sobre blanco no cumple AA para texto normal (4.24:1). Aplicada la regla de SPEC-0000 §4: el estado vacío de bienvenida se sube a texto grande (24px) y el resto de texto secundario pequeño (descripciones de tarjeta, breadcrumb/topbar, placeholders de sección) pasa a `text.primary` (deepNavy).
 
-Estado: `npm run typecheck` y `npm run test:unit` en verde. Pendiente: reejecutar `npm run test:e2e` tras el fix de contraste, y abrir la PR.
+Estado: `npm run typecheck`, `npm run test:unit` y `npm run test:e2e` (4 funcionales, incluido a11y) en verde. Pendiente solo: abrir la PR.

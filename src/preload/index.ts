@@ -16,6 +16,11 @@ const api: RevOpsApi = {
   updateProject: (project) => ipcRenderer.invoke(IpcChannels.projectsUpdate, project),
   deleteProject: (id) => ipcRenderer.invoke(IpcChannels.projectsDelete, id),
   setActiveProject: (id) => ipcRenderer.invoke(IpcChannels.projectsSetActive, id),
+  hubspotSaveToken: (input) => ipcRenderer.invoke(IpcChannels.hubspotSaveToken, input),
+  hubspotGetStatus: (projectId) => ipcRenderer.invoke(IpcChannels.hubspotGetStatus, projectId),
+  hubspotRevokeToken: (input) => ipcRenderer.invoke(IpcChannels.hubspotRevokeToken, input),
+  hubspotSetEnvironment: (input) => ipcRenderer.invoke(IpcChannels.hubspotSetEnvironment, input),
+  hubspotRequest: (request) => ipcRenderer.invoke(IpcChannels.hubspotRequest, request),
 };
 
 contextBridge.exposeInMainWorld('api', api);
