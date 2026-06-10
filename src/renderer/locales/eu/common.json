@@ -43,7 +43,8 @@
     "empty": "Oraindik ez dago tutorialik eskuragarri.",
     "listLabel": "Tutorialen zerrenda",
     "features": {
-      "hubspot": "HubSpot"
+      "hubspot": "HubSpot",
+      "google-drive": "Google Drive"
     }
   },
   "topbar": {
@@ -62,7 +63,9 @@
   "connectors": {
     "title": "Konektoreak",
     "hubspot": "HubSpot",
-    "hubspotDescription": "Konektatu zure HubSpot ataria Private App Token baten bidez."
+    "hubspotDescription": "Konektatu zure HubSpot ataria Private App Token baten bidez.",
+    "googleDrive": "Google Drive",
+    "googleDriveDescription": "Konektatu Google Drive karpeta bat lan-fitxategien egia-iturri gisa."
   },
   "hubspot": {
     "title": "Konektoreak / HubSpot",
@@ -83,6 +86,33 @@
     "loading": "Konexioa egiaztatzen…",
     "saveSuccess": "{{portal}} atarira behar bezala konektatuta.",
     "saveError": "Ezin izan da konektatu: {{error}}"
+  },
+  "gdrive": {
+    "title": "Konektoreak / Google Drive",
+    "account": "Google kontua",
+    "loading": "Konexioa egiaztatzen…",
+    "connect": "Konektatu Google-rekin",
+    "authorizing": "Baimentzen…",
+    "connected": "Konektatuta",
+    "connectedAs": "{{email}} gisa konektatuta",
+    "disconnect": "Deskonektatu",
+    "authError": "Ezin izan da konektatu: {{error}}",
+    "folder": "Lan-karpeta",
+    "noFolder": "Ez da karpetarik hautatu",
+    "selectFolder": "Hautatu karpeta",
+    "changeFolder": "Aldatu karpeta",
+    "synchronization": "Sinkronizazioa",
+    "sync": "Sinkronizatu",
+    "syncing": "Sinkronizatzen…",
+    "lastSync": "Azken sinkronizazioa: {{date}}",
+    "neverSynced": "Oraindik sinkronizatu gabe",
+    "conflicts": "{{count}} fitxategi gatazkan: erabaki zein bertsio mantendu.",
+    "managedFiles": "Kudeatutako fitxategiak: {{count}}",
+    "status": {
+      "synced": "Sinkronizatuta",
+      "conflict": "Gatazkan",
+      "pending": "Sinkronizatzeke"
+    }
   },
   "update": {
     "available": "{{version}} bertsioa eskuragarri. Berrabiaraztean instalatuko da.",

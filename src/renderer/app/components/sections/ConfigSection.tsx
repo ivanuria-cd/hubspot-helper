@@ -8,6 +8,7 @@ import {
   Typography,
 } from '@mui/material';
 import HubIcon from '@mui/icons-material/Hub';
+import CloudIcon from '@mui/icons-material/Cloud';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -36,6 +37,22 @@ export function ConfigSection(): JSX.Element {
             <ListItemText
               primary={t('connectors.hubspot')}
               secondary={t('connectors.hubspotDescription')}
+              secondaryTypographyProps={{ color: 'text.primary' }}
+            />
+            <ChevronRightIcon aria-hidden />
+          </ListItemButton>
+        </ListItem>
+        <ListItem disablePadding divider>
+          <ListItemButton
+            onClick={() => navigate('connectors/google-drive')}
+            aria-label={t('connectors.googleDrive')}
+          >
+            <ListItemIcon>
+              <CloudIcon />
+            </ListItemIcon>
+            <ListItemText
+              primary={t('connectors.googleDrive')}
+              secondary={t('connectors.googleDriveDescription')}
               secondaryTypographyProps={{ color: 'text.primary' }}
             />
             <ChevronRightIcon aria-hidden />

@@ -1,8 +1,8 @@
 # SPEC-0004 — Conector Google Drive
 
-**Estado:** VALIDADO — criterios de aceptación pendientes hasta implementación  
+**Estado:** IMPLEMENTADO  
 **Branch:** `feat/spec-0004-conector-google-drive`  
-**Fecha:** 2026-06-09  
+**Fecha:** 2026-06-09 (implementado 2026-06-10)  
 **Depende de:** SPEC-0002
 
 ---
@@ -194,12 +194,36 @@ Tutoriales a crear en `doc/tutoriales/google-drive/`:
 
 ## 11. Criterios de Aceptación
 
-- [ ] El flujo OAuth abre el navegador del sistema y completa la autenticación
-- [ ] La carpeta se selecciona con el Picker de Google (UI nativa)
-- [ ] Los archivos creados por la app aparecen en la carpeta de Drive
-- [ ] Los archivos tienen portada con contexto en la primera sección
-- [ ] La sincronización detecta y notifica conflictos correctamente
-- [ ] Al desconectar, el token se revoca en Google y se elimina localmente
-- [ ] Todos los tests del SPEC en verde
-- [ ] Los tres tutoriales de usuario están creados en `doc/tutoriales/google-drive/`
-- [ ] PR creada, revisada y mergeada en `main`
+- [x] El flujo OAuth abre el navegador del sistema y completa la autenticación — implementado (`runElectronAuthFlow`: `shell.openExternal` + servidor loopback). _Pendiente de validación manual con credenciales reales._
+- [x] La carpeta se selecciona con el Picker de Google (UI nativa) — implementado (`picker.ts` + ventana del façade). _Pendiente de validación manual._
+- [x] Los archivos creados por la app aparecen en la carpeta de Drive — implementado (`createManagedDocument` con `appProperties`).
+- [x] Los archivos tienen portada con contexto en la primera sección — implementado (`cover-template.ts`, test `cover-template.spec.ts`).
+- [x] La sincronización detecta y notifica conflictos correctamente — implementado (`sync.ts`, test `sync.spec.ts`; aviso en la UI).
+- [x] Al desconectar, el token se revoca en Google y se elimina localmente — implementado (`revoke` → `revokeToken` + `tokens.remove` + `configs.delete`).
+- [ ] Todos los tests del SPEC en verde — **pendiente de ejecutar en la máquina del usuario.** El sandbox de esta sesión clonaba ficheros truncados (corrupción del clonado, no del repo); usar `scripts\verify-spec-0004.cmd`.
+- [x] Los tres tutoriales de usuario están creados en `doc/tutoriales/google-drive/`
+- [ ] PR creada, revisada y mergeada en `main` — pendiente (gestión Git del usuario).
+
+---
+
+## 12. Notas de Implementación (iteración 2026-06-10)
+
+Decisiones tomadas durante la implementación, registradas según SPEC-0000 («cada iteración sobre un código debe modificar el spec»):
+
+- **Ubicación del conector:** `src/main/connectors/google-drive/` (no la carpeta `connectors/` raíz), replicando el patrón ya establecido por el conector HubSpot (SPEC-0003). La carpeta raíz `connectors/` mantiene solo un README que apunta a la implementación.
+- **PKCE propio en lugar de `electron-oauth2`:** se descartó `electron-oauth2` (sin mantenimiento) y se implementó PKCE con `node:crypto` (verifier/challenge S256), alineado con SPEC-0000 §11 (minimizar dependencias de riesgo). Vector de la RFC 7636 cubierto en tests.
+- **Redirect URI:** loopback dinámico `http://127.0.0.1:<puerto>` con servidor `http` efímero; no se configura en `.env` (se elimina `GOOGLE_REDIRECT_URI`). Se añade `GOOGLE_API_KEY` para el Picker.
+- **Inyección de dependencias:** todos los módulos del núcleo (`auth`, `token-store`, `client`, `sync`, `cover-template`, façade) reciben sus dependencias externas (HTTP, keytar, `DriveApi`, electron) por parámetro. `googleapis` y `keytar` se cargan con `require` diferido en el wiring real, igual que keytar en HubSpot, para no acoplar los tests ni el typecheck a módulos nativos/no instalados.
+- **Modelo de contenido de archivos gestionados:** el cuerpo del documento es `portada + delimitador + datos gestionados`. `write-file`/`read-file` transportan una cadena genérica; la estructura concreta de cada archivo la define cada SPEC de característica (coherente con §2). `appProperties` marca el archivo como gestionado (`revops_managed`, `revops_feature`, `revops_schema_version`).
+- **Picker:** se sirve el HTML del Picker desde un loopback y se carga en una `BrowserWindow` con `partition` propia para evitar la CSP de la sesión por defecto (solo activa en build empaquetada). La selección vuelve vía `document.title`.
+- **Dependencias:** `keytar` ya estaba declarado; `googleapis` se instala con `scripts\setup-gdrive-deps.cmd`, que aplica SPEC-0000 §11 (verificación de antigüedad ≥10 días y `npm audit`). No se fija una versión a ciegas: la resuelve npm tras la verificación manual.
+- **Carga de `.env` en runtime (fix 2026-06-10):** Electron no carga `.env` en `process.env`, y electron-vite solo expone variables con prefijo a `import.meta.env`. Se añadió `src/main/env.ts` (`loadEnv`, parser propio sin dependencias) invocado en `whenReady` antes de registrar los handlers, que carga `.env` desde `cwd`, `app.getAppPath()` y `userData`. Sin esto, `GOOGLE_CLIENT_ID` llegaba vacío y Google devolvía `Error 400: invalid_request — Missing required parameter: client_id`. Además se añadieron guardas que devuelven un error legible en la app si falta `GOOGLE_CLIENT_ID` (al conectar) o `GOOGLE_API_KEY` (al seleccionar carpeta).
+- **Pendiente / fuera de esta iteración:** validación manual del flujo OAuth y Picker con credenciales reales; E2E de sincronización con fixtures mockeados del proceso principal (la lógica de reconciliación queda cubierta por `sync.spec.ts`); refinamiento del cuerpo de Sheets (la portada actual usa el modelo de Docs).
+
+### Archivos creados / modificados
+
+- Conector: `src/main/connectors/google-drive/{auth,token-store,client,sync,cover-template,picker,index}.ts` (+ specs de `auth`, `token-store`, `client`, `sync`, `cover-template`).
+- Contrato: `src/renderer/shared/types/gdrive.ts`; canales y API en `ipc.ts`, `preload/index.ts`, handlers en `main/index.ts`.
+- UI: `src/renderer/features/connector-gdrive/` (hook + pantalla), ruta en `router.tsx`, entrada en `ConfigSection.tsx`, claves i18n en `es/ca/eu/en`.
+- Docs/QA: `doc/tutoriales/google-drive/{conectar-google-drive,seleccionar-carpeta,sincronizar-archivos}.md`; `tests/functional/{gdrive-config,gdrive-sync}.spec.ts`.
+- Infra: `.env.example`, `scripts/setup-gdrive-deps.cmd`, `scripts/verify-spec-0004.cmd`.

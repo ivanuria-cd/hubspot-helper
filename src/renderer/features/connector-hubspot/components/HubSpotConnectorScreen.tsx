@@ -122,14 +122,6 @@ export function HubSpotConnectorScreen(): JSX.Element | null {
               <Typography color="text.primary">
                 {t('hubspot.apiVersion', { version: status?.apiVersion ?? 'v3' })}
               </Typography>
-              <Typography variant="subtitle2" sx={{ mt: 1 }}>
-                {t('hubspot.scopes')}
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {envConfig.scopes.map((scope) => (
-                  <Chip key={scope} variant="outlined" size="small" label={scope} />
-                ))}
-              </Box>
             </Stack>
           ) : (
             <Chip color="default" size="small" label={t('hubspot.notConfigured')} />

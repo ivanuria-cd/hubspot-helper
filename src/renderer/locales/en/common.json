@@ -43,7 +43,8 @@
     "empty": "No tutorials available yet.",
     "listLabel": "Tutorials list",
     "features": {
-      "hubspot": "HubSpot"
+      "hubspot": "HubSpot",
+      "google-drive": "Google Drive"
     }
   },
   "topbar": {
@@ -62,7 +63,9 @@
   "connectors": {
     "title": "Connectors",
     "hubspot": "HubSpot",
-    "hubspotDescription": "Connect your HubSpot portal using a Private App Token."
+    "hubspotDescription": "Connect your HubSpot portal using a Private App Token.",
+    "googleDrive": "Google Drive",
+    "googleDriveDescription": "Connect a Google Drive folder as the source of truth for working files."
   },
   "hubspot": {
     "title": "Connectors / HubSpot",
@@ -83,6 +86,33 @@
     "loading": "Checking connection…",
     "saveSuccess": "Successfully connected to {{portal}}.",
     "saveError": "Could not connect: {{error}}"
+  },
+  "gdrive": {
+    "title": "Connectors / Google Drive",
+    "account": "Google account",
+    "loading": "Checking connection…",
+    "connect": "Connect with Google",
+    "authorizing": "Authorizing…",
+    "connected": "Connected",
+    "connectedAs": "Connected as {{email}}",
+    "disconnect": "Disconnect",
+    "authError": "Could not connect: {{error}}",
+    "folder": "Working folder",
+    "noFolder": "No folder selected",
+    "selectFolder": "Select folder",
+    "changeFolder": "Change folder",
+    "synchronization": "Synchronization",
+    "sync": "Sync",
+    "syncing": "Syncing…",
+    "lastSync": "Last sync: {{date}}",
+    "neverSynced": "Not synced yet",
+    "conflicts": "{{count}} file(s) in conflict: decide which version to keep.",
+    "managedFiles": "Managed files: {{count}}",
+    "status": {
+      "synced": "Synced",
+      "conflict": "Conflict",
+      "pending": "Pending sync"
+    }
   },
   "update": {
     "available": "Version {{version}} available. It will install on restart.",

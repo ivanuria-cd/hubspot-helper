@@ -76,7 +76,6 @@ export function createHubSpotConnector(deps: HubSpotConnectorDeps) {
         portalId: info.portalId,
         portalName: info.portalName,
         tokenHash: hashToken(input.token),
-        scopes: info.scopes,
         connectedAt: config.environments[input.environment]?.connectedAt ?? now(),
         lastVerifiedAt: now(),
       };
@@ -84,8 +83,7 @@ export function createHubSpotConnector(deps: HubSpotConnectorDeps) {
       return {
         success: true,
         portalId: info.portalId,
-        portalName: info.portalName,
-        scopes: info.scopes,
+        portalName: info.portalName
       };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Error desconocido' };

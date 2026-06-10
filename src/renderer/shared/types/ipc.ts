@@ -13,6 +13,18 @@ import type {
   HubSpotSaveTokenInput,
   HubSpotSaveTokenResult,
 } from '@shared/types/hubspot';
+import type {
+  GoogleDriveAuthStatus,
+  GoogleDriveConfig,
+  GoogleDriveFolderResult,
+  GoogleDriveOperationResult,
+  GoogleDriveProjectInput,
+  GoogleDriveReadFileInput,
+  GoogleDriveReadFileResult,
+  GoogleDriveSyncResult,
+  GoogleDriveWriteFileInput,
+  GoogleDriveWriteFileResult,
+} from '@shared/types/gdrive';
 
 export const IpcChannels = {
   appGetVersion: 'app:get-version',
@@ -30,6 +42,14 @@ export const IpcChannels = {
   hubspotRevokeToken: 'hubspot:revoke-token',
   hubspotSetEnvironment: 'hubspot:set-environment',
   hubspotRequest: 'hubspot:request',
+  gdriveStartAuth: 'gdrive:start-auth',
+  gdriveAuthStatus: 'gdrive:auth-status',
+  gdriveSelectFolder: 'gdrive:select-folder',
+  gdriveGetStatus: 'gdrive:get-status',
+  gdriveSync: 'gdrive:sync',
+  gdriveRevoke: 'gdrive:revoke',
+  gdriveWriteFile: 'gdrive:write-file',
+  gdriveReadFile: 'gdrive:read-file',
 } as const;
 
 export type UpdaterStatus =
@@ -57,4 +77,12 @@ export interface RevOpsApi {
   hubspotRevokeToken(input: HubSpotEnvironmentInput): Promise<HubSpotOperationResult>;
   hubspotSetEnvironment(input: HubSpotEnvironmentInput): Promise<HubSpotOperationResult>;
   hubspotRequest(request: HubSpotRequest): Promise<HubSpotResponse>;
+  gdriveStartAuth(input: GoogleDriveProjectInput): Promise<GoogleDriveOperationResult>;
+  onGdriveAuthStatus(callback: (status: GoogleDriveAuthStatus) => void): () => void;
+  gdriveSelectFolder(input: GoogleDriveProjectInput): Promise<GoogleDriveFolderResult | null>;
+  gdriveGetStatus(input: GoogleDriveProjectInput): Promise<GoogleDriveConfig | null>;
+  gdriveSync(input: GoogleDriveProjectInput): Promise<GoogleDriveSyncResult>;
+  gdriveRevoke(input: GoogleDriveProjectInput): Promise<GoogleDriveOperationResult>;
+  gdriveWriteFile(input: GoogleDriveWriteFileInput): Promise<GoogleDriveWriteFileResult>;
+  gdriveReadFile(input: GoogleDriveReadFileInput): Promise<GoogleDriveReadFileResult>;
 }

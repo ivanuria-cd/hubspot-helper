@@ -43,7 +43,8 @@
     "empty": "Todavía no hay tutoriales disponibles.",
     "listLabel": "Lista de tutoriales",
     "features": {
-      "hubspot": "HubSpot"
+      "hubspot": "HubSpot",
+      "google-drive": "Google Drive"
     }
   },
   "topbar": {
@@ -62,7 +63,9 @@
   "connectors": {
     "title": "Conectores",
     "hubspot": "HubSpot",
-    "hubspotDescription": "Conecta tu portal de HubSpot mediante un Private App Token."
+    "hubspotDescription": "Conecta tu portal de HubSpot mediante un Private App Token.",
+    "googleDrive": "Google Drive",
+    "googleDriveDescription": "Conecta una carpeta de Google Drive como fuente de verdad de los archivos de trabajo."
   },
   "hubspot": {
     "title": "Conectores / HubSpot",
@@ -83,6 +86,33 @@
     "loading": "Comprobando conexión…",
     "saveSuccess": "Conectado correctamente a {{portal}}.",
     "saveError": "No se pudo conectar: {{error}}"
+  },
+  "gdrive": {
+    "title": "Conectores / Google Drive",
+    "account": "Cuenta de Google",
+    "loading": "Comprobando conexión…",
+    "connect": "Conectar con Google",
+    "authorizing": "Autorizando…",
+    "connected": "Conectado",
+    "connectedAs": "Conectado como {{email}}",
+    "disconnect": "Desconectar",
+    "authError": "No se pudo conectar: {{error}}",
+    "folder": "Carpeta de trabajo",
+    "noFolder": "Sin carpeta seleccionada",
+    "selectFolder": "Seleccionar carpeta",
+    "changeFolder": "Cambiar carpeta",
+    "synchronization": "Sincronización",
+    "sync": "Sincronizar",
+    "syncing": "Sincronizando…",
+    "lastSync": "Última sincronización: {{date}}",
+    "neverSynced": "Aún no sincronizado",
+    "conflicts": "{{count}} archivo(s) en conflicto: decide qué versión conservar.",
+    "managedFiles": "Archivos gestionados: {{count}}",
+    "status": {
+      "synced": "Sincronizado",
+      "conflict": "En conflicto",
+      "pending": "Pendiente de sincronizar"
+    }
   },
   "update": {
     "available": "Versión {{version}} disponible. Se instalará al reiniciar.",
