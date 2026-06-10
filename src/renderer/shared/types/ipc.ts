@@ -25,6 +25,12 @@ import type {
   GoogleDriveWriteFileInput,
   GoogleDriveWriteFileResult,
 } from '@shared/types/gdrive';
+import type {
+  McpOperationResult,
+  McpStatus,
+  McpTokenResult,
+  McpToolSummary,
+} from '@shared/types/mcp';
 
 export const IpcChannels = {
   appGetVersion: 'app:get-version',
@@ -50,6 +56,11 @@ export const IpcChannels = {
   gdriveRevoke: 'gdrive:revoke',
   gdriveWriteFile: 'gdrive:write-file',
   gdriveReadFile: 'gdrive:read-file',
+  mcpGetStatus: 'mcp:get-status',
+  mcpToggle: 'mcp:toggle',
+  mcpRegenerateToken: 'mcp:regenerate-token',
+  mcpListTools: 'mcp:list-tools',
+  mcpGetToken: 'mcp:get-token',
 } as const;
 
 export type UpdaterStatus =
@@ -85,4 +96,9 @@ export interface RevOpsApi {
   gdriveRevoke(input: GoogleDriveProjectInput): Promise<GoogleDriveOperationResult>;
   gdriveWriteFile(input: GoogleDriveWriteFileInput): Promise<GoogleDriveWriteFileResult>;
   gdriveReadFile(input: GoogleDriveReadFileInput): Promise<GoogleDriveReadFileResult>;
+  mcpGetStatus(): Promise<McpStatus>;
+  mcpToggle(enabled: boolean): Promise<McpOperationResult>;
+  mcpRegenerateToken(): Promise<McpTokenResult>;
+  mcpListTools(): Promise<McpToolSummary[]>;
+  mcpGetToken(): Promise<McpTokenResult>;
 }

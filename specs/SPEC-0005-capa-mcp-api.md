@@ -1,9 +1,12 @@
 # SPEC-0005 — Capa MCP / API
 
-**Estado:** VALIDADO — criterios de aceptación pendientes hasta implementación  
+**Estado:** IMPLEMENTADO  
 **Branch:** `feat/spec-0005-capa-mcp-api`  
-**Fecha:** 2026-06-09  
+**Fecha:** 2026-06-09 (implementado 2026-06-10)  
 **Depende de:** SPEC-0002
+
+> **Historial de implementación**
+> - 2026-06-10 — Implementación inicial. SDK `@modelcontextprotocol/sdk@1.29.0` y `express@5.2.1` (ambas versiones con >10 días de antigüedad, sin vulnerabilidades nuevas en `npm audit`, conforme a SPEC-0000 §11). Núcleo (types/registry/auth), transportes stdio + HTTP/SSE, servicio `createMcpService`, IPC, UI `settings-mcp` e i18n (es/ca/eu/en). Tool de núcleo `mcp_health`. 17 tests en verde.
 
 ---
 
@@ -123,17 +126,22 @@ mcpRegistry.register({
 
 ## 5. Estructura de Archivos
 
+> **Desviación de implementación (2026-06-10):** el módulo se ubicó en `src/main/mcp/` en vez de `src/mcp/`. El servidor corre en el proceso main (§2) y, como los conectores (`src/main/connectors/`), debe quedar cubierto por `tsconfig.main.json` y el alias `@main`. Los DTOs compartidos con el renderer viven en `src/renderer/shared/types/mcp.ts`. Se añadió `index.ts` (factory de Electron + registro de la tool de núcleo).
+
 ```
-src/
-└── mcp/
-    ├── README.md
-    ├── server.ts          # Inicialización McpServer (stdio + HTTP/SSE)
-    ├── registry.ts        # Registro central de tools
-    ├── auth.ts            # Middleware de autenticación por token
-    ├── transport/
-    │   ├── stdio.ts       # Transport stdio
-    │   └── http-sse.ts    # Transport HTTP/SSE
-    └── types.ts           # McpTool, McpContext, etc.
+src/main/mcp/
+├── README.md
+├── types.ts            # McpTool, McpContext, JsonSchema, DTOs
+├── registry.ts         # Registro central de tools (singleton mcpRegistry)
+├── auth.ts             # Token local: generación y validación (almacenamiento inyectable)
+├── transport/
+│   ├── stdio.ts        # connectStdio(server) — StdioServerTransport
+│   └── http-sse.ts     # Express + SSEServerTransport en 127.0.0.1
+├── server.ts           # createMcpService: start/stop/toggle/status/listTools/regenerateToken
+└── index.ts            # createElectronMcpService (electron-store) + tool de núcleo mcp_health
+
+src/renderer/shared/types/mcp.ts          # DTOs compartidos (McpStatus, McpToolSummary, ...)
+src/renderer/features/settings-mcp/        # UI de configuración MCP
 ```
 
 ---
@@ -166,6 +174,8 @@ src/
 - `mcp-connection.spec.ts` — un cliente MCP de test se conecta al servidor SSE y lista las tools disponibles
 - `mcp-tool-call.spec.ts` — llamar a una tool de test registrada devuelve el resultado esperado (fixture mock)
 
+> **Nota de implementación (2026-06-10):** dado que el servidor corre **en proceso** y no requiere arrancar la UI de Electron, ambos casos funcionales se implementaron como **tests de integración con Vitest** en `src/main/mcp/integration.spec.ts`, usando el `Client` + `SSEClientTransport` reales del SDK MCP contra el servidor HTTP/SSE levantado en `127.0.0.1`. Cubren: conexión y listado de tools, llamada a tool con resultado esperado, y rechazo de conexión con token incorrecto (401). Esto verifica los criterios de aceptación de forma más directa que un E2E de Playwright sobre la UI.
+
 ---
 
 ## 8. Consideraciones de Seguridad
@@ -177,12 +187,18 @@ src/
 
 ---
 
-## 9. Criterios de Aceptación
+## 9. Documentación de Usuario
 
-- [ ] El servidor MCP arranca y se puede habilitar/deshabilitar desde la UI
-- [ ] Un cliente MCP externo (ej: Claude Desktop) puede conectarse y listar las tools
-- [ ] Llamar a una tool con token incorrecto devuelve error 401
-- [ ] El puerto por defecto (3741) es configurable
-- [ ] La UI muestra el snippet de configuración listo para copiar
-- [ ] Todos los tests del SPEC en verde
+- `doc/tutoriales/mcp/conectar-cliente-mcp.md` — conectar un cliente MCP (Claude Desktop) a la app: activar el servidor, copiar la configuración, token de acceso y FAQ.
+
+Se muestra automáticamente en la sección **Ayuda** (clave i18n `help.features.mcp`).
+
+## 10. Criterios de Aceptación
+
+- [x] El servidor MCP arranca y se puede habilitar/deshabilitar desde la UI
+- [x] Un cliente MCP externo (ej: Claude Desktop) puede conectarse y listar las tools — verificado en `integration.spec.ts`
+- [x] Llamar a una tool con token incorrecto devuelve error 401 — verificado en `integration.spec.ts`
+- [x] El puerto por defecto (3741) es configurable (`McpConfigStore.getPort/setPort`, persistido en electron-store)
+- [x] La UI muestra el snippet de configuración listo para copiar
+- [x] Todos los tests del SPEC en verde (17 tests: registry, auth, server, integración)
 - [ ] PR creada, revisada y mergeada en `main`

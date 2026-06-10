@@ -7,6 +7,7 @@ import { getLanguage, setLanguage } from './settings';
 import { createElectronProjectsService } from './projects';
 import { createElectronHubSpotConnector } from './connectors/hubspot';
 import { createElectronGoogleDriveConnector } from './connectors/google-drive';
+import { createElectronMcpService } from './mcp';
 import type { SupportedLanguage } from '@shared/i18n/languages';
 import type { NewProjectInput, Project } from '@shared/types/project';
 import type {
@@ -21,11 +22,22 @@ import type {
 } from '@shared/types/gdrive';
 
 let mainWindow: BrowserWindow | null = null;
+let mcpService: ReturnType<typeof createElectronMcpService> | null = null;
 
-function registerIpcHandlers(): void {
+function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   const projects = createElectronProjectsService();
   const hubspot = createElectronHubSpotConnector();
   const gdrive = createElectronGoogleDriveConnector();
+
+  // Proyecto activo en la sesión MCP: el último abierto, o el más reciente al arrancar.
+  let activeProjectId = projects.list().sort((a, b) =>
+    b.lastOpenedAt.localeCompare(a.lastOpenedAt),
+  )[0]?.id ?? '';
+
+  const mcp = createElectronMcpService({
+    version: app.getVersion(),
+    getActiveProjectId: () => activeProjectId,
+  });
 
   ipcMain.handle(IpcChannels.appGetVersion, () => app.getVersion());
   ipcMain.handle(IpcChannels.updaterCheck, () => checkForUpdates());
@@ -39,7 +51,10 @@ function registerIpcHandlers(): void {
   );
   ipcMain.handle(IpcChannels.projectsUpdate, (_event, project: Project) => projects.update(project));
   ipcMain.handle(IpcChannels.projectsDelete, (_event, id: string) => projects.remove(id));
-  ipcMain.handle(IpcChannels.projectsSetActive, (_event, id: string) => projects.setActive(id));
+  ipcMain.handle(IpcChannels.projectsSetActive, (_event, id: string) => {
+    activeProjectId = id;
+    return projects.setActive(id);
+  });
   ipcMain.handle(IpcChannels.hubspotSaveToken, (_event, input: HubSpotSaveTokenInput) =>
     hubspot.saveToken(input),
   );
@@ -78,6 +93,13 @@ function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.gdriveReadFile, (_event, input: GoogleDriveReadFileInput) =>
     gdrive.readFile(input),
   );
+  ipcMain.handle(IpcChannels.mcpGetStatus, () => mcp.status());
+  ipcMain.handle(IpcChannels.mcpToggle, (_event, enabled: boolean) => mcp.toggle(enabled));
+  ipcMain.handle(IpcChannels.mcpRegenerateToken, () => mcp.regenerateToken());
+  ipcMain.handle(IpcChannels.mcpListTools, () => mcp.listTools());
+  ipcMain.handle(IpcChannels.mcpGetToken, () => ({ token: mcp.getToken() }));
+
+  return mcp;
 }
 
 function applyContentSecurityPolicy(): void {
@@ -97,11 +119,12 @@ function applyContentSecurityPolicy(): void {
 void app.whenReady().then(() => {
   loadEnv();
   applyContentSecurityPolicy();
-  registerIpcHandlers();
+  mcpService = registerIpcHandlers();
   registerUpdaterEvents(() => mainWindow);
 
   mainWindow = createMainWindow();
   checkForUpdates();
+  void mcpService.autostart();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -112,4 +135,8 @@ void app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('before-quit', () => {
+  void mcpService?.stop();
 });

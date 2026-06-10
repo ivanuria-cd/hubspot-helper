@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import HubIcon from '@mui/icons-material/Hub';
 import CloudIcon from '@mui/icons-material/Cloud';
+import ApiIcon from '@mui/icons-material/Api';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -53,6 +54,19 @@ export function ConfigSection(): JSX.Element {
             <ListItemText
               primary={t('connectors.googleDrive')}
               secondary={t('connectors.googleDriveDescription')}
+              secondaryTypographyProps={{ color: 'text.primary' }}
+            />
+            <ChevronRightIcon aria-hidden />
+          </ListItemButton>
+        </ListItem>
+        <ListItem disablePadding divider>
+          <ListItemButton onClick={() => navigate('api-mcp')} aria-label={t('mcp.title')}>
+            <ListItemIcon>
+              <ApiIcon />
+            </ListItemIcon>
+            <ListItemText
+              primary={t('connectors.apiMcp')}
+              secondary={t('connectors.apiMcpDescription')}
               secondaryTypographyProps={{ color: 'text.primary' }}
             />
             <ChevronRightIcon aria-hidden />

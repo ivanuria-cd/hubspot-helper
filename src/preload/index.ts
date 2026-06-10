@@ -34,6 +34,11 @@ const api: RevOpsApi = {
   gdriveRevoke: (input) => ipcRenderer.invoke(IpcChannels.gdriveRevoke, input),
   gdriveWriteFile: (input) => ipcRenderer.invoke(IpcChannels.gdriveWriteFile, input),
   gdriveReadFile: (input) => ipcRenderer.invoke(IpcChannels.gdriveReadFile, input),
+  mcpGetStatus: () => ipcRenderer.invoke(IpcChannels.mcpGetStatus),
+  mcpToggle: (enabled) => ipcRenderer.invoke(IpcChannels.mcpToggle, enabled),
+  mcpRegenerateToken: () => ipcRenderer.invoke(IpcChannels.mcpRegenerateToken),
+  mcpListTools: () => ipcRenderer.invoke(IpcChannels.mcpListTools),
+  mcpGetToken: () => ipcRenderer.invoke(IpcChannels.mcpGetToken),
 };
 
 contextBridge.exposeInMainWorld('api', api);
