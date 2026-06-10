@@ -1,10 +1,12 @@
 import { app, BrowserWindow, ipcMain, session } from 'electron';
 import { IpcChannels } from '@shared/types/ipc';
 import { createMainWindow } from './window';
+import { loadEnv } from './env';
 import { checkForUpdates, registerUpdaterEvents } from './updater';
 import { getLanguage, setLanguage } from './settings';
 import { createElectronProjectsService } from './projects';
 import { createElectronHubSpotConnector } from './connectors/hubspot';
+import { createElectronGoogleDriveConnector } from './connectors/google-drive';
 import type { SupportedLanguage } from '@shared/i18n/languages';
 import type { NewProjectInput, Project } from '@shared/types/project';
 import type {
@@ -12,12 +14,18 @@ import type {
   HubSpotRequest,
   HubSpotSaveTokenInput,
 } from '@shared/types/hubspot';
+import type {
+  GoogleDriveProjectInput,
+  GoogleDriveReadFileInput,
+  GoogleDriveWriteFileInput,
+} from '@shared/types/gdrive';
 
 let mainWindow: BrowserWindow | null = null;
 
 function registerIpcHandlers(): void {
   const projects = createElectronProjectsService();
   const hubspot = createElectronHubSpotConnector();
+  const gdrive = createElectronGoogleDriveConnector();
 
   ipcMain.handle(IpcChannels.appGetVersion, () => app.getVersion());
   ipcMain.handle(IpcChannels.updaterCheck, () => checkForUpdates());
@@ -47,6 +55,29 @@ function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.hubspotRequest, (_event, request: HubSpotRequest) =>
     hubspot.request(request),
   );
+  ipcMain.handle(IpcChannels.gdriveStartAuth, (event, input: GoogleDriveProjectInput) =>
+    gdrive.startAuth(input.projectId, (status) =>
+      event.sender.send(IpcChannels.gdriveAuthStatus, status),
+    ),
+  );
+  ipcMain.handle(IpcChannels.gdriveSelectFolder, (_event, input: GoogleDriveProjectInput) =>
+    gdrive.selectFolder(input.projectId),
+  );
+  ipcMain.handle(IpcChannels.gdriveGetStatus, (_event, input: GoogleDriveProjectInput) =>
+    gdrive.getStatus(input.projectId),
+  );
+  ipcMain.handle(IpcChannels.gdriveSync, (_event, input: GoogleDriveProjectInput) =>
+    gdrive.sync(input.projectId),
+  );
+  ipcMain.handle(IpcChannels.gdriveRevoke, (_event, input: GoogleDriveProjectInput) =>
+    gdrive.revoke(input.projectId),
+  );
+  ipcMain.handle(IpcChannels.gdriveWriteFile, (_event, input: GoogleDriveWriteFileInput) =>
+    gdrive.writeFile(input),
+  );
+  ipcMain.handle(IpcChannels.gdriveReadFile, (_event, input: GoogleDriveReadFileInput) =>
+    gdrive.readFile(input),
+  );
 }
 
 function applyContentSecurityPolicy(): void {
@@ -64,6 +95,7 @@ function applyContentSecurityPolicy(): void {
 }
 
 void app.whenReady().then(() => {
+  loadEnv();
   applyContentSecurityPolicy();
   registerIpcHandlers();
   registerUpdaterEvents(() => mainWindow);

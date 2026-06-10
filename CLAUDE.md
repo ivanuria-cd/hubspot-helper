@@ -14,7 +14,7 @@ Todos los SPECs están en `specs/`. Estado actual:
 | [SPEC-0001](specs/SPEC-0001-fundacion-del-proyecto.md) | Fundación del Proyecto | IMPLEMENTADO |
 | [SPEC-0002](specs/SPEC-0002-app-shell.md) | App Shell | IMPLEMENTADO |
 | [SPEC-0003](specs/SPEC-0003-conector-hubspot.md) | Conector HubSpot | IMPLEMENTADO |
-| [SPEC-0004](specs/SPEC-0004-conector-google-drive.md) | Conector Google Drive | VALIDADO |
+| [SPEC-0004](specs/SPEC-0004-conector-google-drive.md) | Conector Google Drive | IMPLEMENTADO |
 | [SPEC-0005](specs/SPEC-0005-capa-mcp-api.md) | Capa MCP / API | VALIDADO |
 | [SPEC-0006](specs/SPEC-0006-gestion-de-propiedades.md) | Gestión de Propiedades | VALIDADO |
 

@@ -1,28 +1,21 @@
 import axios from 'axios';
 import { HUBSPOT_BASE_URL } from './client';
 
-/** Respuesta de `GET /oauth/v1/access-tokens/{token}` (campos usados). */
+/** Respuesta de `GET https://api.hubapi.com/account-info/v3/details` (campos usados). */
 export interface AccessTokenInfo {
-  hub_id: number;
-  hub_domain: string;
-  scopes?: string[];
-  user?: string;
-  user_id?: number;
+  portalId: number;
+  portalName: string;
 }
 
 export interface VerifyResult {
   portalId: string;
   portalName: string;
-  scopes: string[];
-  user?: string;
 }
 
 export function parseAccessTokenInfo(info: AccessTokenInfo): VerifyResult {
   return {
-    portalId: String(info.hub_id),
-    portalName: info.hub_domain,
-    scopes: info.scopes ?? [],
-    user: info.user,
+    portalId: String(info.portalId),
+    portalName: info.portalName
   };
 }
 
@@ -35,8 +28,9 @@ export async function verifyToken(token: string, deps: VerifyDeps = {}): Promise
     deps.fetchInfo ??
     (async (value: string) => {
       const res = await axios.get<AccessTokenInfo>(
-        `${HUBSPOT_BASE_URL}/oauth/v1/access-tokens/${encodeURIComponent(value)}`,
-        { timeout: 30_000 },
+        `${HUBSPOT_BASE_URL}/account-info/2026-03/details`,        
+        { headers: { "Authorization": `Bearer ${value}` },
+          timeout: 30_000 }
       );
       return res.data;
     });

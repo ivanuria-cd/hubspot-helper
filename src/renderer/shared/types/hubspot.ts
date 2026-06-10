@@ -9,7 +9,6 @@ export interface HubSpotEnvConfig {
   portalId: string;
   portalName: string;
   tokenHash: string;
-  scopes: string[];
   connectedAt: string;
   lastVerifiedAt: string;
 }
@@ -44,7 +43,6 @@ export interface HubSpotSaveTokenResult {
   success: boolean;
   portalId?: string;
   portalName?: string;
-  scopes?: string[];
   error?: string;
 }
 

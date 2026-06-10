@@ -4,6 +4,7 @@ import { WelcomeRoute } from './components/welcome/WelcomeRoute';
 import { SectionPlaceholder } from './components/sections/SectionPlaceholder';
 import { ConfigSection } from './components/sections/ConfigSection';
 import { HubSpotConnectorScreen } from '@renderer/features/connector-hubspot';
+import { GoogleDriveConnectorScreen } from '@renderer/features/connector-gdrive';
 import { HelpSection } from '@renderer/features/help';
 
 export const routes: RouteObject[] = [
@@ -18,6 +19,7 @@ export const routes: RouteObject[] = [
       { path: 'reporting', element: <SectionPlaceholder titleKey="sidebar.reporting" /> },
       { path: 'config', element: <ConfigSection /> },
       { path: 'config/connectors/hubspot', element: <HubSpotConnectorScreen /> },
+      { path: 'config/connectors/google-drive', element: <GoogleDriveConnectorScreen /> },
       { path: 'help', element: <HelpSection /> },
     ],
   },

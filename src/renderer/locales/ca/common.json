@@ -43,7 +43,8 @@
     "empty": "Encara no hi ha tutorials disponibles.",
     "listLabel": "Llista de tutorials",
     "features": {
-      "hubspot": "HubSpot"
+      "hubspot": "HubSpot",
+      "google-drive": "Google Drive"
     }
   },
   "topbar": {
@@ -62,7 +63,9 @@
   "connectors": {
     "title": "Connectors",
     "hubspot": "HubSpot",
-    "hubspotDescription": "Connecta el teu portal de HubSpot mitjançant un Private App Token."
+    "hubspotDescription": "Connecta el teu portal de HubSpot mitjançant un Private App Token.",
+    "googleDrive": "Google Drive",
+    "googleDriveDescription": "Connecta una carpeta de Google Drive com a font de veritat dels fitxers de treball."
   },
   "hubspot": {
     "title": "Connectors / HubSpot",
@@ -83,6 +86,33 @@
     "loading": "Comprovant la connexió…",
     "saveSuccess": "Connectat correctament a {{portal}}.",
     "saveError": "No s'ha pogut connectar: {{error}}"
+  },
+  "gdrive": {
+    "title": "Connectors / Google Drive",
+    "account": "Compte de Google",
+    "loading": "Comprovant la connexió…",
+    "connect": "Connecta amb Google",
+    "authorizing": "Autoritzant…",
+    "connected": "Connectat",
+    "connectedAs": "Connectat com a {{email}}",
+    "disconnect": "Desconnecta",
+    "authError": "No s'ha pogut connectar: {{error}}",
+    "folder": "Carpeta de treball",
+    "noFolder": "Cap carpeta seleccionada",
+    "selectFolder": "Selecciona una carpeta",
+    "changeFolder": "Canvia la carpeta",
+    "synchronization": "Sincronització",
+    "sync": "Sincronitza",
+    "syncing": "Sincronitzant…",
+    "lastSync": "Última sincronització: {{date}}",
+    "neverSynced": "Encara no sincronitzat",
+    "conflicts": "{{count}} fitxer(s) en conflicte: decideix quina versió conservar.",
+    "managedFiles": "Fitxers gestionats: {{count}}",
+    "status": {
+      "synced": "Sincronitzat",
+      "conflict": "En conflicte",
+      "pending": "Pendent de sincronitzar"
+    }
   },
   "update": {
     "available": "Versió {{version}} disponible. S'instal·larà en reiniciar.",
