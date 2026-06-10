@@ -5,6 +5,7 @@ import { SectionPlaceholder } from './components/sections/SectionPlaceholder';
 import { ConfigSection } from './components/sections/ConfigSection';
 import { HubSpotConnectorScreen } from '@renderer/features/connector-hubspot';
 import { GoogleDriveConnectorScreen } from '@renderer/features/connector-gdrive';
+import { McpSettingsScreen } from '@renderer/features/settings-mcp';
 import { HelpSection } from '@renderer/features/help';
 
 export const routes: RouteObject[] = [
@@ -20,6 +21,7 @@ export const routes: RouteObject[] = [
       { path: 'config', element: <ConfigSection /> },
       { path: 'config/connectors/hubspot', element: <HubSpotConnectorScreen /> },
       { path: 'config/connectors/google-drive', element: <GoogleDriveConnectorScreen /> },
+      { path: 'config/api-mcp', element: <McpSettingsScreen /> },
       { path: 'help', element: <HelpSection /> },
     ],
   },

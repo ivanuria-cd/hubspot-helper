@@ -44,7 +44,8 @@
     "listLabel": "Tutorialen zerrenda",
     "features": {
       "hubspot": "HubSpot",
-      "google-drive": "Google Drive"
+      "google-drive": "Google Drive",
+      "mcp": "API / MCP"
     }
   },
   "topbar": {
@@ -65,7 +66,26 @@
     "hubspot": "HubSpot",
     "hubspotDescription": "Konektatu zure HubSpot ataria Private App Token baten bidez.",
     "googleDrive": "Google Drive",
-    "googleDriveDescription": "Konektatu Google Drive karpeta bat lan-fitxategien egia-iturri gisa."
+    "googleDriveDescription": "Konektatu Google Drive karpeta bat lan-fitxategien egia-iturri gisa.",
+    "apiMcp": "API / MCP",
+    "apiMcpDescription": "Erakutsi aplikazioaren gaitasunak MCP bezeroei (Claude Desktop, Cursor) tokiko zerbitzari baten bidez."
+  },
+  "mcp": {
+    "title": "Konfigurazioa / API eta MCP",
+    "serverToggle": "MCP zerbitzaria",
+    "statusOn": "MCP zerbitzaria aktibo",
+    "statusOff": "MCP zerbitzaria geldituta",
+    "port": "Ataka: {{port}}",
+    "tokenLabel": "Sarbide-tokena",
+    "showToken": "Erakutsi tokena",
+    "hideToken": "Ezkutatu tokena",
+    "copyToken": "Kopiatu tokena",
+    "regenerate": "Birsortu",
+    "copied": "Arbelera kopiatuta",
+    "toolsTitle": "Tool erabilgarriak ({{count}})",
+    "noTools": "Oraindik ez dago toolik erregistratuta",
+    "snippetTitle": "Claude Desktop-erako konfigurazioa",
+    "copyConfig": "Kopiatu konfigurazioa"
   },
   "hubspot": {
     "title": "Konektoreak / HubSpot",

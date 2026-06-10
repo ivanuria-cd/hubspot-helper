@@ -44,7 +44,8 @@
     "listLabel": "Tutorials list",
     "features": {
       "hubspot": "HubSpot",
-      "google-drive": "Google Drive"
+      "google-drive": "Google Drive",
+      "mcp": "API / MCP"
     }
   },
   "topbar": {
@@ -65,7 +66,26 @@
     "hubspot": "HubSpot",
     "hubspotDescription": "Connect your HubSpot portal using a Private App Token.",
     "googleDrive": "Google Drive",
-    "googleDriveDescription": "Connect a Google Drive folder as the source of truth for working files."
+    "googleDriveDescription": "Connect a Google Drive folder as the source of truth for working files.",
+    "apiMcp": "API / MCP",
+    "apiMcpDescription": "Expose the app's capabilities to MCP clients (Claude Desktop, Cursor) through a local server."
+  },
+  "mcp": {
+    "title": "Settings / API and MCP",
+    "serverToggle": "MCP server",
+    "statusOn": "MCP server running",
+    "statusOff": "MCP server stopped",
+    "port": "Port: {{port}}",
+    "tokenLabel": "Access token",
+    "showToken": "Show token",
+    "hideToken": "Hide token",
+    "copyToken": "Copy token",
+    "regenerate": "Regenerate",
+    "copied": "Copied to clipboard",
+    "toolsTitle": "Available tools ({{count}})",
+    "noTools": "No tools registered yet",
+    "snippetTitle": "Configuration for Claude Desktop",
+    "copyConfig": "Copy configuration"
   },
   "hubspot": {
     "title": "Connectors / HubSpot",

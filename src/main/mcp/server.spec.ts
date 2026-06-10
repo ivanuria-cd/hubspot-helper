@@ -1,0 +1,122 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { createServer } from 'node:net';
+import { McpRegistry } from './registry';
+import { createAuth } from './auth';
+import { createMcpService, type McpConfigStore, type McpService } from './server';
+
+function getFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = createServer();
+    srv.unref();
+    srv.on('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const address = srv.address();
+      const port = typeof address === 'object' && address ? address.port : 0;
+      srv.close(() => resolve(port));
+    });
+  });
+}
+
+function memoryConfig(port: number): McpConfigStore {
+  let enabled = false;
+  let p = port;
+  return {
+    isEnabled: () => enabled,
+    setEnabled: (v) => {
+      enabled = v;
+    },
+    getPort: () => p,
+    setPort: (v) => {
+      p = v;
+    },
+  };
+}
+
+function buildService(port: number, registry = new McpRegistry()): McpService {
+  let stored: string | null = null;
+  return createMcpService({
+    registry,
+    auth: createAuth({ getToken: () => stored, setToken: (v) => (stored = v) }),
+    config: memoryConfig(port),
+    contextProvider: () => ({ projectId: 'proj-test' }),
+    serverInfo: { name: 'revops-test', version: '0.0.0' },
+  });
+}
+
+describe('createMcpService', () => {
+  let services: McpService[] = [];
+
+  beforeEach(() => {
+    services = [];
+  });
+
+  afterEach(async () => {
+    await Promise.all(services.map((s) => s.stop()));
+  });
+
+  it('arranca y para el servidor reflejándolo en el estado', async () => {
+    const port = await getFreePort();
+    const service = buildService(port);
+    services.push(service);
+
+    expect(service.status().running).toBe(false);
+    const started = await service.start();
+    expect(started.running).toBe(true);
+    expect(started.port).toBe(port);
+
+    const stopped = await service.stop();
+    expect(stopped.running).toBe(false);
+  });
+
+  it('toggle persiste el estado habilitado en la configuración', async () => {
+    const port = await getFreePort();
+    const config = memoryConfig(port);
+    const service = createMcpService({
+      registry: new McpRegistry(),
+      auth: createAuth({ getToken: () => null, setToken: () => undefined }),
+      config,
+      contextProvider: () => ({ projectId: 'p' }),
+      serverInfo: { name: 't', version: '0' },
+    });
+    services.push(service);
+
+    await service.toggle(true);
+    expect(config.isEnabled()).toBe(true);
+    await service.toggle(false);
+    expect(config.isEnabled()).toBe(false);
+  });
+
+  it('refleja el número de tools del registry', async () => {
+    const registry = new McpRegistry();
+    registry.register({
+      name: 'x',
+      description: 'x',
+      inputSchema: {},
+      featureKey: 'f',
+      handler: () => Promise.resolve('ok'),
+    });
+    const service = buildService(await getFreePort(), registry);
+    expect(service.status().toolCount).toBe(1);
+    expect(service.listTools()).toHaveLength(1);
+  });
+
+  it('maneja el puerto ocupado devolviendo error en toggle', async () => {
+    const port = await getFreePort();
+    const first = buildService(port);
+    const second = buildService(port);
+    services.push(first, second);
+
+    await first.start();
+    const result = await second.toggle(true);
+    expect(result.success).toBe(false);
+    expect(result.error).toBeTruthy();
+  });
+
+  it('regenera el token de acceso', () => {
+    const service = buildService(3741);
+    const original = service.getToken();
+    const regenerated = service.regenerateToken().token;
+    expect(regenerated).not.toBe(original);
+    expect(service.getToken()).toBe(regenerated);
+  });
+});
