@@ -31,6 +31,11 @@ Este SPEC no implementa ninguna capacidad de negocio — solo la infraestructura
 - El entorno activo es siempre visible y cambiable desde la barra superior de la app (indicador permanente). Cambiar de entorno afecta a todas las operaciones que escriben en HubSpot en ese momento.
 - Las operaciones de lectura pueden ejecutarse contra cualquier entorno; las operaciones de escritura siempre muestran confirmación indicando el entorno destino.
 
+### Verificación del token y scopes
+- La verificación del token se hace contra el endpoint de información de cuenta (`GET /account-info/2026-03/details`), del que se obtienen `portalId` y `portalName`.
+- **Los scopes de un Private App Token no se pueden consultar vía API.** A diferencia del antiguo endpoint `/oauth/v1/access-tokens/{token}` (válido para tokens OAuth), las claves privadas no exponen su lista de ámbitos. Por tanto, la app **no detecta ni muestra los scopes**; estos se configuran y revisan en HubSpot al crear o editar la aplicación privada.
+- Si una llamada falla por falta de permisos, HubSpot devuelve un `403` con el scope que falta; ese error se propaga al usuario en la operación concreta, no en la pantalla de conexión.
+
 ### Cliente HTTP
 - **axios** como cliente HTTP — interceptores para auth header, rate limiting y error handling consistente.
 - Rate limiting: HubSpot permite 110 req/10s en cuentas estándar. Implementar cola con **bottleneck**.
@@ -64,11 +69,6 @@ Pantalla accesible desde `Config > Conectores > HubSpot` dentro de un proyecto.
 │                                                         │
 │  Estado de conexión:  ● Conectado — Portal: Nombre (ID)│
 │  Versión API en uso:  v3 / v4 (Automation)              │
-│                                                         │
-│  Scopes detectados:              [Ver todos]            │
-│  ✓ crm.objects.contacts.read                           │
-│  ✓ automation                                           │
-│  ...                                                    │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -91,7 +91,6 @@ interface HubSpotEnvConfig {
   portalId: string;
   portalName: string;
   tokenHash: string;       // hash de referencia, nunca el token real
-  scopes: string[];
   connectedAt: string;     // ISO 8601
   lastVerifiedAt: string;
 }
@@ -106,7 +105,7 @@ interface HubSpotConfig {
 ### IPC Channels
 | Canal | Dirección | Input | Output |
 |-------|-----------|-------|--------|
-| `hubspot:save-token` | renderer → main | `{ projectId, environment, token }` | `{ success, portalId, portalName, scopes }` |
+| `hubspot:save-token` | renderer → main | `{ projectId, environment, token }` | `{ success, portalId, portalName }` |
 | `hubspot:get-status` | renderer → main | `{ projectId }` | `HubSpotConfig \| null` |
 | `hubspot:revoke-token` | renderer → main | `{ projectId, environment }` | `{ success }` |
 | `hubspot:set-environment` | renderer → main | `{ projectId, environment }` | `{ success }` |
@@ -132,8 +131,9 @@ Los scopes se configuran al crear la Private App en HubSpot. Este es el conjunto
 
 | Scope | Motivo |
 |-------|--------|
-| `oauth` | Verificación de token (GET /oauth/v1/access-tokens) |
 | `crm.objects.contacts.read` | Verificación de conectividad básica |
+
+> **Nota:** la verificación del token usa el endpoint de información de cuenta (`GET /account-info/2026-03/details`), que no exige un scope específico más allá de un token válido. **Los scopes de un Private App Token no son legibles vía API**, por lo que la app no los detecta ni los valida de forma anticipada: corresponde al usuario activar en HubSpot los ámbitos que requiera cada característica.
 
 Cada SPEC de característica documentará sus scopes adicionales requeridos en su sección §7.
 
@@ -145,7 +145,7 @@ Cada SPEC de característica documentará sus scopes adicionales requeridos en s
 2. **`connectors/hubspot/client.ts`** — instancia axios con interceptor de auth y retry logic
 3. **`connectors/hubspot/rate-limiter.ts`** — cola Bottleneck (110 req/10s)
 4. **`connectors/hubspot/token-store.ts`** — read/write token en keytar por projectId
-5. **`connectors/hubspot/verify.ts`** — llama a `/oauth/v1/access-tokens` para validar token y obtener portalId, portalName y scopes
+5. **`connectors/hubspot/verify.ts`** — llama a `/account-info/2026-03/details` para validar el token y obtener portalId y portalName (los scopes del PAT no son consultables vía API)
 6. **`connectors/hubspot/index.ts`** — façade público del conector
 7. **IPC handlers** en `main/index.ts` — registrar handlers `hubspot:*`
 8. **`renderer/features/connector-hubspot/`** — componente de configuración UI
@@ -160,7 +160,7 @@ Cada SPEC de característica documentará sus scopes adicionales requeridos en s
 ### Unitarios
 - `client.spec.ts` — el interceptor añade el header `Authorization` correcto; el retry se activa en 429/5xx
 - `token-store.spec.ts` — guardar, leer y revocar token en keytar (mock de keytar)
-- `verify.spec.ts` — parsea correctamente la respuesta de `/oauth/v1/access-tokens`
+- `verify.spec.ts` — parsea correctamente la respuesta de `/account-info/2026-03/details` (portalId y portalName)
 - `rate-limiter.spec.ts` — las requests se encolan respetando el límite
 
 ### Funcionales
@@ -207,9 +207,9 @@ Tutoriales a crear en `doc/tutoriales/hubspot/`:
 Implementado en esta iteración:
 
 - **Tipos compartidos** — `shared/types/hubspot.ts`: `HubSpotEnvironment`, `HubSpotEnvConfig`, `HubSpotConfig`, `HubSpotRequest`, `HubSpotResponse` y los payloads de IPC (`HubSpotSaveTokenInput/Result`, `HubSpotEnvironmentInput`, `HubSpotOperationResult`).
-- **Conector** — `client.ts` (axios + interceptor de auth Bearer + retry con backoff exponencial en 429/5xx + redacción del token), `rate-limiter.ts` (Bottleneck, 100 req/10 s, concurrencia limitada), `token-store.ts` (keytar inyectable + `hashToken` SHA-256), `verify.ts` (`GET /oauth/v1/access-tokens/{token}` → portalId/portalName/scopes) e `index.ts` (façade `createHubSpotConnector` con stores inyectables + `createElectronHubSpotConnector`).
+- **Conector** — `client.ts` (axios + interceptor de auth Bearer + retry con backoff exponencial en 429/5xx + redacción del token), `rate-limiter.ts` (Bottleneck, 100 req/10 s, concurrencia limitada), `token-store.ts` (keytar inyectable + `hashToken` SHA-256), `verify.ts` (`GET /account-info/2026-03/details` → portalId/portalName; sin scopes) e `index.ts` (façade `createHubSpotConnector` con stores inyectables + `createElectronHubSpotConnector`).
 - **IPC** — canales `hubspot:save-token|get-status|revoke-token|set-environment|request` añadidos a `shared/types/ipc.ts`, `preload/index.ts` y registrados en `main/index.ts`. El token solo viaja renderer→main en `save-token`; nunca vuelve al renderer.
-- **UI** — `features/connector-hubspot/` (hook `useHubSpotConnector` + pantalla `HubSpotConnectorScreen` con tabs Producción/Sandbox, campo token `type=password`, estado de conexión, scopes, revocar y «usar como entorno activo»). `ConfigSection` lista los conectores; ruta `config/connectors/hubspot`. Chip permanente de entorno (PROD/SANDBOX) en `TopBar`, alimentado por `hubspotEnvironment` del shell store y refrescado en `MainLayout`. Claves i18n añadidas en los cuatro locales.
+- **UI** — `features/connector-hubspot/` (hook `useHubSpotConnector` + pantalla `HubSpotConnectorScreen` con tabs Producción/Sandbox, campo token `type=password`, estado de conexión, revocar y «usar como entorno activo»). `ConfigSection` lista los conectores; ruta `config/connectors/hubspot`. Chip permanente de entorno (PROD/SANDBOX) en `TopBar`, alimentado por `hubspotEnvironment` del shell store y refrescado en `MainLayout`. Claves i18n añadidas en los cuatro locales.
 - **Tests** — unitarios `client.spec.ts`, `token-store.spec.ts`, `verify.spec.ts`, `rate-limiter.spec.ts`, `index.spec.ts`; funcional `hubspot-config.spec.ts`.
 
 Decisiones y desviaciones respecto a SPEC-0000 §5 / §6:
@@ -219,3 +219,19 @@ Decisiones y desviaciones respecto a SPEC-0000 §5 / §6:
 - **Bundling** — `externalizeDepsPlugin()` añadido a `main` y `preload` en `electron.vite.config.ts` para externalizar dependencias (necesario para el módulo nativo `keytar`).
 
 Pendiente (entorno local del usuario): `npm install` (instala axios/bottleneck/keytar), `npm run typecheck && npm run test`, `npm run build` + `npm run test:e2e`, y abrir la PR.
+
+## 12. Iteraciones
+
+### 2026-06-10 — Verificación vía account-info; sin lectura de scopes
+
+Cambio: la verificación del token deja de usar `GET /oauth/v1/access-tokens/{token}` y pasa a `GET /account-info/2026-03/details`. Motivo: **los scopes de un Private App Token no se pueden obtener vía API** (a diferencia de los tokens OAuth). En consecuencia, el conector ya no detecta, persiste ni muestra los scopes.
+
+Impacto documentado en este SPEC:
+
+- §2 — nueva subsección «Verificación del token y scopes».
+- §3 — el mockup de UI ya no muestra el bloque «Scopes detectados».
+- §4 — `HubSpotEnvConfig` sin el campo `scopes`; salida de `hubspot:save-token` sin `scopes`.
+- §5 — tabla de scopes base sin `oauth`; nota sobre la imposibilidad de leer scopes del PAT.
+- §6 / §7 / §11 — referencias a `verify.ts` y a su test actualizadas al endpoint `account-info`.
+
+Código afectado (ya funcional, no modificado en esta iteración): `verify.ts`, `index.ts`, `shared/types/hubspot.ts`, `HubSpotConnectorScreen.tsx`. Tests y tutoriales alineados en esta iteración (`verify.spec.ts`, `index.spec.ts`, `conectar-hubspot.md`, `crear-private-app.md`) y eliminada la clave i18n `hubspot.scopes` (sin uso) en los cuatro locales.

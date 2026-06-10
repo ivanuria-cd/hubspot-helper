@@ -19,9 +19,10 @@ La app verifica el token contra HubSpot y, si es válido, muestra el estado de l
 - Un indicador **Conectado** (badge verde lima).
 - La línea **Portal: _nombre_ (_id_)** con los datos de tu cuenta de HubSpot.
 - La **versión de API** en uso.
-- La lista de **scopes detectados** en el token.
 
 Si el token no es válido, verás un mensaje de error explicando el motivo y la conexión no se guardará.
+
+> **Sobre los permisos (scopes):** la app no muestra los scopes del token. Las claves privadas de HubSpot no permiten consultar sus ámbitos vía API, por lo que la app no puede listarlos. Revisa y ajusta los scopes directamente en HubSpot, dentro de la aplicación privada (ver *Crear una Private App en HubSpot y obtener el token*). Si a una función le falta un permiso, lo notarás al usarla, no en esta pantalla.
 
 ## Preguntas frecuentes
 

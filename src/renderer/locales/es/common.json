@@ -82,7 +82,6 @@
     "useAsActive": "Usar como entorno activo",
     "portal": "Portal: {{name}} ({{id}})",
     "apiVersion": "Versión API en uso: {{version}}",
-    "scopes": "Scopes detectados",
     "loading": "Comprobando conexión…",
     "saveSuccess": "Conectado correctamente a {{portal}}.",
     "saveError": "No se pudo conectar: {{error}}"

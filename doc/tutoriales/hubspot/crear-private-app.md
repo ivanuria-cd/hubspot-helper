@@ -12,11 +12,12 @@ La aplicación se conecta a HubSpot mediante un *Private App Token* (PAT). Es el
 3. En el menú lateral, abre **Integraciones → Aplicaciones privadas**.
 4. Pulsa **Crear una aplicación privada**.
 5. En la pestaña **Información básica**, escribe un nombre (por ejemplo, `RevOps Assistant`) y una descripción.
-6. Abre la pestaña **Ámbitos (scopes)** y activa, como mínimo, los siguientes:
-   - `oauth` — necesario para que la app verifique el token.
+6. Abre la pestaña **Ámbitos (scopes)** y activa, como mínimo:
    - `crm.objects.contacts.read` — comprobación básica de conectividad.
 
    Añade además los scopes que requieran las características que vayas a usar (cada característica documenta los suyos; por ejemplo, automatización requiere `automation`).
+
+   > **Importante:** anota qué scopes activas. La app **no puede leer ni mostrar los scopes** de una clave privada (HubSpot no los expone vía API), así que la lista de permisos solo es visible aquí, en HubSpot.
 7. Pulsa **Crear aplicación** y confirma en el aviso.
 8. HubSpot mostrará el **token de acceso**. Pulsa **Mostrar token** y luego **Copiar**.
 

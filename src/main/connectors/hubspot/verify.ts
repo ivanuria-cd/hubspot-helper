@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { HUBSPOT_BASE_URL } from './client';
 
-/** Respuesta de `GET https://api.hubapi.com/account-info/v3/details` (campos usados). */
+/** Respuesta de `GET https://api.hubapi.com/account-info/2026-03/details` (campos usados). */
 export interface AccessTokenInfo {
   portalId: number;
   portalName: string;

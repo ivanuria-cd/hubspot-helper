@@ -82,7 +82,6 @@
     "useAsActive": "Usa com a entorn actiu",
     "portal": "Portal: {{name}} ({{id}})",
     "apiVersion": "Versió de l'API en ús: {{version}}",
-    "scopes": "Scopes detectats",
     "loading": "Comprovant la connexió…",
     "saveSuccess": "Connectat correctament a {{portal}}.",
     "saveError": "No s'ha pogut connectar: {{error}}"

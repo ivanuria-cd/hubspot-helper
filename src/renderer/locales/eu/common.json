@@ -82,7 +82,6 @@
     "useAsActive": "Erabili ingurune aktibo gisa",
     "portal": "Ataria: {{name}} ({{id}})",
     "apiVersion": "Erabilitako API bertsioa: {{version}}",
-    "scopes": "Detektatutako scope-ak",
     "loading": "Konexioa egiaztatzen…",
     "saveSuccess": "{{portal}} atarira behar bezala konektatuta.",
     "saveError": "Ezin izan da konektatu: {{error}}"

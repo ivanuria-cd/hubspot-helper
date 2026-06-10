@@ -47,8 +47,7 @@ describe('conector HubSpot (façade)', () => {
     connector = createHubSpotConnector({
       tokens,
       configs: memoryConfigs(),
-      verify: () =>
-        Promise.resolve({ portalId: '7', portalName: 'acme.com', scopes: ['oauth'] }),
+      verify: () => Promise.resolve({ portalId: '7', portalName: 'acme.com' }),
       now: () => '2026-06-09T00:00:00.000Z',
     });
   });
