@@ -2,8 +2,10 @@
 
 **Estado:** IMPLEMENTADO  
 **Branch:** `feat/spec-0004-conector-google-drive`  
-**Fecha:** 2026-06-09 (implementado 2026-06-10)  
+**Fecha:** 2026-06-09 (implementado 2026-06-10; extendido 2026-06-11)  
 **Depende de:** SPEC-0002
+
+> **Extensión 2026-06-11 (SPEC-0006):** el conector se amplió para escribir **Google Sheets** además de Google Docs. Se añadió `connectors/google-drive/sheets-client.ts` (Google Sheets API v4, inyectable y testeable) y el método `writeSpreadsheet()` al conector. La estructura concreta de las hojas la define SPEC-0006, no este SPEC.
 
 ---
 
@@ -224,6 +226,4 @@ Decisiones tomadas durante la implementación, registradas según SPEC-0000 («c
 
 - Conector: `src/main/connectors/google-drive/{auth,token-store,client,sync,cover-template,picker,index}.ts` (+ specs de `auth`, `token-store`, `client`, `sync`, `cover-template`).
 - Contrato: `src/renderer/shared/types/gdrive.ts`; canales y API en `ipc.ts`, `preload/index.ts`, handlers en `main/index.ts`.
-- UI: `src/renderer/features/connector-gdrive/` (hook + pantalla), ruta en `router.tsx`, entrada en `ConfigSection.tsx`, claves i18n en `es/ca/eu/en`.
-- Docs/QA: `doc/tutoriales/google-drive/{conectar-google-drive,seleccionar-carpeta,sincronizar-archivos}.md`; `tests/functional/{gdrive-config,gdrive-sync}.spec.ts`.
-- Infra: `.env.example`, `scripts/setup-gdrive-deps.cmd`, `scripts/verify-spec-0004.cmd`.
+- UI: `src/renderer/features/connector-gdrive

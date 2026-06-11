@@ -27,6 +27,11 @@ import {
   type TokenSet,
 } from './auth';
 import { createDriveClient, type DriveApi, type DriveClient } from './client';
+import {
+  createSheetsClient,
+  type SheetsClient,
+  type SheetTab,
+} from './sheets-client';
 import { buildCover, type CoverInput } from './cover-template';
 import { reconcile } from './sync';
 import { buildPickerHtml, parsePickerTitle, type PickerSelection } from './picker';
@@ -79,6 +84,7 @@ export interface GoogleDriveConnectorDeps {
   http: OAuthHttpClient;
   env: GoogleDriveEnv;
   driveClientFor: (accessToken: string) => DriveClient;
+  sheetsClientFor: (accessToken: string) => SheetsClient;
   runAuthFlow: (env: GoogleDriveEnv) => Promise<{ tokens: TokenSet; email: string }>;
   openPicker: (accessToken: string) => Promise<PickerSelection | null>;
   now?: () => number;
@@ -274,7 +280,49 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
     }
   }
 
-  return { startAuth, selectFolder, getStatus, sync, revoke, writeFile, readFile };
+  async function writeSpreadsheet(input: {
+    projectId: string;
+    name: string;
+    featureKey: string;
+    schemaVersion: number;
+    tabs: SheetTab[];
+  }): Promise<{ success: boolean; spreadsheetId?: string; error?: string }> {
+    try {
+      const config = deps.configs.get(input.projectId);
+      if (!config?.folderId) throw new Error('Proyecto sin carpeta de trabajo seleccionada');
+      const accessToken = await getValidAccessToken(input.projectId);
+      const client = deps.sheetsClientFor(accessToken);
+      const { spreadsheetId } = await client.writeSpreadsheet({
+        folderId: config.folderId,
+        name: input.name,
+        featureKey: input.featureKey,
+        schemaVersion: input.schemaVersion,
+        tabs: input.tabs,
+      });
+      const files = [...(config.files ?? [])];
+      const existing = files.find((file) => file.featureKey === input.featureKey);
+      if (existing) {
+        existing.lastModifiedLocal = isoNow();
+        existing.syncStatus = 'pending';
+      } else {
+        files.push({
+          driveId: spreadsheetId,
+          name: input.name,
+          mimeType: 'application/vnd.google-apps.spreadsheet',
+          featureKey: input.featureKey,
+          lastModifiedDrive: '',
+          lastModifiedLocal: isoNow(),
+          syncStatus: 'pending',
+        });
+      }
+      deps.configs.set(input.projectId, { ...config, files });
+      return { success: true, spreadsheetId };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Error al escribir' };
+    }
+  }
+
+  return { startAuth, selectFolder, getStatus, sync, revoke, writeFile, readFile, writeSpreadsheet };
 }
 
 export type GoogleDriveConnector = ReturnType<typeof createGoogleDriveConnector>;
@@ -307,6 +355,7 @@ interface GoogleApisModule {
     auth: { OAuth2: new () => { setCredentials(creds: { access_token: string }): void } };
     drive: (opts: unknown) => unknown;
     docs: (opts: unknown) => unknown;
+    sheets: (opts: unknown) => unknown;
   };
 }
 
@@ -350,6 +399,53 @@ function googleDriveClientFor(accessToken: string): DriveClient {
     },
   };
   return createDriveClient(api);
+}
+
+function googleSheetsClientFor(accessToken: string): SheetsClient {
+  const { google } = require('googleapis') as GoogleApisModule;
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+  const drive = google.drive({ version: 'v3', auth }) as any;
+  const sheets = google.sheets({ version: 'v4', auth }) as any;
+  return createSheetsClient(
+    {
+      async filesList(args) {
+        const res = await drive.files.list(args);
+        return res.data;
+      },
+      async filesCreate(args) {
+        const res = await drive.files.create(args);
+        return res.data;
+      },
+    },
+    {
+      async get(args) {
+        const res = await sheets.spreadsheets.get({ spreadsheetId: args.spreadsheetId });
+        return res.data;
+      },
+      async batchUpdate(args) {
+        const res = await sheets.spreadsheets.batchUpdate({
+          spreadsheetId: args.spreadsheetId,
+          requestBody: { requests: args.requests },
+        });
+        return res.data;
+      },
+      async valuesUpdate(args) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: args.spreadsheetId,
+          range: args.range,
+          valueInputOption: 'RAW',
+          requestBody: { values: args.values },
+        });
+      },
+      async valuesClear(args) {
+        await sheets.spreadsheets.values.clear({
+          spreadsheetId: args.spreadsheetId,
+          range: args.range,
+        });
+      },
+    },
+  );
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -456,6 +552,7 @@ export function createElectronGoogleDriveConnector(): GoogleDriveConnector {
     http,
     env,
     driveClientFor: googleDriveClientFor,
+    sheetsClientFor: googleSheetsClientFor,
     runAuthFlow: runElectronAuthFlow(http),
     openPicker: openElectronPicker(env),
   });

@@ -31,6 +31,7 @@
     "label": "Menú de capacidades",
     "dashboard": "Dashboard",
     "crm": "CRM",
+    "properties": "Propiedades",
     "maps": "Mapas",
     "reporting": "Reporting",
     "config": "Configuración",
@@ -45,7 +46,8 @@
     "features": {
       "hubspot": "HubSpot",
       "google-drive": "Google Drive",
-      "mcp": "API / MCP"
+      "mcp": "API / MCP",
+      "propiedades": "Propiedades"
     }
   },
   "topbar": {
@@ -139,6 +141,115 @@
   },
   "sections": {
     "placeholder": "Esta sección se completará en un SPEC posterior."
+  },
+  "properties": {
+    "title": "CRM / Propiedades",
+    "syncHs": "Sincronizar HubSpot",
+    "syncing": "Sincronizando…",
+    "syncSummary": "{{updated}} al día · {{divergent}} divergentes · {{missing}} sin crear",
+    "addProperty": "Propiedad",
+    "manageOrigins": "Orígenes ({{count}})",
+    "exportJson": "Exportar JSON",
+    "pendingChanges": "Cambios pendientes ({{count}})",
+    "search": "Buscar…",
+    "loading": "Cargando propiedades…",
+    "empty": "No hay propiedades todavía. Sincroniza con HubSpot o añade una.",
+    "noResults": "Ningún resultado con los filtros actuales.",
+    "originsLabel": "Orígenes:",
+    "noOrigins": "Sin orígenes",
+    "viewChanges": "Ver cambios",
+    "applyInHs": "Aplicar en HS",
+    "filters": {
+      "object": "Objeto",
+      "type": "Tipo",
+      "origin": "Origen",
+      "status": "Estado",
+      "all": "Todos"
+    },
+    "status": {
+      "exists": "exists",
+      "divergent": "divergent",
+      "missing": "missing"
+    },
+    "panel": {
+      "definition": "Definición",
+      "hubspotName": "Nombre HubSpot",
+      "label": "Etiqueta",
+      "object": "Objeto",
+      "type": "Tipo",
+      "fieldType": "Tipo de campo",
+      "group": "Grupo",
+      "custom": "Personalizada",
+      "options": "Opciones",
+      "description": "Descripción",
+      "origins": "Orígenes mapeados",
+      "noMappings": "Sin orígenes mapeados",
+      "pendingChanges": "Cambios pendientes",
+      "noChanges": "Sin cambios pendientes",
+      "sourceField": "Campo origen",
+      "transformations": "Transformaciones",
+      "notes": "Notas",
+      "addMapping": "Añadir origen",
+      "save": "Guardar",
+      "delete": "Eliminar",
+      "close": "Cerrar"
+    },
+    "addDialog": {
+      "title": "Añadir propiedad",
+      "editTitle": "Editar propiedad",
+      "hubspotName": "Nombre técnico (HubSpot)",
+      "label": "Etiqueta",
+      "object": "Objeto",
+      "type": "Tipo",
+      "fieldType": "Tipo de campo",
+      "group": "Grupo",
+      "description": "Descripción",
+      "cancel": "Cancelar",
+      "create": "Crear",
+      "save": "Guardar"
+    },
+    "originsModal": {
+      "title": "Gestionar orígenes",
+      "name": "Nombre",
+      "type": "Tipo",
+      "description": "Descripción",
+      "add": "Añadir origen",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "empty": "No hay orígenes definidos.",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "close": "Cerrar",
+      "types": {
+        "integration": "Integración",
+        "migration": "Migración",
+        "user": "Usuario",
+        "workflow": "Workflow"
+      }
+    },
+    "changes": {
+      "title": "Propiedades / Cambios pendientes",
+      "back": "Volver a propiedades",
+      "applySandbox": "Aplicar en Sandbox",
+      "applyProduction": "Aplicar en Producción",
+      "state": "Estado",
+      "sandboxDone": "sandbox ✓",
+      "sandboxPending": "sandbox ✕",
+      "productionDone": "producción ✓",
+      "productionPending": "producción ✕",
+      "discard": "Descartar",
+      "empty": "No hay cambios pendientes."
+    },
+    "mappingDialog": {
+      "title": "Mapear origen",
+      "origin": "Origen",
+      "sourceField": "Campo origen",
+      "transformations": "Transformaciones (valor origen → valor HubSpot)",
+      "addRule": "Añadir regla",
+      "notes": "Notas",
+      "cancel": "Cancelar",
+      "save": "Guardar"
+    }
   },
   "_fallbackProbe": "valor por defecto (es)"
 }

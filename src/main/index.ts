@@ -7,7 +7,9 @@ import { getLanguage, setLanguage } from './settings';
 import { createElectronProjectsService } from './projects';
 import { createElectronHubSpotConnector } from './connectors/hubspot';
 import { createElectronGoogleDriveConnector } from './connectors/google-drive';
-import { createElectronMcpService } from './mcp';
+import { createElectronMcpService, mcpRegistry } from './mcp';
+import { createElectronPropertyService } from './property-management';
+import { registerPropertyTools } from './property-management/mcp-tools';
 import type { SupportedLanguage } from '@shared/i18n/languages';
 import type { NewProjectInput, Project } from '@shared/types/project';
 import type {
@@ -20,6 +22,19 @@ import type {
   GoogleDriveReadFileInput,
   GoogleDriveWriteFileInput,
 } from '@shared/types/gdrive';
+import type {
+  ApplyChangeInput,
+  DiscardChangeInput,
+  ExportJsonInput,
+  MappingDeleteInput,
+  MappingUpsertInput,
+  MappingsListInput,
+  OriginCreateInput,
+  OriginDeleteInput,
+  OriginUpdateInput,
+  ProjectScopedInput,
+  PropertyUpsertInput,
+} from '@shared/types/properties';
 
 let mainWindow: BrowserWindow | null = null;
 let mcpService: ReturnType<typeof createElectronMcpService> | null = null;
@@ -38,6 +53,13 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
     version: app.getVersion(),
     getActiveProjectId: () => activeProjectId,
   });
+
+  const properties = createElectronPropertyService({
+    hubspot,
+    gdrive,
+    projectName: (projectId) => projects.list().find((p) => p.id === projectId)?.name ?? '',
+  });
+  registerPropertyTools(mcpRegistry, properties);
 
   ipcMain.handle(IpcChannels.appGetVersion, () => app.getVersion());
   ipcMain.handle(IpcChannels.updaterCheck, () => checkForUpdates());
@@ -98,6 +120,45 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   ipcMain.handle(IpcChannels.mcpRegenerateToken, () => mcp.regenerateToken());
   ipcMain.handle(IpcChannels.mcpListTools, () => mcp.listTools());
   ipcMain.handle(IpcChannels.mcpGetToken, () => ({ token: mcp.getToken() }));
+  ipcMain.handle(IpcChannels.propertiesList, (_event, input: ProjectScopedInput) =>
+    properties.listProperties(input),
+  );
+  ipcMain.handle(IpcChannels.propertiesUpsert, (_event, input: PropertyUpsertInput) =>
+    properties.upsertProperty(input),
+  );
+  ipcMain.handle(IpcChannels.propertiesSyncHubspot, (_event, input: ProjectScopedInput) =>
+    properties.syncHubspot(input),
+  );
+  ipcMain.handle(IpcChannels.propertiesApplyChange, (_event, input: ApplyChangeInput) =>
+    properties.applyChange(input),
+  );
+  ipcMain.handle(IpcChannels.propertiesDiscardChange, (_event, input: DiscardChangeInput) =>
+    properties.discardChange(input),
+  );
+  ipcMain.handle(IpcChannels.propertiesExportJson, (_event, input: ExportJsonInput) =>
+    properties.exportJson(input),
+  );
+  ipcMain.handle(IpcChannels.originsList, (_event, input: ProjectScopedInput) =>
+    properties.listOrigins(input),
+  );
+  ipcMain.handle(IpcChannels.originsCreate, (_event, input: OriginCreateInput) =>
+    properties.createOrigin(input),
+  );
+  ipcMain.handle(IpcChannels.originsUpdate, (_event, input: OriginUpdateInput) =>
+    properties.updateOrigin(input),
+  );
+  ipcMain.handle(IpcChannels.originsDelete, (_event, input: OriginDeleteInput) =>
+    properties.deleteOrigin(input),
+  );
+  ipcMain.handle(IpcChannels.mappingsList, (_event, input: MappingsListInput) =>
+    properties.listMappings(input),
+  );
+  ipcMain.handle(IpcChannels.mappingsUpsert, (_event, input: MappingUpsertInput) =>
+    properties.upsertMapping(input),
+  );
+  ipcMain.handle(IpcChannels.mappingsDelete, (_event, input: MappingDeleteInput) =>
+    properties.deleteMapping(input),
+  );
 
   return mcp;
 }

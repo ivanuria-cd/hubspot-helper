@@ -31,6 +31,26 @@ import type {
   McpTokenResult,
   McpToolSummary,
 } from '@shared/types/mcp';
+import type {
+  ApplyChangeInput,
+  ApplyChangeResult,
+  DataOrigin,
+  DiscardChangeInput,
+  ExportJsonInput,
+  HubSpotProperty,
+  MappingDeleteInput,
+  MappingUpsertInput,
+  MappingsListInput,
+  OperationResult,
+  OriginCreateInput,
+  OriginDeleteInput,
+  OriginExport,
+  OriginUpdateInput,
+  ProjectScopedInput,
+  PropertiesSyncResult,
+  PropertyOriginMapping,
+  PropertyUpsertInput,
+} from '@shared/types/properties';
 
 export const IpcChannels = {
   appGetVersion: 'app:get-version',
@@ -61,6 +81,19 @@ export const IpcChannels = {
   mcpRegenerateToken: 'mcp:regenerate-token',
   mcpListTools: 'mcp:list-tools',
   mcpGetToken: 'mcp:get-token',
+  propertiesList: 'properties:list',
+  propertiesUpsert: 'properties:upsert',
+  propertiesSyncHubspot: 'properties:sync-hubspot',
+  propertiesApplyChange: 'properties:apply-change',
+  propertiesDiscardChange: 'properties:discard-change',
+  propertiesExportJson: 'properties:export-json',
+  originsList: 'origins:list',
+  originsCreate: 'origins:create',
+  originsUpdate: 'origins:update',
+  originsDelete: 'origins:delete',
+  mappingsList: 'mappings:list',
+  mappingsUpsert: 'mappings:upsert',
+  mappingsDelete: 'mappings:delete',
 } as const;
 
 export type UpdaterStatus =
@@ -101,4 +134,17 @@ export interface RevOpsApi {
   mcpRegenerateToken(): Promise<McpTokenResult>;
   mcpListTools(): Promise<McpToolSummary[]>;
   mcpGetToken(): Promise<McpTokenResult>;
+  propertiesList(input: ProjectScopedInput): Promise<HubSpotProperty[]>;
+  propertiesUpsert(input: PropertyUpsertInput): Promise<HubSpotProperty>;
+  propertiesSyncHubspot(input: ProjectScopedInput): Promise<PropertiesSyncResult>;
+  propertiesApplyChange(input: ApplyChangeInput): Promise<ApplyChangeResult>;
+  propertiesDiscardChange(input: DiscardChangeInput): Promise<OperationResult>;
+  propertiesExportJson(input: ExportJsonInput): Promise<OriginExport>;
+  originsList(input: ProjectScopedInput): Promise<DataOrigin[]>;
+  originsCreate(input: OriginCreateInput): Promise<DataOrigin>;
+  originsUpdate(input: OriginUpdateInput): Promise<DataOrigin>;
+  originsDelete(input: OriginDeleteInput): Promise<OperationResult>;
+  mappingsList(input: MappingsListInput): Promise<PropertyOriginMapping[]>;
+  mappingsUpsert(input: MappingUpsertInput): Promise<PropertyOriginMapping>;
+  mappingsDelete(input: MappingDeleteInput): Promise<OperationResult>;
 }

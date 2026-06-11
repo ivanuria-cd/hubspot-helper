@@ -31,6 +31,7 @@
     "label": "Gaitasunen menua",
     "dashboard": "Aginte-panela",
     "crm": "CRM",
+    "properties": "Propietateak",
     "maps": "Mapak",
     "reporting": "Txostenak",
     "config": "Konfigurazioa",
@@ -45,7 +46,8 @@
     "features": {
       "hubspot": "HubSpot",
       "google-drive": "Google Drive",
-      "mcp": "API / MCP"
+      "mcp": "API / MCP",
+      "propiedades": "Propietateak"
     }
   },
   "topbar": {
@@ -139,5 +141,114 @@
   },
   "sections": {
     "placeholder": "Atal hau geroko SPEC batean osatuko da."
+  },
+  "properties": {
+    "title": "CRM / Propietateak",
+    "syncHs": "Sinkronizatu HubSpot",
+    "syncing": "Sinkronizatzen…",
+    "syncSummary": "{{updated}} egunean · {{divergent}} dibergente · {{missing}} sortu gabe",
+    "addProperty": "Propietatea",
+    "manageOrigins": "Jatorriak ({{count}})",
+    "exportJson": "Esportatu JSON",
+    "pendingChanges": "Aldaketa zain ({{count}})",
+    "search": "Bilatu…",
+    "loading": "Propietateak kargatzen…",
+    "empty": "Oraindik ez dago propietaterik. Sinkronizatu HubSpot-ekin edo gehitu bat.",
+    "noResults": "Emaitzarik ez uneko iragazkiekin.",
+    "originsLabel": "Jatorriak:",
+    "noOrigins": "Jatorririk gabe",
+    "viewChanges": "Ikusi aldaketak",
+    "applyInHs": "Aplikatu HS-n",
+    "filters": {
+      "object": "Objektua",
+      "type": "Mota",
+      "origin": "Jatorria",
+      "status": "Egoera",
+      "all": "Guztiak"
+    },
+    "status": {
+      "exists": "exists",
+      "divergent": "divergent",
+      "missing": "missing"
+    },
+    "panel": {
+      "definition": "Definizioa",
+      "hubspotName": "HubSpot izena",
+      "label": "Etiketa",
+      "object": "Objektua",
+      "type": "Mota",
+      "fieldType": "Eremu mota",
+      "group": "Taldea",
+      "custom": "Pertsonalizatua",
+      "options": "Aukerak",
+      "description": "Deskribapena",
+      "origins": "Mapatutako jatorriak",
+      "noMappings": "Mapatutako jatorririk ez",
+      "pendingChanges": "Aldaketa zain",
+      "noChanges": "Aldaketa zainik ez",
+      "sourceField": "Jatorri eremua",
+      "transformations": "Transformazioak",
+      "notes": "Oharrak",
+      "addMapping": "Gehitu jatorria",
+      "save": "Gorde",
+      "delete": "Ezabatu",
+      "close": "Itxi"
+    },
+    "addDialog": {
+      "title": "Gehitu propietatea",
+      "editTitle": "Editatu propietatea",
+      "hubspotName": "Izen teknikoa (HubSpot)",
+      "label": "Etiketa",
+      "object": "Objektua",
+      "type": "Mota",
+      "fieldType": "Eremu mota",
+      "group": "Taldea",
+      "description": "Deskribapena",
+      "cancel": "Utzi",
+      "create": "Sortu",
+      "save": "Gorde"
+    },
+    "originsModal": {
+      "title": "Kudeatu jatorriak",
+      "name": "Izena",
+      "type": "Mota",
+      "description": "Deskribapena",
+      "add": "Gehitu jatorria",
+      "edit": "Editatu",
+      "delete": "Ezabatu",
+      "empty": "Ez dago jatorririk definituta.",
+      "cancel": "Utzi",
+      "save": "Gorde",
+      "close": "Itxi",
+      "types": {
+        "integration": "Integrazioa",
+        "migration": "Migrazioa",
+        "user": "Erabiltzailea",
+        "workflow": "Workflow"
+      }
+    },
+    "changes": {
+      "title": "Propietateak / Aldaketa zain",
+      "back": "Itzuli propietateetara",
+      "applySandbox": "Aplikatu Sandbox-en",
+      "applyProduction": "Aplikatu Produkzioan",
+      "state": "Egoera",
+      "sandboxDone": "sandbox ✓",
+      "sandboxPending": "sandbox ✕",
+      "productionDone": "produkzioa ✓",
+      "productionPending": "produkzioa ✕",
+      "discard": "Baztertu",
+      "empty": "Ez dago aldaketa zainik."
+    },
+    "mappingDialog": {
+      "title": "Mapatu jatorria",
+      "origin": "Jatorria",
+      "sourceField": "Jatorri eremua",
+      "transformations": "Transformazioak (jatorri balioa → HubSpot balioa)",
+      "addRule": "Gehitu araua",
+      "notes": "Oharrak",
+      "cancel": "Utzi",
+      "save": "Gorde"
+    }
   }
 }

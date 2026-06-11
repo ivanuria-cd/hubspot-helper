@@ -1,8 +1,8 @@
 # SPEC-0006 — Gestión de Propiedades
 
-**Estado:** VALIDADO — criterios de aceptación pendientes hasta implementación  
+**Estado:** IMPLEMENTADO  
 **Branch:** `feat/spec-0006-gestion-propiedades`  
-**Fecha:** 2026-06-09  
+**Fecha:** 2026-06-09 (implementado 2026-06-11)  
 **Depende de:** SPEC-0002, SPEC-0003, SPEC-0004, SPEC-0005
 
 ---
@@ -260,6 +260,7 @@ Dropdown con un ítem por origen. Al seleccionar, descarga `{nombre-origen}_{fec
 | Canal | Dirección | Input | Output |
 |-------|-----------|-------|--------|
 | `properties:list` | renderer → main | `{ projectId }` | `HubSpotProperty[]` |
+| `properties:upsert` | renderer → main | `{ projectId, property }` | `HubSpotProperty` |
 | `properties:sync-hubspot` | renderer → main | `{ projectId }` | `{ updated: number, divergent: number, missing: number }` |
 | `properties:apply-change` | renderer → main | `{ projectId, changeId, environment }` | `{ success, error? }` |
 | `properties:discard-change` | renderer → main | `{ projectId, changeId }` | `{ success }` |
@@ -368,3 +369,25 @@ Tutoriales a crear en `doc/tutoriales/propiedades/`:
 - [ ] Todos los tests del SPEC en verde
 - [ ] Los seis tutoriales de usuario están creados en `doc/tutoriales/propiedades/`
 - [ ] PR creada, revisada y mergeada en `main`
+
+---
+
+## 14. Notas de Implementación (2026-06-11)
+
+Decisiones tomadas durante la implementación, registradas según la norma «cada iteración sobre un código debe modificar el spec»:
+
+- **Canal `properties:upsert`**: la tabla IPC del §6 no contemplaba crear/editar propiedades, pero la maqueta del §5 incluye el botón «+ Propiedad». Se añadió el canal `properties:upsert` (y el método equivalente en `RevOpsApi`) para soportar el alta y edición local de propiedades. Una propiedad nueva nace con estado `missing`; la sincronización genera su cambio `create`.
+- **Extensión del conector de Google Drive (SPEC-0004)**: el conector solo escribía Google Docs. Para el Google Sheets de cuatro hojas se añadió `connectors/google-drive/sheets-client.ts` (Sheets API v4 real, inyectable) y el método `writeSpreadsheet()` al conector. Esto amplía el alcance de SPEC-0004; queda anotado aquí y en ese SPEC.
+- **Importación en sincronización**: al sincronizar, las propiedades del portal que no estaban en el mapa se importan con estado `exists`, de modo que la tabla se puebla desde el primer uso.
+- **Volcado a Sheets best-effort**: si el proyecto no tiene carpeta de Drive seleccionada, las operaciones locales no fallan; el volcado al Sheets se omite silenciosamente y el estado local sigue siendo válido.
+- **Reconciliación**: módulo puro `property-management/reconcile.ts` + `pending-changes.ts`. Estados: `exists` (coincide), `divergent` (existe pero difiere en etiqueta, tipo/fieldType u opciones), `missing` (no existe).
+- **Tools MCP**: registradas las cinco del §8, todas de solo lectura. La aplicación de cambios en HubSpot nunca pasa por MCP.
+
+### Ficheros principales creados
+
+- `connectors/hubspot/properties.ts` — CRM Properties API v3
+- `connectors/google-drive/sheets-client.ts` — Sheets API v4
+- `main/property-management/` — `reconcile.ts`, `pending-changes.ts`, `origin-export.ts`, `sheets-model.ts`, `sheets-writer.ts`, `service.ts`, `store.ts`, `mcp-tools.ts`, `index.ts`
+- `renderer/features/property-management/` — stores (`properties`, `origins`, `mappings`) y componentes (`PropertiesTable`, `PropertyPanel`, `OriginsModal`, `PendingChangesView`, `AddPropertyDialog`, `MappingDialog`, `StatusBadge`, `PropertyManagementScreen`)
+- `doc/tutoriales/propiedades/` — los seis tutoriales del §11
+- Tests unitarios (Vitest) y funcionales (Playwright) de los §10

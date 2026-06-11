@@ -39,6 +39,20 @@ const api: RevOpsApi = {
   mcpRegenerateToken: () => ipcRenderer.invoke(IpcChannels.mcpRegenerateToken),
   mcpListTools: () => ipcRenderer.invoke(IpcChannels.mcpListTools),
   mcpGetToken: () => ipcRenderer.invoke(IpcChannels.mcpGetToken),
+  propertiesList: (input) => ipcRenderer.invoke(IpcChannels.propertiesList, input),
+  propertiesUpsert: (input) => ipcRenderer.invoke(IpcChannels.propertiesUpsert, input),
+  propertiesSyncHubspot: (input) => ipcRenderer.invoke(IpcChannels.propertiesSyncHubspot, input),
+  propertiesApplyChange: (input) => ipcRenderer.invoke(IpcChannels.propertiesApplyChange, input),
+  propertiesDiscardChange: (input) =>
+    ipcRenderer.invoke(IpcChannels.propertiesDiscardChange, input),
+  propertiesExportJson: (input) => ipcRenderer.invoke(IpcChannels.propertiesExportJson, input),
+  originsList: (input) => ipcRenderer.invoke(IpcChannels.originsList, input),
+  originsCreate: (input) => ipcRenderer.invoke(IpcChannels.originsCreate, input),
+  originsUpdate: (input) => ipcRenderer.invoke(IpcChannels.originsUpdate, input),
+  originsDelete: (input) => ipcRenderer.invoke(IpcChannels.originsDelete, input),
+  mappingsList: (input) => ipcRenderer.invoke(IpcChannels.mappingsList, input),
+  mappingsUpsert: (input) => ipcRenderer.invoke(IpcChannels.mappingsUpsert, input),
+  mappingsDelete: (input) => ipcRenderer.invoke(IpcChannels.mappingsDelete, input),
 };
 
 contextBridge.exposeInMainWorld('api', api);
