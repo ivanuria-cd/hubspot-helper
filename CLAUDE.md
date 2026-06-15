@@ -14,9 +14,10 @@ Todos los SPECs están en `specs/`. Estado actual:
 | [SPEC-0001](specs/SPEC-0001-fundacion-del-proyecto.md) | Fundación del Proyecto | IMPLEMENTADO |
 | [SPEC-0002](specs/SPEC-0002-app-shell.md) | App Shell | IMPLEMENTADO |
 | [SPEC-0003](specs/SPEC-0003-conector-hubspot.md) | Conector HubSpot | IMPLEMENTADO |
-| [SPEC-0004](specs/SPEC-0004-conector-google-drive.md) | Conector Google Drive | IMPLEMENTADO |
+| [SPEC-0004](specs/SPEC-0004-conector-google-drive.md) | Conector Google Drive | IMPLEMENTADO (credenciales por UI §13 + selector propio sin Picker §14) |
 | [SPEC-0005](specs/SPEC-0005-capa-mcp-api.md) | Capa MCP / API | IMPLEMENTADO |
-| [SPEC-0006](specs/SPEC-0006-gestion-de-propiedades.md) | Gestión de Propiedades | IMPLEMENTADO |
+| [SPEC-0006](specs/SPEC-0006-gestion-de-propiedades.md) | Gestión de Propiedades | IMPLEMENTADO (rediseño §16 en BORRADOR) |
+| [SPEC-0007](specs/SPEC-0007-objetos-custom-hubspot.md) | Objetos Custom de HubSpot | BORRADOR |
 
 Leer el SPEC correspondiente antes de implementar o modificar cualquier característica.
 
@@ -34,4 +35,5 @@ Límites estrictos para evitar solapamientos entre SPECs:
 | SPEC-0003 | Cliente HTTP HubSpot, autenticación PAT, gestión de entornos production/sandbox, rate limiting, pantalla de configuración del conector | No implementa ningún endpoint de negocio; no toca Google Drive ni MCP |
 | SPEC-0004 | Cliente Google Drive, OAuth PKCE, selección de carpeta, sincronización, escritura/lectura de archivos con portada CD y versionado de esquema | No define la estructura de ningún archivo concreto (eso lo hace cada SPEC de característica); no toca HubSpot ni MCP |
 | SPEC-0005 | Servidor MCP (stdio + HTTP/SSE), registry de tools, autenticación por token local, UI de configuración MCP | No implementa ninguna tool de negocio; las tools las registra cada SPEC de característica |
-| SPEC-0006 | Mapa de propiedades HubSpot: orígenes de datos, propiedades, mapeos origen↔propiedad, transformaciones, cambios pendientes en HubSpot, exportación JSON, Google Sheets con cuatro hojas, tools MCP de propiedades | No toca otras entidades CRM (contactos, deals, etc.); no gestiona workflows ni sequences |
+| SPEC-0006 | Mapa de propiedades HubSpot: orígenes de datos, entradas por objeto (nombre + propiedad HubSpot destino + orígenes con definición genérica y mapeo de opciones), selección de objetos (estándar + custom existentes), cambios pendientes en HubSpot, exportación JSON, Google Sheets, tools MCP de propiedades | No crea objetos custom (eso es SPEC-0007); no gestiona registros/instancias; no toca workflows ni sequences |
+| SPEC-0007 | Creación y gestión de objetos custom de HubSpot (CRM Schemas API); catálogo de objetos para SPEC-0006 | No gestiona registros (instancias); no define las entradas de propiedades (eso es SPEC-0006) |

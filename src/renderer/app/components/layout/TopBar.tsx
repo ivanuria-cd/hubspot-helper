@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   AppBar,
   Badge,
@@ -5,15 +6,21 @@ import {
   Chip,
   IconButton,
   Link,
+  Menu,
+  MenuItem,
   Toolbar,
   Typography,
 } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useShellStore } from '@renderer/app/store/shell-store';
+import type { HubSpotEnvironment } from '@shared/types/hubspot';
 import { LanguageSwitcher } from '@shared/components/LanguageSwitcher';
 import { NAV_ITEMS } from './nav-items';
+
+const ENVIRONMENTS: HubSpotEnvironment[] = ['production', 'sandbox'];
 
 function useSectionLabelKey(projectBase: string): string | null {
   const location = useLocation();
@@ -31,11 +38,21 @@ export function TopBar(): JSX.Element {
   const activeProject = useShellStore((state) => state.activeProject);
   const updateStatus = useShellStore((state) => state.updateStatus);
   const hubspotEnvironment = useShellStore((state) => state.hubspotEnvironment);
+  const setHubspotEnvironment = useShellStore((state) => state.setHubspotEnvironment);
+
+  const [envAnchor, setEnvAnchor] = useState<null | HTMLElement>(null);
 
   const projectBase = activeProject ? `/project/${activeProject.id}` : '';
   const sectionKey = useSectionLabelKey(projectBase);
   const hasUpdate =
     updateStatus?.state === 'available' || updateStatus?.state === 'downloaded';
+
+  const selectEnvironment = async (environment: HubSpotEnvironment): Promise<void> => {
+    setEnvAnchor(null);
+    if (!activeProject || environment === hubspotEnvironment) return;
+    const result = await window.api.hubspotSetEnvironment({ projectId: activeProject.id, environment });
+    if (result.success) setHubspotEnvironment(environment);
+  };
 
   return (
     <AppBar
@@ -69,14 +86,31 @@ export function TopBar(): JSX.Element {
         ) : null}
 
         {hubspotEnvironment ? (
-          <Chip
-            size="small"
-            color={hubspotEnvironment === 'sandbox' ? 'secondary' : 'primary'}
-            label={t(`topbar.environment.${hubspotEnvironment}`)}
-            aria-label={t('topbar.environmentLabel', {
-              environment: t(`topbar.environment.${hubspotEnvironment}`),
-            })}
-          />
+          <>
+            <Chip
+              size="small"
+              clickable
+              color={hubspotEnvironment === 'sandbox' ? 'secondary' : 'primary'}
+              label={t(`topbar.environment.${hubspotEnvironment}`)}
+              onClick={(event) => setEnvAnchor(event.currentTarget)}
+              onDelete={(event) => setEnvAnchor(event.currentTarget)}
+              deleteIcon={<ArrowDropDownIcon />}
+              aria-label={t('topbar.environmentLabel', {
+                environment: t(`topbar.environment.${hubspotEnvironment}`),
+              })}
+            />
+            <Menu anchorEl={envAnchor} open={Boolean(envAnchor)} onClose={() => setEnvAnchor(null)}>
+              {ENVIRONMENTS.map((environment) => (
+                <MenuItem
+                  key={environment}
+                  selected={environment === hubspotEnvironment}
+                  onClick={() => selectEnvironment(environment)}
+                >
+                  {t(`environment.${environment}`)}
+                </MenuItem>
+              ))}
+            </Menu>
+          </>
         ) : null}
 
         <LanguageSwitcher />

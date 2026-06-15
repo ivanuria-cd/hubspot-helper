@@ -38,6 +38,7 @@ describe('CRM Properties API v3', () => {
       expect.objectContaining({ method: 'GET', path: '/crm/v3/properties/contacts' }),
     );
     expect(props).toHaveLength(2);
+    expect(props[0]?.objectType).toBe('contacts');
     expect(props[0]?.options?.[0]).toEqual({
       label: 'New',
       value: 'new',
@@ -45,8 +46,8 @@ describe('CRM Properties API v3', () => {
       hidden: false,
     });
     expect(props[0]?.type).toBe('enumeration');
-    // Tipo desconocido cae a 'string'
-    expect(props[1]?.type).toBe('string');
+    // Tipo no estándar: se preserva verbatim, no se colapsa a 'string'
+    expect(props[1]?.type).toBe('radio_unknown');
   });
 
   it('createProperty hace POST al objeto con el payload', async () => {

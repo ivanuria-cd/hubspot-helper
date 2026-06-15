@@ -1,12 +1,12 @@
 /**
- * Construcción de las operaciones de cambio pendientes en HubSpot (SPEC-0006).
- * Cada cambio guarda el `payload` exacto de la llamada a la CRM Properties API v3,
- * pero la app nunca lo aplica sin confirmación explícita del usuario.
+ * Construcción de las operaciones de cambio pendientes en HubSpot (SPEC-0006 §16).
+ * Cada cambio guarda el `payload` exacto de la CRM Properties API v3; la app nunca lo
+ * aplica sin confirmación explícita del usuario.
  */
 import type {
   HsPropertyChange,
   HsPropertyOption,
-  HubSpotProperty,
+  HubSpotPropertyDef,
 } from '@shared/types/properties';
 import type { RemoteProperty } from '../connectors/hubspot/properties';
 
@@ -15,16 +15,23 @@ export interface ChangeFactoryDeps {
   now: () => string;
 }
 
-function createBody(property: HubSpotProperty): Record<string, unknown> {
+/** Descarta opciones vacías y reindexa el orden (HubSpot rechaza label/value vacíos). */
+export function cleanOptions(options?: HsPropertyOption[]): HsPropertyOption[] {
+  return (options ?? [])
+    .filter((o) => o.label.trim() && o.value.trim())
+    .map((o, i) => ({ ...o, displayOrder: i }));
+}
+
+function createBody(def: HubSpotPropertyDef): Record<string, unknown> {
   const body: Record<string, unknown> = {
-    name: property.hubspotName,
-    label: property.label,
-    type: property.type,
-    fieldType: property.fieldType,
-    groupName: property.groupName,
+    name: def.hubspotName,
+    label: def.label,
+    type: def.type,
+    fieldType: def.fieldType,
+    groupName: def.groupName,
   };
-  if (property.description) body.description = property.description;
-  if (property.options) body.options = property.options;
+  const opts = cleanOptions(def.options);
+  if (opts.length) body.options = opts;
   return body;
 }
 
@@ -39,17 +46,19 @@ function optionsEqual(a?: HsPropertyOption[], b?: HsPropertyOption[]): boolean {
   });
 }
 
-/** Cambio de creación para una propiedad que no existe en HubSpot. */
+/** Cambio de creación para una propiedad destino que no existe en HubSpot. */
 export function buildCreateChange(
-  property: HubSpotProperty,
+  entryId: string,
+  objectType: string,
+  def: HubSpotPropertyDef,
   deps: ChangeFactoryDeps,
 ): HsPropertyChange {
   return {
     id: deps.newId(),
-    propertyId: property.id,
+    entryId,
     operation: 'create',
-    summary: `Crear propiedad «${property.label}» (${property.hubspotName}) en ${property.objectType}`,
-    payload: createBody(property),
+    summary: `Crear propiedad «${def.label}» (${def.hubspotName}) en ${objectType}`,
+    payload: createBody(def),
     appliedToSandbox: false,
     appliedToProduction: false,
     createdAt: deps.now(),
@@ -57,49 +66,50 @@ export function buildCreateChange(
 }
 
 /**
- * Compara la definición local con la remota y devuelve los cambios necesarios
- * para que HubSpot coincida con la definición del proyecto.
+ * Compara la definición destino (de una entrada con propiedad nueva/personalizada)
+ * con la remota y devuelve los cambios necesarios.
  */
-export function diffProperty(
-  property: HubSpotProperty,
+export function diffDefinition(
+  entryId: string,
+  def: HubSpotPropertyDef,
   remote: RemoteProperty,
   deps: ChangeFactoryDeps,
 ): HsPropertyChange[] {
   const changes: HsPropertyChange[] = [];
 
-  if (property.label !== remote.label) {
+  if (def.label !== remote.label) {
     changes.push({
       id: deps.newId(),
-      propertyId: property.id,
+      entryId,
       operation: 'update_label',
-      summary: `Cambiar etiqueta de «${remote.label}» a «${property.label}»`,
-      payload: { label: property.label },
+      summary: `Cambiar etiqueta de «${remote.label}» a «${def.label}»`,
+      payload: { label: def.label },
       appliedToSandbox: false,
       appliedToProduction: false,
       createdAt: deps.now(),
     });
   }
 
-  if (property.fieldType !== remote.fieldType || property.type !== remote.type) {
+  if (def.fieldType !== remote.fieldType || def.type !== remote.type) {
     changes.push({
       id: deps.newId(),
-      propertyId: property.id,
+      entryId,
       operation: 'update_field_type',
-      summary: `Cambiar tipo de campo a «${property.fieldType}» (${property.type})`,
-      payload: { type: property.type, fieldType: property.fieldType },
+      summary: `Cambiar tipo de campo a «${def.fieldType}» (${def.type})`,
+      payload: { type: def.type, fieldType: def.fieldType },
       appliedToSandbox: false,
       appliedToProduction: false,
       createdAt: deps.now(),
     });
   }
 
-  if (property.type === 'enumeration' && !optionsEqual(property.options, remote.options)) {
+  if (def.type === 'enumeration' && !optionsEqual(cleanOptions(def.options), remote.options)) {
     changes.push({
       id: deps.newId(),
-      propertyId: property.id,
+      entryId,
       operation: 'update_options',
-      summary: `Actualizar opciones de «${property.label}»`,
-      payload: { options: property.options ?? [] },
+      summary: `Actualizar opciones de «${def.label}»`,
+      payload: { options: cleanOptions(def.options) },
       appliedToSandbox: false,
       appliedToProduction: false,
       createdAt: deps.now(),

@@ -1,4 +1,4 @@
-import type { DriveFileMimeType } from '@shared/types/gdrive';
+import type { DriveFileMimeType, DriveFolder } from '@shared/types/gdrive';
 import { renderCoverText, type CoverContent } from './cover-template';
 import type { RemoteFile } from './sync';
 
@@ -30,7 +30,14 @@ interface RawDoc {
  * sin la librería `googleapis`; el façade lo adapta a partir de `google.drive()` / `google.docs()`.
  */
 export interface DriveApi {
-  filesList(args: { q: string; fields: string; spaces?: string }): Promise<{ files?: RawDriveFile[] }>;
+  filesList(args: {
+    q: string;
+    fields: string;
+    spaces?: string;
+    supportsAllDrives?: boolean;
+    includeItemsFromAllDrives?: boolean;
+  }): Promise<{ files?: RawDriveFile[] }>;
+  drivesList(args: { pageSize?: number; fields: string }): Promise<{ drives?: Array<{ id: string; name: string }> }>;
   filesCreate(args: { requestBody: Record<string, unknown>; fields: string }): Promise<RawDriveFile>;
   filesGet(args: { fileId: string; fields: string }): Promise<RawDriveFile>;
   filesExport(args: { fileId: string; mimeType: string }): Promise<string>;
@@ -74,6 +81,56 @@ export function createDriveClient(api: DriveApi) {
       spaces: 'drive',
     });
     return (result.files ?? []).map(toRemoteFile);
+  }
+
+  function toFolders(files?: RawDriveFile[]): DriveFolder[] {
+    return (files ?? [])
+      .map((file) => ({ id: file.id, name: file.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /**
+   * Lista subcarpetas para el selector propio (§14). `root` = «Mi unidad»;
+   * `sharedWithMe` = carpetas compartidas con el usuario (§14.10); resto = hijas del padre
+   * (incluida la raíz de una unidad compartida, §14.11). Los flags de todas las unidades son
+   * inocuos para «Mi unidad» y necesarios dentro de unidades compartidas.
+   */
+  async function listFolders(parentId: string): Promise<DriveFolder[]> {
+    const parent = parentId.trim() || 'root';
+    const q =
+      parent === 'sharedWithMe'
+        ? `sharedWithMe = true and mimeType = '${MIME_FOLDER}' and trashed = false`
+        : `'${parent}' in parents and mimeType = '${MIME_FOLDER}' and trashed = false`;
+    const result = await api.filesList({
+      q,
+      fields: 'files(id,name)',
+      spaces: 'drive',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+    });
+    return toFolders(result.files);
+  }
+
+  /** Lista las unidades compartidas accesibles (§14.11). El id es la raíz de cada unidad. */
+  async function listSharedDrives(): Promise<DriveFolder[]> {
+    const result = await api.drivesList({ pageSize: 100, fields: 'drives(id,name)' });
+    return (result.drives ?? [])
+      .map((drive) => ({ id: drive.id, name: drive.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  /** Busca carpetas por nombre en todas las unidades (§14.11). Resultados planos. */
+  async function searchFolders(query: string): Promise<DriveFolder[]> {
+    const term = query.trim().replace(/'/g, "\\'");
+    if (!term) return [];
+    const result = await api.filesList({
+      q: `name contains '${term}' and mimeType = '${MIME_FOLDER}' and trashed = false`,
+      fields: 'files(id,name)',
+      spaces: 'drive',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+    });
+    return toFolders(result.files);
   }
 
   async function ensureFeatureFolder(parentId: string, featureName: string): Promise<string> {
@@ -150,6 +207,9 @@ export function createDriveClient(api: DriveApi) {
 
   return {
     listManagedFiles,
+    listFolders,
+    listSharedDrives,
+    searchFolders,
     ensureFeatureFolder,
     createManagedDocument,
     replaceDocumentBody,

@@ -14,13 +14,19 @@ import type {
   HubSpotSaveTokenResult,
 } from '@shared/types/hubspot';
 import type {
+  DriveFolder,
+  GoogleCredentialsInput,
+  GoogleCredentialsStatus,
   GoogleDriveAuthStatus,
   GoogleDriveConfig,
   GoogleDriveFolderResult,
+  GoogleDriveListFoldersInput,
   GoogleDriveOperationResult,
   GoogleDriveProjectInput,
   GoogleDriveReadFileInput,
   GoogleDriveReadFileResult,
+  GoogleDriveSearchFoldersInput,
+  GoogleDriveSetFolderInput,
   GoogleDriveSyncResult,
   GoogleDriveWriteFileInput,
   GoogleDriveWriteFileResult,
@@ -36,11 +42,16 @@ import type {
   ApplyChangeResult,
   DataOrigin,
   DiscardChangeInput,
+  EntriesListInput,
+  EntryDeleteInput,
+  EntryUpsertInput,
   ExportJsonInput,
-  HubSpotProperty,
-  MappingDeleteInput,
-  MappingUpsertInput,
-  MappingsListInput,
+  GroupCreateInput,
+  GroupsListInput,
+  HubSpotGroup,
+  HubSpotObject,
+  HubSpotPropertiesInput,
+  HubSpotPropertyDef,
   OperationResult,
   OriginCreateInput,
   OriginDeleteInput,
@@ -48,8 +59,8 @@ import type {
   OriginUpdateInput,
   ProjectScopedInput,
   PropertiesSyncResult,
-  PropertyOriginMapping,
-  PropertyUpsertInput,
+  PropertyEntry,
+  WriteSheetsResult,
 } from '@shared/types/properties';
 
 export const IpcChannels = {
@@ -70,30 +81,38 @@ export const IpcChannels = {
   hubspotRequest: 'hubspot:request',
   gdriveStartAuth: 'gdrive:start-auth',
   gdriveAuthStatus: 'gdrive:auth-status',
-  gdriveSelectFolder: 'gdrive:select-folder',
+  gdriveListFolders: 'gdrive:list-folders',
+  gdriveSearchFolders: 'gdrive:search-folders',
+  gdriveSetFolder: 'gdrive:set-folder',
   gdriveGetStatus: 'gdrive:get-status',
   gdriveSync: 'gdrive:sync',
   gdriveRevoke: 'gdrive:revoke',
   gdriveWriteFile: 'gdrive:write-file',
   gdriveReadFile: 'gdrive:read-file',
+  gdriveGetCredentials: 'gdrive:get-credentials-status',
+  gdriveSetCredentials: 'gdrive:set-credentials',
+  gdriveClearCredentials: 'gdrive:clear-credentials',
   mcpGetStatus: 'mcp:get-status',
   mcpToggle: 'mcp:toggle',
   mcpRegenerateToken: 'mcp:regenerate-token',
   mcpListTools: 'mcp:list-tools',
   mcpGetToken: 'mcp:get-token',
-  propertiesList: 'properties:list',
-  propertiesUpsert: 'properties:upsert',
+  objectsList: 'objects:list',
+  hubspotPropertiesList: 'properties:hubspot-list',
+  groupsList: 'groups:list',
+  groupsCreate: 'groups:create',
+  entriesList: 'entries:list',
+  entriesUpsert: 'entries:upsert',
+  entriesDelete: 'entries:delete',
   propertiesSyncHubspot: 'properties:sync-hubspot',
   propertiesApplyChange: 'properties:apply-change',
   propertiesDiscardChange: 'properties:discard-change',
   propertiesExportJson: 'properties:export-json',
+  propertiesWriteSheets: 'properties:write-sheets',
   originsList: 'origins:list',
   originsCreate: 'origins:create',
   originsUpdate: 'origins:update',
   originsDelete: 'origins:delete',
-  mappingsList: 'mappings:list',
-  mappingsUpsert: 'mappings:upsert',
-  mappingsDelete: 'mappings:delete',
 } as const;
 
 export type UpdaterStatus =
@@ -123,28 +142,36 @@ export interface RevOpsApi {
   hubspotRequest(request: HubSpotRequest): Promise<HubSpotResponse>;
   gdriveStartAuth(input: GoogleDriveProjectInput): Promise<GoogleDriveOperationResult>;
   onGdriveAuthStatus(callback: (status: GoogleDriveAuthStatus) => void): () => void;
-  gdriveSelectFolder(input: GoogleDriveProjectInput): Promise<GoogleDriveFolderResult | null>;
+  gdriveListFolders(input: GoogleDriveListFoldersInput): Promise<DriveFolder[]>;
+  gdriveSearchFolders(input: GoogleDriveSearchFoldersInput): Promise<DriveFolder[]>;
+  gdriveSetFolder(input: GoogleDriveSetFolderInput): Promise<GoogleDriveFolderResult>;
   gdriveGetStatus(input: GoogleDriveProjectInput): Promise<GoogleDriveConfig | null>;
   gdriveSync(input: GoogleDriveProjectInput): Promise<GoogleDriveSyncResult>;
   gdriveRevoke(input: GoogleDriveProjectInput): Promise<GoogleDriveOperationResult>;
   gdriveWriteFile(input: GoogleDriveWriteFileInput): Promise<GoogleDriveWriteFileResult>;
   gdriveReadFile(input: GoogleDriveReadFileInput): Promise<GoogleDriveReadFileResult>;
+  gdriveGetCredentialsStatus(): Promise<GoogleCredentialsStatus | null>;
+  gdriveSetCredentials(input: GoogleCredentialsInput): Promise<GoogleDriveOperationResult>;
+  gdriveClearCredentials(): Promise<GoogleDriveOperationResult>;
   mcpGetStatus(): Promise<McpStatus>;
   mcpToggle(enabled: boolean): Promise<McpOperationResult>;
   mcpRegenerateToken(): Promise<McpTokenResult>;
   mcpListTools(): Promise<McpToolSummary[]>;
   mcpGetToken(): Promise<McpTokenResult>;
-  propertiesList(input: ProjectScopedInput): Promise<HubSpotProperty[]>;
-  propertiesUpsert(input: PropertyUpsertInput): Promise<HubSpotProperty>;
+  objectsList(input: ProjectScopedInput): Promise<HubSpotObject[]>;
+  hubspotPropertiesList(input: HubSpotPropertiesInput): Promise<HubSpotPropertyDef[]>;
+  groupsList(input: GroupsListInput): Promise<HubSpotGroup[]>;
+  groupsCreate(input: GroupCreateInput): Promise<HubSpotGroup>;
+  entriesList(input: EntriesListInput): Promise<PropertyEntry[]>;
+  entriesUpsert(input: EntryUpsertInput): Promise<PropertyEntry>;
+  entriesDelete(input: EntryDeleteInput): Promise<OperationResult>;
   propertiesSyncHubspot(input: ProjectScopedInput): Promise<PropertiesSyncResult>;
   propertiesApplyChange(input: ApplyChangeInput): Promise<ApplyChangeResult>;
   propertiesDiscardChange(input: DiscardChangeInput): Promise<OperationResult>;
   propertiesExportJson(input: ExportJsonInput): Promise<OriginExport>;
+  propertiesWriteSheets(input: ProjectScopedInput): Promise<WriteSheetsResult>;
   originsList(input: ProjectScopedInput): Promise<DataOrigin[]>;
   originsCreate(input: OriginCreateInput): Promise<DataOrigin>;
   originsUpdate(input: OriginUpdateInput): Promise<DataOrigin>;
   originsDelete(input: OriginDeleteInput): Promise<OperationResult>;
-  mappingsList(input: MappingsListInput): Promise<PropertyOriginMapping[]>;
-  mappingsUpsert(input: MappingUpsertInput): Promise<PropertyOriginMapping>;
-  mappingsDelete(input: MappingDeleteInput): Promise<OperationResult>;
 }

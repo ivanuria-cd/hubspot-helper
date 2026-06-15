@@ -1,46 +1,51 @@
 /**
- * Generación del contrato JSON de exportación por origen (SPEC-0006 §3).
- * Es un contrato de integración para desarrolladores; se genera bajo demanda.
+ * Generación del contrato JSON de exportación por origen (SPEC-0006 §16, schema_version 2).
+ * Recorre las entradas y, por cada fuente que use el origen, emite su definición genérica.
  */
-import type {
-  DataOrigin,
-  HubSpotProperty,
-  OriginExport,
-  PropertyOriginMapping,
-} from '@shared/types/properties';
+import type { DataOrigin, OriginExport, PropertyEntry } from '@shared/types/properties';
 
 export interface ExportInput {
   origin: DataOrigin;
-  properties: HubSpotProperty[];
-  mappings: PropertyOriginMapping[];
+  entries: PropertyEntry[];
   now: () => string;
 }
 
-export function buildOriginExport(input: ExportInput): OriginExport {
-  const propertyById = new Map(input.properties.map((property) => [property.id, property]));
-  const originMappings = input.mappings.filter((mapping) => mapping.originId === input.origin.id);
+function destName(entry: PropertyEntry): string {
+  return entry.hubspotProperty.mode === 'existing'
+    ? entry.hubspotProperty.hubspotName
+    : entry.hubspotProperty.definition.hubspotName;
+}
 
-  const properties: OriginExport['properties'] = originMappings.flatMap((mapping) => {
-    const property = propertyById.get(mapping.propertyId);
-    if (!property) return [];
-    return [
-      {
-        hubspot_name: property.hubspotName,
-        label: property.label,
-        object_type: property.objectType,
-        type: property.type,
-        source_field: mapping.sourceField,
-        transformations: mapping.transformations.map((rule) => ({
-          sourceValue: rule.sourceValue,
-          targetValue: rule.targetValue,
-        })),
-        ...(mapping.notes ? { notes: mapping.notes } : {}),
-      },
-    ];
-  });
+export function buildOriginExport(input: ExportInput): OriginExport {
+  const objectName = new Map((input.origin.objects ?? []).map((o) => [o.id, o.name]));
+
+  const properties: OriginExport['properties'] = input.entries.flatMap((entry) =>
+    entry.sources
+      .filter((source) => source.originId === input.origin.id)
+      .map((source) => ({
+        entry_name: entry.name,
+        hubspot_name: destName(entry),
+        object_type: entry.objectType,
+        ...(source.originObjectId
+          ? { source_object: objectName.get(source.originObjectId) ?? source.originObjectId }
+          : {}),
+        source_field: source.sourceField,
+        source_kind: source.definition.kind,
+        ...(source.definition.boolean ? { boolean_format: source.definition.boolean } : {}),
+        ...(source.definition.options
+          ? {
+              options: source.definition.options.map((o) => ({
+                sourceValue: o.sourceValue,
+                hubspotValue: o.hubspotValue,
+              })),
+            }
+          : {}),
+        ...(source.notes ? { notes: source.notes } : {}),
+      })),
+  );
 
   return {
-    schema_version: 1,
+    schema_version: 2,
     origin: { id: input.origin.id, name: input.origin.name, type: input.origin.type },
     exported_at: input.now(),
     properties,

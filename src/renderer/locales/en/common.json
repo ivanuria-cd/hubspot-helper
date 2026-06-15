@@ -133,6 +133,37 @@
       "synced": "Synced",
       "conflict": "Conflict",
       "pending": "Pending sync"
+    },
+    "credentials": {
+      "title": "Google Cloud credentials",
+      "clientId": "Client ID",
+      "clientSecret": "Client secret",
+      "clientIdPlaceholder": "Paste the OAuth client ID",
+      "clientSecretPlaceholder": "Optional (only desktop apps that require it)",
+      "alreadySet": "Set ({{preview}}) — type a new one to change it",
+      "alreadySetSecret": "Set — type a new one to change it",
+      "help": "Only the OAuth client ID is needed; the folder picker does not use an API key.",
+      "save": "Save",
+      "clear": "Clear",
+      "saved": "Credentials saved.",
+      "cleared": "Credentials cleared; .env will be used if present.",
+      "error": "Could not save credentials.",
+      "source": { "app": "App", "env": ".env" }
+    },
+    "folderPicker": {
+      "title": "Select working folder",
+      "locations": "Locations",
+      "myDrive": "My Drive",
+      "sharedWithMe": "Shared with me",
+      "sharedDrives": "Shared drives",
+      "searchPlaceholder": "Search folder by name…",
+      "searchResults": "Search results",
+      "searchEmpty": "No folders found with that name.",
+      "clearSearch": "Clear search",
+      "loading": "Loading folders…",
+      "empty": "This folder has no subfolders.",
+      "selectThis": "Select this folder",
+      "cancel": "Cancel"
     }
   },
   "update": {
@@ -150,6 +181,12 @@
     "addProperty": "Property",
     "manageOrigins": "Origins ({{count}})",
     "exportJson": "Export JSON",
+    "writeSheets": {
+      "button": "Export to Google Sheets",
+      "busy": "Exporting…",
+      "success": "Map written to Google Sheets (id: {{id}}).",
+      "error": "Could not export: {{error}}"
+    },
     "pendingChanges": "Pending changes ({{count}})",
     "search": "Search…",
     "loading": "Loading properties…",

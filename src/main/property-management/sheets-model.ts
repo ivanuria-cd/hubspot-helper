@@ -1,16 +1,12 @@
 /**
- * Construcción del modelo del Google Sheets de gestión de propiedades (SPEC-0006 §4).
- * Diseño cerrado por versión de esquema (schema_version: 1): cuatro hojas, columnas fijas.
- * Módulo puro y testeable; el writer real lo vuelca con la Sheets API.
+ * Builder del Google Sheets del mapa de propiedades (SPEC-0006 §16.4 / §18, schema_version: 2).
+ * Cinco hojas: Portada, Orígenes, Entradas, Fuentes, Opciones. Es puro (sin dependencias de Drive)
+ * para poder testearlo. Las erratas en nombres/claves se reflejan tal cual (no se corrigen).
  */
-import type {
-  DataOrigin,
-  HubSpotProperty,
-  PropertyOriginMapping,
-  TransformationRule,
-} from '@shared/types/properties';
+import type { DataOrigin, PropertyEntry } from '@shared/types/properties';
 
-export const SHEETS_SCHEMA_VERSION = 1;
+export const SHEETS_SCHEMA_VERSION = 2;
+export const PROPERTY_MAP_FEATURE_KEY = 'property-management';
 
 export type CellValue = string | number | boolean;
 
@@ -19,163 +15,119 @@ export interface SheetTab {
   rows: CellValue[][];
 }
 
-export interface SheetsModel {
-  schemaVersion: number;
-  tabs: SheetTab[];
+function destName(entry: PropertyEntry): string {
+  return entry.hubspotProperty.mode === 'existing'
+    ? entry.hubspotProperty.hubspotName
+    : entry.hubspotProperty.definition.hubspotName;
 }
 
-export interface SheetsModelInput {
-  projectName: string;
-  origins: DataOrigin[];
-  properties: HubSpotProperty[];
-  mappings: PropertyOriginMapping[];
-  generatedAt: string;
+function destType(entry: PropertyEntry): string {
+  const ref = entry.hubspotProperty;
+  return ref.mode === 'new' ? ref.definition.type : (ref.definition?.type ?? '');
 }
 
-const ORIGIN_TYPE_LABEL: Record<DataOrigin['type'], string> = {
-  integration: 'Integración',
-  migration: 'Migración',
-  user: 'Usuario',
-  workflow: 'Workflow',
-};
+export function buildPropertyMapTabs(
+  entries: PropertyEntry[],
+  origins: DataOrigin[],
+  generatedAt = '',
+): SheetTab[] {
+  const originName = new Map(origins.map((origin) => [origin.id, origin.name]));
 
-const STATUS_LABEL: Record<HubSpotProperty['hubspotStatus'], string> = {
-  exists: 'exists',
-  divergent: 'divergent',
-  missing: 'missing',
-};
-
-function buildCoverTab(input: SheetsModelInput): SheetTab {
-  return {
+  const portada: SheetTab = {
     title: '00_Portada',
     rows: [
-      ['Mapa de Propiedades — Cloud District'],
-      [`Proyecto: ${input.projectName}`],
-      [`schema_version: ${SHEETS_SCHEMA_VERSION}`],
-      [`Generado por RevOps Assistant: ${input.generatedAt}`],
+      ['RevOps Assistant — Mapa de propiedades CRM'],
+      ['schema_version', SHEETS_SCHEMA_VERSION],
+      ['Generado', generatedAt],
       [],
-      ['Qué es este archivo'],
-      [
-        'Fuente de verdad compartida del mapa de propiedades de HubSpot del proyecto: orígenes de datos, propiedades y sus mapeos con reglas de transformación.',
-      ],
-      [],
-      ['Cómo usarlo'],
-      [
-        'La app lee este archivo al abrirse y escribe en él ante cualquier cambio. Edita solo las columnas marcadas como editables; el resto las gestiona la app.',
-      ],
-      [],
-      ['Columnas editables vs. gestionadas'],
-      ['01_Origenes', 'Editable: Nombre, Tipo, Descripción. Gestionado: ID, Fecha de creación.'],
-      [
-        '02_Propiedades',
-        'Editable: Etiqueta, Descripción. Gestionado: el resto (sincronizado con HubSpot).',
-      ],
-      ['03_Mapeo_Origenes', 'Editable: Campo origen, Transformaciones, Notas. Gestionado: el resto.'],
-      [],
-      [
-        '— Generado por RevOps Assistant (Cloud District). No edites las zonas gestionadas: la app las regenera en cada sincronización. —',
-      ],
+      ['Hoja generada por RevOps Assistant. No edites las zonas de datos: se regeneran en cada volcado.'],
+      ['Entradas', entries.length],
+      ['Orígenes', origins.length],
     ],
   };
-}
 
-function buildOriginsTab(origins: DataOrigin[]): SheetTab {
-  const header = ['ID', 'Nombre', 'Tipo', 'Descripción', 'Fecha de creación'];
-  const rows = origins.map((origin) => [
-    origin.id,
-    origin.name,
-    ORIGIN_TYPE_LABEL[origin.type],
-    origin.description ?? '',
-    origin.createdAt,
-  ]);
-  return { title: '01_Origenes', rows: [header, ...rows] };
-}
-
-function renderOptions(property: HubSpotProperty): string {
-  if (!property.options?.length) return '';
-  return property.options.map((option) => `${option.label} (${option.value})`).join('; ');
-}
-
-function renderPendingChanges(property: HubSpotProperty): string {
-  if (!property.pendingChanges?.length) return '';
-  return property.pendingChanges.map((change) => change.summary).join(' · ');
-}
-
-function buildPropertiesTab(
-  properties: HubSpotProperty[],
-  origins: DataOrigin[],
-  mappings: PropertyOriginMapping[],
-): SheetTab {
-  const header = [
-    'ID',
-    'Nombre HubSpot',
-    'Etiqueta',
-    'Objeto',
-    'Tipo',
-    'Personalizada',
-    'Grupo',
-    'Opciones',
-    'Descripción',
-    'Estado HubSpot',
-    'Cambios pendientes',
-    'Orígenes',
-  ];
-  const originName = new Map(origins.map((origin) => [origin.id, origin.name]));
-  const rows = properties.map((property) => {
-    const propOrigins = mappings
-      .filter((mapping) => mapping.propertyId === property.id)
-      .map((mapping) => originName.get(mapping.originId) ?? mapping.originId)
-      .join(', ');
-    return [
-      property.id,
-      property.hubspotName,
-      property.label,
-      property.objectType,
-      property.type,
-      property.isCustom ? 'Sí' : 'No',
-      property.groupName,
-      renderOptions(property),
-      property.description ?? '',
-      STATUS_LABEL[property.hubspotStatus],
-      renderPendingChanges(property),
-      propOrigins,
-    ];
-  });
-  return { title: '02_Propiedades', rows: [header, ...rows] };
-}
-
-function renderTransformations(rules: TransformationRule[]): string {
-  if (!rules.length) return '';
-  return JSON.stringify(rules.map((rule) => ({ [rule.sourceValue]: rule.targetValue })));
-}
-
-function buildMappingTab(
-  mappings: PropertyOriginMapping[],
-  properties: HubSpotProperty[],
-  origins: DataOrigin[],
-): SheetTab {
-  const header = ['ID', 'Propiedad (nombre HubSpot)', 'Origen', 'Campo origen', 'Transformaciones', 'Notas'];
-  const propName = new Map(properties.map((property) => [property.id, property.hubspotName]));
-  const originName = new Map(origins.map((origin) => [origin.id, origin.name]));
-  const rows = mappings.map((mapping) => [
-    mapping.id,
-    propName.get(mapping.propertyId) ?? mapping.propertyId,
-    originName.get(mapping.originId) ?? mapping.originId,
-    mapping.sourceField,
-    renderTransformations(mapping.transformations),
-    mapping.notes ?? '',
-  ]);
-  return { title: '03_Mapeo_Origenes', rows: [header, ...rows] };
-}
-
-export function buildSheetsModel(input: SheetsModelInput): SheetsModel {
-  return {
-    schemaVersion: SHEETS_SCHEMA_VERSION,
-    tabs: [
-      buildCoverTab(input),
-      buildOriginsTab(input.origins),
-      buildPropertiesTab(input.properties, input.origins, input.mappings),
-      buildMappingTab(input.mappings, input.properties, input.origins),
+  const origenes: SheetTab = {
+    title: '01_Origenes',
+    rows: [
+      ['ID', 'Nombre', 'Tipo', 'Descripción', 'Objetos'],
+      ...origins.map((origin) => [
+        origin.id,
+        origin.name,
+        origin.type,
+        origin.description ?? '',
+        (origin.objects ?? []).map((object) => object.name).join(', '),
+      ]),
     ],
   };
+
+  const entradas: SheetTab = {
+    title: '02_Entradas',
+    rows: [
+      [
+        'ID',
+        'Objeto',
+        'Nombre',
+        'Propiedad HubSpot',
+        '¿Nueva?',
+        'Tipo HubSpot',
+        'Estado',
+        'Nº orígenes',
+        'Cambios pendientes',
+      ],
+      ...entries.map((entry) => [
+        entry.id,
+        entry.objectType,
+        entry.name,
+        destName(entry),
+        entry.hubspotProperty.mode === 'new' ? 'Sí' : 'No',
+        destType(entry),
+        entry.hubspotStatus,
+        entry.sources.length,
+        entry.pendingChanges?.length ?? 0,
+      ]),
+    ],
+  };
+
+  const fuentes: SheetTab = {
+    title: '03_Fuentes',
+    rows: [
+      ['ID', 'Entrada', 'Objeto', 'Origen', 'Campo origen', 'Tipo genérico', 'Formato booleano', 'Notas'],
+      ...entries.flatMap((entry) =>
+        entry.sources.map((source) => [
+          source.id,
+          entry.name,
+          entry.objectType,
+          originName.get(source.originId) ?? source.originId,
+          source.sourceField,
+          source.definition.kind,
+          source.definition.boolean
+            ? `${source.definition.boolean.truthy}/${source.definition.boolean.falsy}`
+            : '',
+          source.notes ?? '',
+        ]),
+      ),
+    ],
+  };
+
+  const opciones: SheetTab = {
+    title: '04_Opciones',
+    rows: [
+      ['Entrada', 'Origen', 'Valor origen', 'Etiqueta origen', 'Valor HubSpot'],
+      ...entries.flatMap((entry) =>
+        entry.sources.flatMap((source) =>
+          source.definition.kind === 'enum'
+            ? (source.definition.options ?? []).map((option) => [
+                entry.name,
+                originName.get(source.originId) ?? source.originId,
+                option.sourceValue,
+                option.sourceLabel ?? '',
+                option.hubspotValue ?? '',
+              ])
+            : [],
+        ),
+      ),
+    ],
+  };
+
+  return [portada, origenes, entradas, fuentes, opciones];
 }

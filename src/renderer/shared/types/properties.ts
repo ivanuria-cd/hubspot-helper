@@ -1,28 +1,44 @@
 /**
- * Contrato de la gestión de propiedades (SPEC-0006), compartido entre main, preload y renderer.
- * La fuente de verdad del estado vive en Google Drive (Sheets); estos tipos modelan el estado
- * de trabajo de la app y los contratos de IPC/MCP.
+ * Contrato de la gestión de propiedades (SPEC-0006, rediseño §16), compartido entre
+ * main, preload y renderer. La lista se organiza por objeto de HubSpot en forma de
+ * «entradas» definidas por el usuario; la sincronización alimenta el selector de
+ * propiedades y el estado (exists/divergent/missing).
  */
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
 
 export type OriginType = 'integration' | 'migration' | 'user' | 'workflow';
+
+/** Objeto de un origen de datos (p. ej. «contactos», «empresas» del sistema origen). */
+export interface OriginObject {
+  id: string;
+  name: string;
+}
 
 export interface DataOrigin {
   id: string;
   name: string;
   type: OriginType;
   description?: string;
+  objects?: OriginObject[];
   createdAt: string;
 }
 
+/**
+ * Tipos de dato (`type`) de HubSpot (Properties API). El fallback abierto
+ * `(string & {})` permite preservar verbatim cualquier valor presente o futuro
+ * sin colapsarlo a `string`. Nota: los teléfonos son `string` con
+ * `fieldType: phonenumber` — `phone_number` no es un `type` de HubSpot.
+ */
 export type HsPropertyType =
-  | 'string'
-  | 'number'
+  | 'bool'
+  | 'enumeration'
   | 'date'
   | 'datetime'
-  | 'enumeration'
-  | 'bool'
-  | 'phone_number';
+  | 'string'
+  | 'number'
+  | 'object_coordinates'
+  | 'json'
+  | (string & {});
 
 export interface HsPropertyOption {
   label: string;
@@ -41,63 +57,88 @@ export type ChangeOperation =
 
 export interface HsPropertyChange {
   id: string;
-  propertyId: string;
+  entryId: string;
   operation: ChangeOperation;
-  /** Resumen legible del cambio para la UI y el Sheets. */
   summary: string;
-  /** Body de la llamada a la API de HubSpot. */
   payload: unknown;
   appliedToSandbox: boolean;
   appliedToProduction: boolean;
   createdAt: string;
 }
 
-export interface HubSpotProperty {
+export interface HubSpotObject {
+  objectType: string;
+  label: string;
+  custom: boolean;
+}
+
+export type SourceFieldKind = 'number' | 'text' | 'boolean' | 'enum' | 'memo';
+
+export interface BooleanReception {
+  truthy: string;
+  falsy: string;
+}
+
+export interface SourceEnumOption {
+  sourceValue: string;
+  sourceLabel?: string;
+  hubspotValue?: string;
+}
+
+export interface SourceFieldDefinition {
+  kind: SourceFieldKind;
+  boolean?: BooleanReception;
+  options?: SourceEnumOption[];
+}
+
+export interface EntrySource {
   id: string;
+  originId: string;
+  originObjectId?: string;
+  sourceField: string;
+  definition: SourceFieldDefinition;
+  notes?: string;
+}
+
+export interface HubSpotPropertyDef {
   hubspotName: string;
   label: string;
-  objectType: string;
   type: HsPropertyType;
   fieldType: string;
   groupName: string;
-  isCustom: boolean;
-  description?: string;
   options?: HsPropertyOption[];
+}
+
+export type HubSpotPropertyRef =
+  | { mode: 'existing'; hubspotName: string; definition?: HubSpotPropertyDef }
+  | { mode: 'new'; definition: HubSpotPropertyDef };
+
+export interface PropertyEntry {
+  id: string;
+  objectType: string;
+  name: string;
+  hubspotProperty: HubSpotPropertyRef;
+  sources: EntrySource[];
   hubspotStatus: HsPropertyStatus;
   pendingChanges?: HsPropertyChange[];
 }
 
-export interface TransformationRule {
-  sourceValue: string;
-  targetValue: string;
-}
-
-export interface PropertyOriginMapping {
-  id: string;
-  propertyId: string;
-  originId: string;
-  sourceField: string;
-  transformations: TransformationRule[];
-  notes?: string;
-}
-
-/** Contrato JSON de exportación por origen (schema versionado). */
 export interface OriginExport {
-  schema_version: 1;
+  schema_version: 2;
   origin: Pick<DataOrigin, 'id' | 'name' | 'type'>;
   exported_at: string;
   properties: Array<{
+    entry_name: string;
     hubspot_name: string;
-    label: string;
     object_type: string;
-    type: HsPropertyType;
+    source_object?: string;
     source_field: string;
-    transformations: Array<{ sourceValue: string; targetValue: string }>;
+    source_kind: SourceFieldKind;
+    boolean_format?: BooleanReception;
+    options?: Array<{ sourceValue: string; hubspotValue?: string }>;
     notes?: string;
   }>;
 }
-
-// --- Entradas/salidas de los canales IPC ---
 
 export interface ProjectScopedInput {
   projectId: string;
@@ -130,6 +171,12 @@ export interface OperationResult {
   error?: string;
 }
 
+export interface WriteSheetsResult {
+  success: boolean;
+  spreadsheetId?: string;
+  error?: string;
+}
+
 export interface OriginCreateInput {
   projectId: string;
   origin: { name: string; type: OriginType; description?: string };
@@ -145,30 +192,44 @@ export interface OriginDeleteInput {
   originId: string;
 }
 
-export interface PropertyUpsertInput {
+export interface HubSpotPropertiesInput {
   projectId: string;
-  property: Omit<HubSpotProperty, 'id' | 'hubspotStatus' | 'pendingChanges' | 'isCustom'> & {
-    id?: string;
-    isCustom?: boolean;
-  };
+  objectType: string;
 }
 
-export interface MappingsListInput {
+export interface EntriesListInput {
   projectId: string;
-  propertyId?: string;
+  objectType?: string;
 }
 
-export interface MappingUpsertInput {
+export interface EntryUpsertInput {
   projectId: string;
-  mapping: Omit<PropertyOriginMapping, 'id'> & { id?: string };
+  entry: Omit<PropertyEntry, 'id' | 'hubspotStatus' | 'pendingChanges'> & { id?: string };
 }
 
-export interface MappingDeleteInput {
+export interface EntryDeleteInput {
   projectId: string;
-  mappingId: string;
+  entryId: string;
 }
 
 export interface ExportJsonInput {
   projectId: string;
   originId: string;
+}
+
+export interface HubSpotGroup {
+  name: string;
+  label: string;
+}
+
+export interface GroupsListInput {
+  projectId: string;
+  objectType: string;
+}
+
+export interface GroupCreateInput {
+  projectId: string;
+  objectType: string;
+  name: string;
+  label: string;
 }

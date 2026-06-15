@@ -133,6 +133,37 @@
       "synced": "Sincronizado",
       "conflict": "En conflicto",
       "pending": "Pendiente de sincronizar"
+    },
+    "credentials": {
+      "title": "Credenciales de Google Cloud",
+      "clientId": "ID de cliente",
+      "clientSecret": "Secreto de cliente",
+      "clientIdPlaceholder": "Pega el ID de cliente de OAuth",
+      "clientSecretPlaceholder": "Opcional (solo apps de escritorio que lo exijan)",
+      "alreadySet": "Configurado ({{preview}}) — escribe uno nuevo para cambiarlo",
+      "alreadySetSecret": "Configurado — escribe uno nuevo para cambiarlo",
+      "help": "Solo se necesita el ID de cliente de OAuth; el selector de carpeta no usa API key.",
+      "save": "Guardar",
+      "clear": "Borrar",
+      "saved": "Credenciales guardadas.",
+      "cleared": "Credenciales borradas; se usará el .env si existe.",
+      "error": "No se pudieron guardar las credenciales.",
+      "source": { "app": "App", "env": ".env" }
+    },
+    "folderPicker": {
+      "title": "Seleccionar carpeta de trabajo",
+      "locations": "Ubicaciones",
+      "myDrive": "Mi unidad",
+      "sharedWithMe": "Compartido conmigo",
+      "sharedDrives": "Unidades compartidas",
+      "searchPlaceholder": "Buscar carpeta por nombre…",
+      "searchResults": "Resultados de búsqueda",
+      "searchEmpty": "No se encontraron carpetas con ese nombre.",
+      "clearSearch": "Limpiar búsqueda",
+      "loading": "Cargando carpetas…",
+      "empty": "Esta carpeta no tiene subcarpetas.",
+      "selectThis": "Seleccionar esta carpeta",
+      "cancel": "Cancelar"
     }
   },
   "update": {
@@ -150,6 +181,12 @@
     "addProperty": "Propiedad",
     "manageOrigins": "Orígenes ({{count}})",
     "exportJson": "Exportar JSON",
+    "writeSheets": {
+      "button": "Volcar a Google Sheets",
+      "busy": "Volcando…",
+      "success": "Mapa volcado a Google Sheets (id: {{id}}).",
+      "error": "No se pudo volcar: {{error}}"
+    },
     "pendingChanges": "Cambios pendientes ({{count}})",
     "search": "Buscar…",
     "loading": "Cargando propiedades…",
@@ -167,9 +204,9 @@
       "all": "Todos"
     },
     "status": {
-      "exists": "exists",
-      "divergent": "divergent",
-      "missing": "missing"
+      "exists": "existe",
+      "divergent": "diverge",
+      "missing": "falta"
     },
     "panel": {
       "definition": "Definición",
@@ -192,7 +229,10 @@
       "addMapping": "Añadir origen",
       "save": "Guardar",
       "delete": "Eliminar",
-      "close": "Cerrar"
+      "close": "Cerrar",
+      "applyTitle": "Aplicar cambio en HubSpot",
+      "applyHint": "Esta acción escribe en HubSpot. Elige el entorno.",
+      "applied": "Aplicado"
     },
     "addDialog": {
       "title": "Añadir propiedad",
@@ -225,7 +265,11 @@
         "migration": "Migración",
         "user": "Usuario",
         "workflow": "Workflow"
-      }
+      },
+      "objects": "Objetos del origen",
+      "addObject": "Añadir objeto",
+      "objectName": "Nombre del objeto",
+      "noObjects": "Sin objetos"
     },
     "changes": {
       "title": "Propiedades / Cambios pendientes",
@@ -249,6 +293,76 @@
       "notes": "Notas",
       "cancel": "Cancelar",
       "save": "Guardar"
+    },
+    "entry": {
+      "dest": "Propiedad HubSpot destino",
+      "sources": "Orígenes",
+      "noSources": "Sin orígenes",
+      "sourceCount": "{{count}} origen(es)"
+    },
+    "wizard": {
+      "title": "Añadir propiedad",
+      "editTitle": "Editar propiedad",
+      "name": "Nombre de la propiedad",
+      "hubspotMode": "Propiedad de HubSpot",
+      "existing": "Existente",
+      "new": "Nueva",
+      "selectProperty": "Selecciona la propiedad",
+      "addSource": "Añadir origen",
+      "origin": "Origen",
+      "sourceField": "Campo origen",
+      "kind": "Tipo",
+      "truthy": "Valor verdadero",
+      "falsy": "Valor falso",
+      "sourceValue": "Valor origen",
+      "hubspotValue": "Valor HubSpot",
+      "addOption": "Añadir opción",
+      "notes": "Notas",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "sourceObject": "Objeto del origen",
+      "group": "Grupo",
+      "createGroup": "Crear grupo",
+      "newGroupLabel": "Nombre del grupo nuevo",
+      "searchProperty": "Buscar propiedad…",
+      "searchOrigin": "Buscar origen…",
+      "optionsTitle": "Opciones",
+      "optionLabel": "Etiqueta",
+      "optionValue": "Valor",
+      "addPropOption": "Añadir opción",
+      "editExistingHint": "Puedes editar la definición; los cambios se aplicarán en HubSpot.",
+      "pasteOptions": "Pegar listado",
+      "pasteHint": "Un valor por línea (valor = etiqueta). Para «etiqueta + valor», indica el separador.",
+      "separator": "Separador (opcional)",
+      "bulkList": "Listado",
+      "bulkApply": "Añadir al listado"
+    },
+    "newProp": {
+      "hubspotName": "Nombre técnico (HubSpot)",
+      "label": "Etiqueta",
+      "type": "Tipo",
+      "fieldType": "Tipo de campo",
+      "group": "Grupo"
+    },
+    "kinds": {
+      "number": "Número",
+      "text": "Texto",
+      "boolean": "Booleano",
+      "enum": "Opciones limitadas",
+      "memo": "Memo"
+    },
+    "fieldTypes": {
+      "text": "Texto",
+      "textarea": "Texto multilínea",
+      "phonenumber": "Teléfono",
+      "html": "Texto enriquecido",
+      "file": "Archivo",
+      "number": "Número",
+      "date": "Fecha",
+      "select": "Desplegable",
+      "radio": "Opción única",
+      "checkbox": "Casillas múltiples",
+      "booleancheckbox": "Sí/No"
     }
   },
   "_fallbackProbe": "valor por defecto (es)"

@@ -133,6 +133,37 @@
       "synced": "Sincronitzat",
       "conflict": "En conflicte",
       "pending": "Pendent de sincronitzar"
+    },
+    "credentials": {
+      "title": "Credencials de Google Cloud",
+      "clientId": "ID de client",
+      "clientSecret": "Secret de client",
+      "clientIdPlaceholder": "Enganxa l'ID de client d'OAuth",
+      "clientSecretPlaceholder": "Opcional (només apps d'escriptori que ho exigeixin)",
+      "alreadySet": "Configurat ({{preview}}) — escriu-ne un de nou per canviar-lo",
+      "alreadySetSecret": "Configurat — escriu-ne un de nou per canviar-lo",
+      "help": "Només cal l'ID de client d'OAuth; el selector de carpeta no fa servir API key.",
+      "save": "Desa",
+      "clear": "Esborra",
+      "saved": "Credencials desades.",
+      "cleared": "Credencials esborrades; s'usarà el .env si existeix.",
+      "error": "No s'han pogut desar les credencials.",
+      "source": { "app": "App", "env": ".env" }
+    },
+    "folderPicker": {
+      "title": "Selecciona la carpeta de treball",
+      "locations": "Ubicacions",
+      "myDrive": "La meva unitat",
+      "sharedWithMe": "Compartit amb mi",
+      "sharedDrives": "Unitats compartides",
+      "searchPlaceholder": "Cerca una carpeta pel nom…",
+      "searchResults": "Resultats de la cerca",
+      "searchEmpty": "No s'ha trobat cap carpeta amb aquest nom.",
+      "clearSearch": "Neteja la cerca",
+      "loading": "Carregant carpetes…",
+      "empty": "Aquesta carpeta no té subcarpetes.",
+      "selectThis": "Selecciona aquesta carpeta",
+      "cancel": "Cancel·la"
     }
   },
   "update": {
@@ -150,6 +181,12 @@
     "addProperty": "Propietat",
     "manageOrigins": "Orígens ({{count}})",
     "exportJson": "Exporta JSON",
+    "writeSheets": {
+      "button": "Bolca a Google Sheets",
+      "busy": "Bolcant…",
+      "success": "Mapa bolcat a Google Sheets (id: {{id}}).",
+      "error": "No s'ha pogut bolcar: {{error}}"
+    },
     "pendingChanges": "Canvis pendents ({{count}})",
     "search": "Cerca…",
     "loading": "Carregant propietats…",
@@ -167,9 +204,9 @@
       "all": "Tots"
     },
     "status": {
-      "exists": "exists",
-      "divergent": "divergent",
-      "missing": "missing"
+      "exists": "existeix",
+      "divergent": "divergeix",
+      "missing": "falta"
     },
     "panel": {
       "definition": "Definició",

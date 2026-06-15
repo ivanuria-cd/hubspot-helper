@@ -133,6 +133,37 @@
       "synced": "Sinkronizatuta",
       "conflict": "Gatazkan",
       "pending": "Sinkronizatzeke"
+    },
+    "credentials": {
+      "title": "Google Cloud kredentzialak",
+      "clientId": "Bezero-IDa",
+      "clientSecret": "Bezero-sekretua",
+      "clientIdPlaceholder": "Itsatsi OAuth bezero-IDa",
+      "clientSecretPlaceholder": "Aukerakoa (eskatzen duten mahaigaineko aplikazioetan soilik)",
+      "alreadySet": "Konfiguratuta ({{preview}}) — idatzi berri bat aldatzeko",
+      "alreadySetSecret": "Konfiguratuta — idatzi berri bat aldatzeko",
+      "help": "OAuth bezero-IDa baino ez da behar; karpeta-hautatzaileak ez du API key-rik erabiltzen.",
+      "save": "Gorde",
+      "clear": "Ezabatu",
+      "saved": "Kredentzialak gordeta.",
+      "cleared": "Kredentzialak ezabatuta; .env erabiliko da existitzen bada.",
+      "error": "Ezin izan dira kredentzialak gorde.",
+      "source": { "app": "App", "env": ".env" }
+    },
+    "folderPicker": {
+      "title": "Hautatu lan-karpeta",
+      "locations": "Kokapenak",
+      "myDrive": "Nire unitatea",
+      "sharedWithMe": "Nirekin partekatuta",
+      "sharedDrives": "Partekatutako unitateak",
+      "searchPlaceholder": "Bilatu karpeta izenez…",
+      "searchResults": "Bilaketaren emaitzak",
+      "searchEmpty": "Ez da izen horretako karpetarik aurkitu.",
+      "clearSearch": "Garbitu bilaketa",
+      "loading": "Karpetak kargatzen…",
+      "empty": "Karpeta honek ez du azpikarpetarik.",
+      "selectThis": "Hautatu karpeta hau",
+      "cancel": "Utzi"
     }
   },
   "update": {
@@ -150,6 +181,12 @@
     "addProperty": "Propietatea",
     "manageOrigins": "Jatorriak ({{count}})",
     "exportJson": "Esportatu JSON",
+    "writeSheets": {
+      "button": "Isuri Google Sheets-era",
+      "busy": "Isurtzen…",
+      "success": "Mapa Google Sheets-era isuri da (id: {{id}}).",
+      "error": "Ezin izan da isuri: {{error}}"
+    },
     "pendingChanges": "Aldaketa zain ({{count}})",
     "search": "Bilatu…",
     "loading": "Propietateak kargatzen…",
@@ -167,9 +204,9 @@
       "all": "Guztiak"
     },
     "status": {
-      "exists": "exists",
-      "divergent": "divergent",
-      "missing": "missing"
+      "exists": "badago",
+      "divergent": "desberdina",
+      "missing": "ez dago"
     },
     "panel": {
       "definition": "Definizioa",

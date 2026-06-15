@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Alert,
   Box,
@@ -14,13 +15,30 @@ import FolderIcon from '@mui/icons-material/Folder';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
 import { useGoogleDriveConnector } from '../hooks/useGoogleDriveConnector';
+import { GoogleCredentialsCard } from './GoogleCredentialsCard';
+import { FolderPickerDialog } from './FolderPickerDialog';
 
 export function GoogleDriveConnectorScreen(): JSX.Element | null {
   const { t } = useTranslation('common');
   const activeProject = useShellStore((state) => state.activeProject);
   const projectId = activeProject?.id ?? '';
-  const { status, authStatus, loading, working, lastSync, connect, selectFolder, sync, disconnect } =
-    useGoogleDriveConnector(projectId);
+  const {
+    status,
+    authStatus,
+    credentials,
+    loading,
+    working,
+    lastSync,
+    connect,
+    listFolders,
+    searchFolders,
+    setFolder,
+    saveCredentials,
+    clearCredentials,
+    sync,
+    disconnect,
+  } = useGoogleDriveConnector(projectId);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   if (!activeProject) return null;
 
@@ -34,6 +52,15 @@ export function GoogleDriveConnectorScreen(): JSX.Element | null {
       </Typography>
 
       <Stack spacing={3} sx={{ maxWidth: 600 }}>
+        <GoogleCredentialsCard
+          credentials={credentials}
+          working={working}
+          onSave={saveCredentials}
+          onClear={clearCredentials}
+        />
+
+        <Divider />
+
         <Box>
           <Typography variant="subtitle2" gutterBottom>
             {t('gdrive.account')}
@@ -76,7 +103,7 @@ export function GoogleDriveConnectorScreen(): JSX.Element | null {
                 <Typography color="text.primary">
                   {status?.folderName || t('gdrive.noFolder')}
                 </Typography>
-                <Button onClick={() => void selectFolder()} disabled={working}>
+                <Button onClick={() => setPickerOpen(true)} disabled={working}>
                   {status?.folderId ? t('gdrive.changeFolder') : t('gdrive.selectFolder')}
                 </Button>
               </Stack>
@@ -125,6 +152,15 @@ export function GoogleDriveConnectorScreen(): JSX.Element | null {
           </>
         ) : null}
       </Stack>
+
+      <FolderPickerDialog
+        open={pickerOpen}
+        working={working}
+        listFolders={listFolders}
+        searchFolders={searchFolders}
+        onSelect={setFolder}
+        onClose={() => setPickerOpen(false)}
+      />
     </Box>
   );
 }

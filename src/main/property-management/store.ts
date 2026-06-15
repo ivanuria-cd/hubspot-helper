@@ -1,27 +1,20 @@
 /**
- * Persistencia local del mapa de propiedades por proyecto (estado de trabajo).
- * La fuente de verdad última es el Google Sheets en Drive; este store es la copia
- * editable de la app, que se vuelca a Drive ante cada cambio.
+ * Persistencia local del mapa de propiedades por proyecto (estado de trabajo, modelo §16).
+ * Guarda orígenes y entradas. El volcado al Google Sheets queda diferido hasta resolver
+ * la conexión de Drive (no se escribe desde aquí por ahora).
  */
 import Store from 'electron-store';
-import type {
-  DataOrigin,
-  HubSpotProperty,
-  PropertyOriginMapping,
-} from '@shared/types/properties';
+import type { DataOrigin, PropertyEntry } from '@shared/types/properties';
 
 export interface PropertyState {
   origins: DataOrigin[];
-  properties: HubSpotProperty[];
-  mappings: PropertyOriginMapping[];
+  entries: PropertyEntry[];
 }
 
 export interface PropertyStore {
   get(projectId: string): PropertyState;
   set(projectId: string, state: PropertyState): void;
 }
-
-const EMPTY: PropertyState = { origins: [], properties: [], mappings: [] };
 
 interface PropertySchema {
   states: Record<string, PropertyState>;
@@ -34,7 +27,9 @@ export class ElectronPropertyStore implements PropertyStore {
   });
 
   get(projectId: string): PropertyState {
-    return this.store.get('states', {})[projectId] ?? { ...EMPTY };
+    // Coalesce por campo: descarta estado v1 (properties/mappings) y garantiza arrays.
+    const stored = this.store.get('states', {})[projectId] as Partial<PropertyState> | undefined;
+    return { origins: stored?.origins ?? [], entries: stored?.entries ?? [] };
   }
 
   set(projectId: string, state: PropertyState): void {
@@ -47,7 +42,7 @@ export class ElectronPropertyStore implements PropertyStore {
 export function createMemoryPropertyStore(): PropertyStore {
   const data = new Map<string, PropertyState>();
   return {
-    get: (projectId) => data.get(projectId) ?? { origins: [], properties: [], mappings: [] },
+    get: (projectId) => data.get(projectId) ?? { origins: [], entries: [] },
     set: (projectId, state) => void data.set(projectId, state),
   };
 }

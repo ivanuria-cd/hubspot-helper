@@ -9,6 +9,7 @@ import {
   APP_PROP_SCHEMA,
   MIME_SPREADSHEET,
 } from './client';
+import { buildStyleRequests, type SheetMeta } from './sheets-style';
 
 export type CellValue = string | number | boolean;
 
@@ -35,9 +36,7 @@ export interface SheetsDriveApi {
 
 /** Subconjunto de Google Sheets API v4. */
 export interface SheetsRawApi {
-  get(args: { spreadsheetId: string }): Promise<{
-    sheets?: Array<{ properties?: { sheetId?: number; title?: string } }>;
-  }>;
+  get(args: { spreadsheetId: string }): Promise<{ sheets?: SheetMeta[] }>;
   batchUpdate(args: {
     spreadsheetId: string;
     requests: Array<Record<string, unknown>>;
@@ -127,6 +126,13 @@ export function createSheetsClient(drive: SheetsDriveApi, sheets: SheetsRawApi) 
           values: tab.rows,
         });
       }
+    }
+
+    // Estilo corporativo + bloqueo de contenido (§19).
+    const meta = await sheets.get({ spreadsheetId });
+    const styleRequests = buildStyleRequests(meta.sheets ?? [], input.tabs);
+    if (styleRequests.length > 0) {
+      await sheets.batchUpdate({ spreadsheetId, requests: styleRequests });
     }
 
     return { spreadsheetId };

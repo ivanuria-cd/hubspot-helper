@@ -391,3 +391,332 @@ Decisiones tomadas durante la implementación, registradas según la norma «cad
 - `renderer/features/property-management/` — stores (`properties`, `origins`, `mappings`) y componentes (`PropertiesTable`, `PropertyPanel`, `OriginsModal`, `PendingChangesView`, `AddPropertyDialog`, `MappingDialog`, `StatusBadge`, `PropertyManagementScreen`)
 - `doc/tutoriales/propiedades/` — los seis tutoriales del §11
 - Tests unitarios (Vitest) y funcionales (Playwright) de los §10
+
+---
+
+## 15. Corrección — Reconocimiento fiel de tipos y reconciliación por objeto (IMPLEMENTADO, 2026-06-11)
+
+### Contexto
+
+Tras la primera sincronización real (portal «Testing») se observan propiedades mal clasificadas y divergencias falsas: por ejemplo `annualrevenue` aparece como `divergent` con un cambio propuesto `update_field_type` a «text», pese a no haberla editado el usuario. Es un único arreglo lógico con dos facetas que se resuelven juntas.
+
+### Causas raíz (confirmadas vía MCP de HubSpot)
+
+1. **Colapso de tipos.** `connectors/hubspot/properties.ts` → `normalizeType()` solo admitía 7 valores y colapsaba cualquier otro a `string`. Además, el conjunto era incorrecto: incluía `phone_number` (que **no** es un `type` de HubSpot) y omitía `json` y `object_coordinates`.
+2. **Reconciliación por nombre global.** `reconcile.ts` indexaba los remotos en un `Map` por `name`, sin tener en cuenta el objeto. Como una misma propiedad existe en varios objetos con definición distinta (confirmado: `annualrevenue` es `string` en **contacts** y `number` en **companies**), colisionaban y se comparaba la local de un objeto contra el remoto de otro → `divergent` falso.
+
+### Enum autorizado de HubSpot (Properties API, doc oficial)
+
+- **`type`:** `bool`, `enumeration`, `date`, `datetime`, `string`, `number`, `object_coordinates`, `json`.
+- **`fieldType`:** `booleancheckbox`, `calculation_equation`, `checkbox`, `date`, `file`, `html`, `number`, `phonenumber`, `radio`, `select`, `text`, `textarea`.
+
+### Solución implementada (preservar verbatim)
+
+1. **Preservar verbatim.** `toRemoteProperty()` y la importación guardan el `type` y el `fieldType` **exactos** de HubSpot, sin colapsar. `normalizeType()` pasa a ser un passthrough.
+2. **`HsPropertyType`** (en `shared/types/properties.ts`) pasa al enum real de HubSpot (los 8 `type`) **más un fallback abierto** (`(string & {})`). Se elimina `phone_number` del enum.
+3. **Reconciliación por objeto.** `reconcile()` indexa por la clave compuesta **`objectType + name`**; `RemoteProperty` gana `objectType`, que `listProperties()` estampa por llamada. Un local de `contacts` solo se compara con el remoto de `contacts`.
+4. **`diffProperty()`** solo genera `update_field_type` ante diferencia real dentro del mismo objeto.
+
+### Tests añadidos
+
+- `reconcile.spec.ts`: `annualrevenue` (string@contacts / number@companies) no produce divergencia cruzada; ambas quedan `exists`.
+- `properties.spec.ts`: un `type` no estándar se preserva verbatim (no se colapsa a `string`); se verific
+### 16.11 Objetos de origen (iteración UI, 2026-06-11)
+
+Cada `DataOrigin` puede tener sus propios **objetos** (`OriginObject { id, name }`, p. ej. «contactos», «empresas» del sistema origen), dados de alta con la misma mecánica que los orígenes, dentro del modal de Orígenes. En el asistente «Añadir propiedad», cada fuente añade un selector **Objeto del origen** (origen → objeto → campo); el objeto elegido se guarda en `EntrySource.originObjectId` y se refleja en la exportación JSON (`source_object`). Gestión vía `origins:update` (sin canal nuevo).
+ctor** de propiedades por objeto y el **estado** (exists/divergent/missing). La creación de **objetos custom** se especifica aparte en **SPEC-0007** (referenciado desde aquí); esta iteración solo permite **seleccionar** objetos existentes (estándar y custom ya creados en el portal).
+
+### 16.1 Concepto
+
+La lista pasa a organizarse **por objeto de HubSpot**. Dentro de cada objeto, el usuario define **entradas** con «Añadir propiedad». Cada entrada vincula un nombre lógico, una **propiedad de HubSpot destino** (existente o nueva; **puede repetirse** entre entradas) y **uno o varios orígenes**, cada uno con su **campo de origen** y una **definición genérica de tipo** propia del origen.
+
+### 16.2 Modelo de datos
+
+```typescript
+type SourceFieldKind = 'number' | 'text' | 'boolean' | 'enum' | 'memo';
+
+// Cómo llega un booleano desde el origen (formato de recepción).
+interface BooleanReception {
+  truthy: string;   // p.ej. 'true' | '1' | 'Yes'
+  falsy: string;    // p.ej. 'false' | '0' | 'No'
+}
+
+// Opción de un campo de origen limitado y su mapeo a la opción de HubSpot.
+interface SourceEnumOption {
+  sourceValue: string;
+  sourceLabel?: string;
+  hubspotValue?: string;   // opción HubSpot mapeada (si el destino es enumeration)
+}
+
+interface SourceFieldDefinition {
+  kind: SourceFieldKind;
+  boolean?: BooleanReception;     // solo si kind === 'boolean'
+  options?: SourceEnumOption[];   // solo si kind === 'enum'
+}
+
+interface EntrySource {
+  id: string;
+  originId: string;               // ref a DataOrigin
+  sourceField: string;            // nombre del campo en el sistema de origen
+  definition: SourceFieldDefinition;
+  notes?: string;
+}
+
+// Propiedad de HubSpot destino: existente o nueva (a crear).
+type HubSpotPropertyRef =
+  | { mode: 'existing'; hubspotName: string }
+  | { mode: 'new'; definition: HubSpotPropertyDef };
+
+interface HubSpotPropertyDef {
+  hubspotName: string;
+  label: string;
+  type: HsPropertyType;
+  fieldType: string;
+  groupName: string;
+  options?: HsPropertyOption[];
+}
+
+// Nuevo elemento maestro de la lista (sustituye a HubSpotProperty + PropertyOriginMapping).
+interface PropertyEntry {
+  id: string;
+  objectType: string;                  // objeto HubSpot (estándar o custom)
+  name: string;                        // nombre lógico de la entrada
+  hubspotProperty: HubSpotPropertyRef; // destino (puede repetirse entre entradas)
+  sources: EntrySource[];              // uno o varios orígenes
+  hubspotStatus: 'exists' | 'missing' | 'divergent';
+  pendingChanges?: HsPropertyChange[];
+}
+
+// Catálogo de objetos disponibles (estándar + custom existentes).
+interface HubSpotObject {
+  objectType: string;   // 'contacts' | 'companies' | ... | id del custom
+  label: string;
+  custom: boolean;
+}
+```
+
+`DataOrigin` se mantiene igual. `TransformationRule` queda **sustituido** por `SourceFieldDefinition` (tipado y, para enum, mapeo de opciones). `HsPropertyChange` se mantiene (create / update_label / update_options / update_field_type) y ahora deriva de la definición destino de las entradas.
+
+### 16.3 Flujo «Añadir propiedad» (por objeto)
+
+1. El usuario elige el **objeto** (selector con estándar + custom existentes).
+2. **Nombre de la propiedad** (lógico).
+3. **Propiedad de HubSpot destino**: seleccionar una existente del objeto, o **crear nueva** (define `HubSpotPropertyDef`; queda como cambio pendiente `create`). La misma propiedad puede usarse en varias entradas.
+4. **Orígenes** (añadir uno o varios). Por cada origen:
+   - Selección del **origen** (de los `DataOrigin` del proyecto).
+   - **Campo de origen** (texto).
+   - **Definición genérica**: `número` | `texto` | `booleano` | `enum` | `memo`.
+     - `booleano`: indicar el **formato de recepción** (`truthy`/`falsy`: true/false, 0/1, Yes/No…).
+     - `enum`: definir las **opciones de origen** y, si el destino HubSpot es `enumeration`, el **mapeo** opción origen → opción HubSpot.
+   - Notas opcionales.
+
+### 16.4 Estructura del Google Sheets (schema_version: 2)
+
+El documento de Drive sube a `schema_version: 2` y refleja el nuevo modelo:
+
+| Hoja | Contenido |
+|------|-----------|
+| `00_Portada` | Identidad CD + `schema_version: 2` + guía actualizada |
+| `01_Origenes` | Igual que v1 (catálogo de orígenes) |
+| `02_Entradas` | ID, Objeto, Nombre, Propiedad HubSpot, ¿Nueva?, Tipo HubSpot, Estado, Nº orígenes, Cambios pendientes |
+| `03_Fuentes` | ID, Entrada, Objeto, Origen, Campo origen, Tipo genérico, Formato booleano, Notas |
+| `04_Opciones` | Entrada, Origen, Valor origen, Etiqueta origen, Valor HubSpot (mapeo enum) |
+
+### 16.5 Interfaz de usuario
+
+- La vista de Propiedades se **agrupa por objeto** (selector/encabezado de objeto).
+- «Añadir propiedad» pasa a ser un asistente con los pasos de §16.3 (sustituye al diálogo actual de alta y al de mapeo).
+- El panel lateral de una entrada muestra: destino HubSpot, estado, y la lista de orígenes con su definición genérica y, en su caso, el mapeo de opciones.
+
+### 16.6 IPC (cambios)
+
+- Nuevos: `objects:list` (catálogo estándar + custom), `entries:list`, `entries:upsert`, `entries:delete`.
+- `properties:*` se reorientan: `properties:sync-hubspot` sigue existiendo (alimenta selector + estado), `properties:apply-change`/`discard-change` se mantienen. `properties:upsert` y `mappings:*` quedan **sustituidos** por `entries:*`.
+- `properties:export-json` por origen pasa a derivarse de las entradas/fuentes.
+
+### 16.7 Reconciliación
+
+El estado de una entrada se calcula sobre su **propiedad HubSpot destino** (por `objectType + hubspotName`): `exists` si existe y la definición destino coincide; `divergent` si existe pero difiere (etiqueta/tipo/opciones); `missing` si es `mode: 'new'` o no existe → cambio `create`. Varias entradas pueden apuntar a la misma propiedad destino.
+
+### 16.8 Tests requeridos
+
+- Alta de entrada con destino existente → `exists`; con destino nuevo → `missing` + cambio `create`.
+- Origen `boolean` con formato de recepción persistido y aplicado.
+- Origen `enum` con opciones y mapeo a opciones de HubSpot.
+- Dos entradas con la misma propiedad destino conviven sin conflicto.
+- El Sheets v2 escribe las cinco hojas con la estructura anterior (mock del cliente Drive).
+
+### 16.9 Fuera de alcance (→ SPEC-0007)
+
+- Creación de objetos custom en HubSpot (CRM Schemas API). Aquí solo se **seleccionan** objetos existentes; el catálogo se obtiene del portal.
+
+### 16.10 Impacto
+
+- `shared/types/properties.ts` (nuevos tipos `PropertyEntry`, `EntrySource`, `SourceFieldDefinition`, `HubSpotObject`).
+- `connectors/hubspot/` (listado de objetos vía Schemas API; selector de propiedades por objeto).
+- `main/property-management/` (servicio y store de entradas; reconciliación por destino; export desde entradas; `sheets-model` v2).
+- `renderer/features/property-management/` (vista por objeto, asistente «Añadir propiedad», panel de entrada).
+- Migración del Sheets v1 → v2 y del estado local existente.
+
+## 17. Corrección — Saneo de opciones vacías y traducción de estados (IMPLEMENTADO, 2026-06-15)
+
+### Contexto
+
+Dos defectos detectados al aplicar y revisar entradas de tipo enumeración:
+
+1. Aplicar un `update_options` sobre HubSpot devolvía `Request failed with status code 400` cuando la
+   definición incluía una opción con `label`/`value` vacíos (el editor dejaba una fila en blanco).
+2. Tras actualizar correctamente en HubSpot, la entrada seguía marcada como `divergent`: la
+   reconciliación comparaba `def.options` (con la opción vacía) contra las opciones reales de HubSpot.
+3. Los chips de estado (`exists`/`divergent`/`missing`) se mostraban en inglés: las claves
+   `properties.status.*` existían con el valor en inglés como marcador en los cuatro idiomas.
+
+### Solución implementada
+
+- `pending-changes.ts`: `cleanOptions()` descarta opciones con `label`/`value` vacíos y reindexa
+  `displayOrder`. Se aplica al construir los payloads (`create` y `update_options`) **y** en la
+  comparación de `diffDefinition` (`optionsEqual(cleanOptions(def.options), remote.options)`), de modo
+  que una opción vacía almacenada no genera divergencia falsa.
+- `service.ts`: `sanitizeRef()` sanea las opciones de la definición destino al hacer `upsertEntry`, de
+  forma que el dato vacío no queda almacenado en el store. Además `hubspotErrorMessage()` extrae el
+  mensaje real del cuerpo de error 4xx de HubSpot en lugar del genérico de axios.
+- Traducciones `properties.status.*`: es (`existe`/`diverge`/`falta`), ca (`existeix`/`divergeix`/`falta`),
+  eu (`badago`/`desberdina`/`ez dago`), en se mantiene (`exists`/`divergent`/`missing`).
+
+### Tests añadidos
+
+- `pending-changes.spec.ts`: `cleanOptions` y payloads descartan opciones vacías; `diffDefinition`
+  ignora opciones vacías al comparar (no marca divergencia).
+
+## 18. Volcado del mapa de propiedades a Google Sheets (IMPLEMENTADO, 2026-06-15)
+
+La escritura a Drive (§16.4) quedó diferida porque el conector de Drive no funcionaba; `sheets-model.ts`
+y `sheets-writer.ts` son stubs. Con el conector ya operativo (SPEC-0004 §13/§14), se implementa el volcado.
+
+### 18.1 Builder de hojas (`sheets-model.ts`)
+
+`buildPropertyMapTabs(entries: PropertyEntry[], origins: DataOrigin[]): SheetTab[]` genera las cinco hojas
+de §16.4 (esquema `schema_version: 2`):
+
+- **`00_Portada`** — identidad CD, `schema_version: 2`, fecha y guía (texto fijo + nº de entradas/orígenes).
+- **`01_Origenes`** — `ID, Nombre, Tipo, Descripción, Objetos`.
+- **`02_Entradas`** — `ID, Objeto, Nombre, Propiedad HubSpot, ¿Nueva?, Tipo HubSpot, Estado, Nº orígenes,
+  Cambios pendientes`.
+- **`03_Fuentes`** — `ID, Entrada, Objeto, Origen, Campo origen, Tipo genérico, Formato booleano, Notas`.
+- **`04_Opciones`** — `Entrada, Origen, Valor origen, Etiqueta origen, Valor HubSpot`.
+
+Las erratas en nombres/claves de items se reflejan **tal cual** (no se corrigen; SPEC-0000 / preferencia
+del usuario). El builder es puro y testeable, sin dependencias de Drive.
+
+### 18.2 Orquestación (sin acoplar el servicio a Drive)
+
+El servicio de propiedades **no** recibe el conector de Drive. El handler IPC en `main/index.ts` orquesta:
+construye los `SheetTab[]` a partir de `service.listEntries`/`listOrigins` (vía
+`buildPropertyMapTabs`) y los escribe con el conector ya existente
+`gdrive.writeSpreadsheet({ projectId, name, featureKey, schemaVersion, tabs })`.
+
+- `featureKey = 'property-management'` (`PROPERTY_MAP_FEATURE_KEY`, ya definido).
+- `name = 'Mapa de propiedades CRM'`.
+- Requiere cuenta de Google conectada y carpeta de trabajo seleccionada; si falta, `writeSpreadsheet`
+  devuelve `{ success:false, error }` y la UI lo muestra.
+
+### 18.3 IPC
+
+| Canal | Dirección | Input | Output |
+|-------|-----------|-------|--------|
+| `properties:write-sheets` | renderer → main | `{ projectId }` | `{ success, spreadsheetId?, error? }` |
+
+### 18.4 Interfaz de usuario
+
+Botón **«Volcar a Google Sheets»** en la pantalla de Propiedades (junto a «Exportar JSON»). Estados:
+deshabilitado mientras no haya entradas; al pulsar muestra progreso y, al terminar, un aviso de éxito
+(con el id del documento) o el error devuelto. Si no hay carpeta de Drive, el aviso indica que
+se configure el conector.
+
+### 18.5 Tests
+
+- `sheets-model.spec.ts`: `buildPropertyMapTabs` produce las cinco hojas con sus encabezados y una fila por
+  entrada/fuente/opción; refleja erratas sin corregirlas.
+- El handler se prueba de forma ligera (mock de `writeSpreadsheet`) o queda cubierto por el test del builder
+  + el `sheets-client.spec` ya existente del conector.
+
+### 18.6 Impacto
+
+- `sheets-model.ts` (builder real + tipos), `sheets-writer.ts` se elimina o queda absorbido por el builder.
+- `service.ts` o un módulo `sheets-export.ts`: helper para obtener entradas+orígenes (ya disponible).
+- `ipc.ts`/`preload`/`main` (canal `properties:write-sheets`; el handler usa `gdrive` + builder).
+- `PropertyManagementScreen.tsx` (botón + feedback), claves i18n `properties.writeSheets.*` en es/ca/eu/en.
+
+### 18.7 Notas de implementación (2026-06-15)
+
+- `sheets-model.ts`: `buildPropertyMapTabs(entries, origins, generatedAt?)` puro → `SheetTab[]` (5 hojas).
+  `PROPERTY_MAP_FEATURE_KEY` se traslada aquí; `sheets-writer.ts` queda como re-export de compatibilidad.
+- Handler `properties:write-sheets` en `main/index.ts`: construye las hojas con el servicio
+  (`listEntries`/`listOrigins`) y escribe con `gdrive.writeSpreadsheet` (`SheetTab` es estructuralmente
+  compatible con el del conector). Contrato en `ipc.ts`/`preload`/`RevOpsApi` (`WriteSheetsResult`).
+- UI: botón «Volcar a Google Sheets» junto a «Exportar JSON» con aviso de éxito/error.
+- Tests: `sheets-model.spec.ts` (5 casos: 5 hojas, entradas, fuentes con formato booleano, opciones enum,
+  erratas reflejadas). Verificado en verde; el typecheck completo debe ejecutarse en la máquina del usuario.
+- Con esto, §16.4 y §16.8 (escritura de las 5 hojas) quedan IMPLEMENTADOS. Requiere Drive conectado con
+  carpeta seleccionada en tiempo de ejecución.
+
+## 19. Estilo corporativo y bloqueo del Sheets generado (IMPLEMENTADO, 2026-06-15)
+
+Tras escribir los valores (§18), se aplica un `batchUpdate` de formato + protección. Sigue la guía de marca
+Cloud District (tokens en `skills/cloud-district-brand`), regla «Table Alternation».
+
+### 19.1 Estilo (marca CD)
+
+- **Fuente Poppins** en todo el libro (`textFormat.fontFamily = 'Poppins'`).
+- **Cabecera** (fila 1 de cada hoja de datos): texto **Deep Navy `#14072B`** en negrita, fondo `#F3F3F3`,
+  **borde inferior** `#14072B`, fila **congelada** (`frozenRowCount = 1`). Sin bordes laterales.
+- **Filas alternas** `#FFFFFF` / `#F3F3F3` (banding, `addBanding`).
+- **Autoajuste** del ancho de columnas (`autoResizeDimensions`).
+- **`00_Portada`**: bloque oscuro de marca — celda de título A1 con fondo `#090017` y texto blanco, mayor
+  tamaño (ritmo dark/light). El valor de `schema_version` se resalta con acento **lima `#AFFC41`** (uso
+  puntual, fondo de celda con texto Deep Navy) — único uso del lima.
+- Paleta restringida a la de marca; sin otros colores.
+
+### 19.2 Bloqueo (protección de contenido) — decisión validada
+
+- Por cada hoja se añade un **rango protegido** que cubre toda la hoja (`addProtectedRange`,
+  `warningOnly: false`, sin `editors`): solo el **propietario** (la cuenta conectada / la app) puede editar;
+  los colaboradores no. **No** se tocan los permisos de compartición de Drive (queda fuera, lo gestiona el
+  usuario si quiere solo-lectura total).
+- **Idempotencia**: antes de recrear, se eliminan los rangos protegidos y las bandas previos (en cada
+  volcado el archivo se regenera).
+
+### 19.3 Contrato
+
+- `SheetsRawApi.get` se amplía para devolver, por hoja, `sheetId`, `gridProperties` (filas/columnas) y los
+  `protectedRanges`/`bandedRanges` existentes (sus ids), de modo que el paso de estilo pueda limpiarlos.
+- Nuevo módulo **puro** `sheets-style.ts`: `buildStyleRequests(sheetsMeta, tabs)` → `Request[]` de
+  `batchUpdate` (formato cabecera, banding, congelado, autoajuste, portada, protección, y los `delete*`
+  previos). Testeable sin Drive.
+- `writeSpreadsheet` añade un paso final `sheets.batchUpdate({ requests })` con esos requests.
+- El wiring `googleSheetsClientFor` (SPEC-0004) adapta `spreadsheets.get` para pedir
+  `sheets(properties,protectedRanges,bandedRanges)` en `fields`.
+
+### 19.4 Tests
+
+- `sheets-style.spec.ts`: genera el formato de cabecera con `#14072B`/negrita y borde inferior; banding
+  `#FFFFFF`/`#F3F3F3`; `frozenRowCount=1`; un `addProtectedRange` por hoja con `warningOnly:false`; e
+  incluye los `deleteProtectedRange`/`deleteBanding` cuando `get` reporta previos (idempotencia).
+
+### 19.5 Impacto
+
+- `sheets-client.ts` (`get` ampliado; paso de estilo/protección en `writeSpreadsheet`).
+- `sheets-style.ts` (nuevo) + `sheets-style.spec.ts`.
+- `connectors/google-drive/index.ts` (`fields` de `spreadsheets.get` en el wiring real).
+- Sin cambios de UI ni IPC (el botón «Volcar a Google Sheets» ya dispara todo el flujo).
+
+### 19.6 Notas de implementación (2026-06-15)
+
+- `sheets-style.ts` (puro): `buildStyleRequests(sheets, tabs)` → requests de `batchUpdate`. Tokens CD en
+  `CD`. Limpia `protectedRanges`/`bandedRanges` previos (idempotente).
+- `sheets-client.ts`: `SheetsRawApi.get` devuelve `SheetMeta[]`; `writeSpreadsheet` añade un `get` final +
+  `batchUpdate(styleRequests)`. El test existente sigue en verde (su `get` simulado no casa títulos, así que
+  no añade estilo) y `sheets-style.spec.ts` cubre el nuevo módulo (cabecera, banding, portada/lima,
+  protección `warningOnly:false`, idempotencia).
+- Wiring real: `spreadsheets.get` pide `fields` con `protectedRanges`/`bandedRanges`.
+- Verificado: 6 tests en verde. Typecheck completo a ejecutar en la máquina del usuario.

@@ -1,10 +1,13 @@
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
-import { BrowserWindow, shell } from 'electron';
+import { shell } from 'electron';
 import axios from 'axios';
 import Store from 'electron-store';
 import type {
   DriveFile,
+  DriveFolder,
+  GoogleCredentialsInput,
+  GoogleCredentialsStatus,
   GoogleDriveAuthStatus,
   GoogleDriveConfig,
   GoogleDriveFolderResult,
@@ -34,8 +37,11 @@ import {
 } from './sheets-client';
 import { buildCover, type CoverInput } from './cover-template';
 import { reconcile } from './sync';
-import { buildPickerHtml, parsePickerTitle, type PickerSelection } from './picker';
 import { createGoogleTokenStore, createKeytarGoogleTokenStore, type GoogleTokenStore } from './token-store';
+import {
+  createElectronGoogleCredentialsManager,
+  type GoogleCredentialsManager,
+} from './credentials-store';
 
 export const SCHEMA_VERSION = 1;
 
@@ -75,18 +81,26 @@ class ElectronGoogleDriveConfigStore implements GoogleDriveConfigStore {
 export interface GoogleDriveEnv {
   clientId: string;
   clientSecret?: string;
-  apiKey: string;
+}
+
+/** Métodos de credenciales que el façade expone hacia los handlers IPC (§13). */
+export interface CredentialsFacade {
+  ready(): Promise<void>;
+  status(): GoogleCredentialsStatus;
+  set(input: GoogleCredentialsInput): Promise<{ success: boolean; error?: string }>;
+  clear(): Promise<{ success: boolean; error?: string }>;
 }
 
 export interface GoogleDriveConnectorDeps {
   configs: GoogleDriveConfigStore;
   tokens: GoogleTokenStore;
   http: OAuthHttpClient;
-  env: GoogleDriveEnv;
+  /** Resolución diferida de credenciales: se evalúa en cada operación (§13.4). */
+  getEnv: () => GoogleDriveEnv;
   driveClientFor: (accessToken: string) => DriveClient;
   sheetsClientFor: (accessToken: string) => SheetsClient;
   runAuthFlow: (env: GoogleDriveEnv) => Promise<{ tokens: TokenSet; email: string }>;
-  openPicker: (accessToken: string) => Promise<PickerSelection | null>;
+  credentials?: CredentialsFacade;
   now?: () => number;
   isoNow?: () => string;
 }
@@ -114,9 +128,10 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
     const tokens = await deps.tokens.get(projectId);
     if (!tokens) throw new Error('Proyecto sin cuenta de Google conectada');
     if (!shouldRefresh(tokens, now()) || !tokens.refreshToken) return tokens.accessToken;
+    const env = deps.getEnv();
     const refreshed = await refreshAccessToken(deps.http, {
-      clientId: deps.env.clientId,
-      clientSecret: deps.env.clientSecret,
+      clientId: env.clientId,
+      clientSecret: env.clientSecret,
       refreshToken: tokens.refreshToken,
     });
     await deps.tokens.save(projectId, refreshed);
@@ -127,14 +142,15 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
     projectId: string,
     emit: (status: GoogleDriveAuthStatus) => void,
   ): Promise<GoogleDriveOperationResult> {
-    if (!deps.env.clientId) {
-      const message = 'Falta GOOGLE_CLIENT_ID en .env (ver .env.example)';
+    const env = deps.getEnv();
+    if (!env.clientId) {
+      const message = 'Falta el ID de cliente de Google. Configúralo en Conectores → Google Drive.';
       emit({ state: 'error', message });
       return { success: false, error: message };
     }
     emit({ state: 'authorizing' });
     try {
-      const { tokens, email } = await deps.runAuthFlow(deps.env);
+      const { tokens, email } = await deps.runAuthFlow(env);
       await deps.tokens.save(projectId, tokens);
       const existing = deps.configs.get(projectId);
       const config: GoogleDriveConfig = existing
@@ -158,20 +174,34 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
     }
   }
 
-  async function selectFolder(projectId: string): Promise<GoogleDriveFolderResult | null> {
-    if (!deps.env.apiKey) {
-      throw new Error('Falta GOOGLE_API_KEY en .env para el selector de carpeta (ver .env.example)');
-    }
+  /**
+   * Lista subcarpetas para el selector propio (§14). parentId vacío = «Mi unidad»;
+   * `sharedDrives` lista las unidades compartidas (§14.11).
+   */
+  async function listFolders(projectId: string, parentId: string): Promise<DriveFolder[]> {
     const accessToken = await getValidAccessToken(projectId);
-    const selection = await deps.openPicker(accessToken);
-    if (!selection || !selection.folderId) return null;
+    const client = deps.driveClientFor(accessToken);
+    return parentId === 'sharedDrives' ? client.listSharedDrives() : client.listFolders(parentId);
+  }
+
+  /** Busca carpetas por nombre en todas las unidades (§14.11). */
+  async function searchFolders(projectId: string, query: string): Promise<DriveFolder[]> {
+    const accessToken = await getValidAccessToken(projectId);
+    return deps.driveClientFor(accessToken).searchFolders(query);
+  }
+
+  /** Persiste la carpeta elegida en la config del proyecto. */
+  function setFolder(
+    projectId: string,
+    folder: { folderId: string; folderName: string; folderPath: string },
+  ): GoogleDriveFolderResult {
     const existing = deps.configs.get(projectId);
     if (!existing) throw new Error('Proyecto sin cuenta de Google conectada');
     const config: GoogleDriveConfig = {
       ...existing,
-      folderId: selection.folderId,
-      folderName: selection.folderName,
-      folderPath: selection.folderName,
+      folderId: folder.folderId,
+      folderName: folder.folderName,
+      folderPath: folder.folderPath || folder.folderName,
     };
     deps.configs.set(projectId, config);
     return {
@@ -179,6 +209,22 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
       folderName: config.folderName,
       folderPath: config.folderPath,
     };
+  }
+
+  async function getCredentialsStatus(): Promise<GoogleCredentialsStatus | null> {
+    if (!deps.credentials) return null;
+    await deps.credentials.ready();
+    return deps.credentials.status();
+  }
+
+  function setCredentials(input: GoogleCredentialsInput): Promise<{ success: boolean; error?: string }> {
+    if (!deps.credentials) return Promise.resolve({ success: false, error: 'Credenciales no disponibles' });
+    return deps.credentials.set(input);
+  }
+
+  function clearCredentials(): Promise<{ success: boolean; error?: string }> {
+    if (!deps.credentials) return Promise.resolve({ success: false, error: 'Credenciales no disponibles' });
+    return deps.credentials.clear();
   }
 
   function getStatus(projectId: string): GoogleDriveConfig | null {
@@ -322,7 +368,21 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
     }
   }
 
-  return { startAuth, selectFolder, getStatus, sync, revoke, writeFile, readFile, writeSpreadsheet };
+  return {
+    startAuth,
+    listFolders,
+    searchFolders,
+    setFolder,
+    getStatus,
+    sync,
+    revoke,
+    writeFile,
+    readFile,
+    writeSpreadsheet,
+    getCredentialsStatus,
+    setCredentials,
+    clearCredentials,
+  };
 }
 
 export type GoogleDriveConnector = ReturnType<typeof createGoogleDriveConnector>;
@@ -369,6 +429,10 @@ function googleDriveClientFor(accessToken: string): DriveClient {
   const api: DriveApi = {
     async filesList(args) {
       const res = await drive.files.list(args);
+      return res.data;
+    },
+    async drivesList(args) {
+      const res = await drive.drives.list(args);
       return res.data;
     },
     async filesCreate(args) {
@@ -420,7 +484,11 @@ function googleSheetsClientFor(accessToken: string): SheetsClient {
     },
     {
       async get(args) {
-        const res = await sheets.spreadsheets.get({ spreadsheetId: args.spreadsheetId });
+        const res = await sheets.spreadsheets.get({
+          spreadsheetId: args.spreadsheetId,
+          fields:
+            'sheets(properties(sheetId,title,gridProperties),protectedRanges(protectedRangeId),bandedRanges(bandedRangeId))',
+        });
         return res.data;
       },
       async batchUpdate(args) {
@@ -448,14 +516,6 @@ function googleSheetsClientFor(accessToken: string): SheetsClient {
   );
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
-
-function readEnv(): GoogleDriveEnv {
-  return {
-    clientId: process.env.GOOGLE_CLIENT_ID ?? '',
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET || undefined,
-    apiKey: process.env.GOOGLE_API_KEY ?? '',
-  };
-}
 
 /** Flujo OAuth interactivo: abre el navegador del sistema y escucha el callback en loopback. */
 function runElectronAuthFlow(http: OAuthHttpClient) {
@@ -506,55 +566,20 @@ function runElectronAuthFlow(http: OAuthHttpClient) {
     });
 }
 
-/** Abre el Google Picker en una BrowserWindow y resuelve con la carpeta elegida. */
-function openElectronPicker(env: GoogleDriveEnv) {
-  return (accessToken: string): Promise<PickerSelection | null> =>
-    new Promise((resolve, reject) => {
-      const html = buildPickerHtml({ accessToken, apiKey: env.apiKey, appId: env.clientId.split('-')[0] });
-      const server = createServer((_req, res) => {
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(html);
-      });
-      server.listen(0, '127.0.0.1', () => {
-        const port = (server.address() as { port: number }).port;
-        const window = new BrowserWindow({
-          width: 720,
-          height: 600,
-          title: 'Selecciona la carpeta de trabajo',
-          // Partición propia: la UI de Google necesita cargar apis.google.com, que la CSP de la
-          // sesión por defecto (solo en build empaquetada) bloquearía.
-          webPreferences: { nodeIntegration: false, contextIsolation: true, partition: 'gdrive-picker' },
-        });
-        let settled = false;
-        const finish = (selection: PickerSelection | null): void => {
-          if (settled) return;
-          settled = true;
-          server.close();
-          if (!window.isDestroyed()) window.close();
-          resolve(selection);
-        };
-        window.on('page-title-updated', (_event, title) => {
-          const selection = parsePickerTitle(title);
-          if (selection) finish(selection.folderId ? selection : null);
-        });
-        window.on('closed', () => finish(null));
-        void window.loadURL(`http://127.0.0.1:${port}`).catch(reject);
-      });
-    });
-}
-
-export function createElectronGoogleDriveConnector(): GoogleDriveConnector {
+export function createElectronGoogleDriveConnector(
+  credentials: GoogleCredentialsManager = createElectronGoogleCredentialsManager(),
+): GoogleDriveConnector {
   const http = createAxiosHttpClient();
-  const env = readEnv();
+  void credentials.ready();
   return createGoogleDriveConnector({
     configs: new ElectronGoogleDriveConfigStore(),
     tokens: createKeytarGoogleTokenStore(),
     http,
-    env,
+    getEnv: () => credentials.resolve(),
     driveClientFor: googleDriveClientFor,
     sheetsClientFor: googleSheetsClientFor,
     runAuthFlow: runElectronAuthFlow(http),
-    openPicker: openElectronPicker(env),
+    credentials,
   });
 }
 

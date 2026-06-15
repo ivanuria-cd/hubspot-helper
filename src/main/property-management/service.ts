@@ -1,18 +1,24 @@
 /**
- * Servicio de gestión de propiedades (SPEC-0006). Orquesta el store local, el conector
- * HubSpot (CRM Properties API v3), la reconciliación y el volcado al Google Sheets.
- * Nunca aplica cambios en HubSpot sin que el usuario lo pida explícitamente.
+ * Servicio de gestión de propiedades (SPEC-0006, rediseño §16). Orquesta el store local de
+ * entradas, el conector HubSpot (propiedades + objetos), la reconciliación y la exportación.
+ * Nunca aplica cambios en HubSpot sin confirmación explícita del usuario.
+ * NOTA: el volcado al Google Sheets queda diferido hasta resolver la conexión de Drive.
  */
 import type {
   ApplyChangeInput,
   ApplyChangeResult,
   DataOrigin,
   DiscardChangeInput,
+  EntriesListInput,
+  EntryDeleteInput,
+  EntryUpsertInput,
   ExportJsonInput,
-  HubSpotProperty,
-  MappingDeleteInput,
-  MappingUpsertInput,
-  MappingsListInput,
+  GroupCreateInput,
+  GroupsListInput,
+  HubSpotGroup,
+  HubSpotObject,
+  HubSpotPropertiesInput,
+  HubSpotPropertyDef,
   OperationResult,
   OriginCreateInput,
   OriginDeleteInput,
@@ -20,31 +26,63 @@ import type {
   OriginUpdateInput,
   ProjectScopedInput,
   PropertiesSyncResult,
-  PropertyOriginMapping,
-  PropertyUpsertInput,
+  PropertyEntry,
 } from '@shared/types/properties';
 import type { PropertiesApi, RemoteProperty } from '../connectors/hubspot/properties';
+import type { ObjectsApi } from '../connectors/hubspot/objects';
 import type { PropertyStore } from './store';
-import { reconcile } from './reconcile';
-import { markApplied } from './pending-changes';
+import type { HubSpotPropertyRef } from '@shared/types/properties';
+import { reconcileEntries } from './reconcile';
+import { markApplied, cleanOptions } from './pending-changes';
 import { buildOriginExport } from './origin-export';
-import type { SheetTab } from '../connectors/google-drive/sheets-client';
-import { buildSheetsModel } from './sheets-model';
 
-const DEFAULT_OBJECT_TYPES = ['contacts', 'deals', 'companies'];
-
-export interface SheetSink {
-  /** Vuelca el mapa al Sheets de Drive. Best-effort: no debe romper el flujo si Drive no está. */
-  write(projectId: string, name: string, schemaVersion: number, tabs: SheetTab[]): Promise<void>;
+/** Sanea las opciones de la definición destino para no almacenar opciones vacías. */
+function sanitizeRef(ref: HubSpotPropertyRef): HubSpotPropertyRef {
+  if (ref.mode === 'new') {
+    return { ...ref, definition: { ...ref.definition, options: cleanOptions(ref.definition.options) } };
+  }
+  if (ref.definition) {
+    return { ...ref, definition: { ...ref.definition, options: cleanOptions(ref.definition.options) } };
+  }
+  return ref;
 }
 
 export interface PropertyServiceDeps {
   store: PropertyStore;
   propertiesApiFor: (projectId: string) => PropertiesApi;
-  projectName: (projectId: string) => string;
-  sheetSink?: SheetSink;
+  objectsApiFor: (projectId: string) => ObjectsApi;
   newId: () => string;
   now: () => string;
+}
+
+function entryDestName(entry: PropertyEntry): string {
+  return entry.hubspotProperty.mode === 'existing'
+    ? entry.hubspotProperty.hubspotName
+    : entry.hubspotProperty.definition.hubspotName;
+}
+
+function toDef(remote: RemoteProperty): HubSpotPropertyDef {
+  return {
+    hubspotName: remote.name,
+    label: remote.label,
+    type: remote.type,
+    fieldType: remote.fieldType,
+    groupName: remote.groupName,
+    options: remote.options,
+  };
+}
+
+/** Extrae el mensaje de error útil que devuelve HubSpot (body de la respuesta 4xx). */
+function hubspotErrorMessage(error: unknown): string {
+  const e = error as {
+    response?: { data?: { message?: string; errors?: Array<{ message?: string }> } };
+    message?: string;
+  };
+  const data = e?.response?.data;
+  if (data?.message) return data.message;
+  const detail = (data?.errors ?? []).map((x) => x.message).filter(Boolean).join('; ');
+  if (detail) return detail;
+  return e?.message ?? 'Error en HubSpot';
 }
 
 export function createPropertyService(deps: PropertyServiceDeps) {
@@ -52,151 +90,123 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     return { newId: deps.newId, now: deps.now };
   }
 
-  async function persistToSheets(projectId: string): Promise<void> {
-    if (!deps.sheetSink) return;
-    const state = deps.store.get(projectId);
-    const model = buildSheetsModel({
-      projectName: deps.projectName(projectId),
-      origins: state.origins,
-      properties: state.properties,
-      mappings: state.mappings,
-      generatedAt: deps.now(),
-    });
-    try {
-      await deps.sheetSink.write(projectId, 'Mapa de Propiedades', model.schemaVersion, model.tabs);
-    } catch {
-      // Volcado best-effort: si Drive no está conectado, el estado local sigue siendo válido.
-    }
+  function listObjects(input: ProjectScopedInput): Promise<HubSpotObject[]> {
+    return deps.objectsApiFor(input.projectId).listObjects();
   }
 
-  function listProperties(input: ProjectScopedInput): HubSpotProperty[] {
-    return deps.store.get(input.projectId).properties;
+  async function listHubSpotProperties(input: HubSpotPropertiesInput): Promise<HubSpotPropertyDef[]> {
+    const remotes = await deps.propertiesApiFor(input.projectId).listProperties(input.objectType);
+    return remotes.map(toDef);
   }
 
-  async function upsertProperty(input: PropertyUpsertInput): Promise<HubSpotProperty> {
+  function listGroups(input: GroupsListInput): Promise<HubSpotGroup[]> {
+    return deps.propertiesApiFor(input.projectId).listGroups(input.objectType);
+  }
+
+  function createGroup(input: GroupCreateInput): Promise<HubSpotGroup> {
+    return deps
+      .propertiesApiFor(input.projectId)
+      .createGroup(input.objectType, { name: input.name, label: input.label });
+  }
+
+  function listEntries(input: EntriesListInput): PropertyEntry[] {
+    const entries = deps.store.get(input.projectId).entries;
+    return input.objectType
+      ? entries.filter((entry) => entry.objectType === input.objectType)
+      : entries;
+  }
+
+  function upsertEntry(input: EntryUpsertInput): PropertyEntry {
     const state = deps.store.get(input.projectId);
-    const incoming = input.property;
-    const existing = incoming.id
-      ? state.properties.find((p) => p.id === incoming.id)
-      : undefined;
-    const property: HubSpotProperty = {
+    const incoming = input.entry;
+    const existing = incoming.id ? state.entries.find((e) => e.id === incoming.id) : undefined;
+    const entry: PropertyEntry = {
       id: existing?.id ?? deps.newId(),
-      hubspotName: incoming.hubspotName,
-      label: incoming.label,
       objectType: incoming.objectType,
-      type: incoming.type,
-      fieldType: incoming.fieldType,
-      groupName: incoming.groupName,
-      isCustom: incoming.isCustom ?? true,
-      description: incoming.description,
-      options: incoming.options,
-      hubspotStatus: existing?.hubspotStatus ?? 'missing',
+      name: incoming.name,
+      hubspotProperty: sanitizeRef(incoming.hubspotProperty),
+      sources: incoming.sources.map((source) => ({ ...source, id: source.id || deps.newId() })),
+      hubspotStatus:
+        existing?.hubspotStatus ?? (incoming.hubspotProperty.mode === 'existing' ? 'exists' : 'missing'),
       pendingChanges: existing?.pendingChanges ?? [],
     };
-    const properties = existing
-      ? state.properties.map((p) => (p.id === property.id ? property : p))
-      : [...state.properties, property];
-    deps.store.set(input.projectId, { ...state, properties });
-    await persistToSheets(input.projectId);
-    return property;
+    const entries = existing
+      ? state.entries.map((e) => (e.id === entry.id ? entry : e))
+      : [...state.entries, entry];
+    deps.store.set(input.projectId, { ...state, entries });
+    return entry;
+  }
+
+  function deleteEntry(input: EntryDeleteInput): OperationResult {
+    const state = deps.store.get(input.projectId);
+    deps.store.set(input.projectId, {
+      ...state,
+      entries: state.entries.filter((e) => e.id !== input.entryId),
+    });
+    return { success: true };
   }
 
   async function syncHubspot(input: ProjectScopedInput): Promise<PropertiesSyncResult> {
     const state = deps.store.get(input.projectId);
     const api = deps.propertiesApiFor(input.projectId);
+    const objectTypes = Array.from(new Set(state.entries.map((e) => e.objectType)));
 
-    const objectTypes = Array.from(
-      new Set(
-        state.properties.length
-          ? state.properties.map((property) => property.objectType)
-          : DEFAULT_OBJECT_TYPES,
-      ),
-    );
-
-    const remoteByObject = new Map<string, RemoteProperty[]>();
+    const remotes: RemoteProperty[] = [];
     for (const objectType of objectTypes) {
-      remoteByObject.set(objectType, await api.listProperties(objectType));
+      remotes.push(...(await api.listProperties(objectType)));
     }
 
-    // Importa propiedades remotas que aún no estén en el mapa (estado exists).
-    const knownNames = new Set(state.properties.map((p) => `${p.objectType}:${p.hubspotName}`));
-    const imported: HubSpotProperty[] = [];
-    for (const [objectType, remotes] of remoteByObject) {
-      for (const remote of remotes) {
-        if (knownNames.has(`${objectType}:${remote.name}`)) continue;
-        imported.push({
-          id: deps.newId(),
-          hubspotName: remote.name,
-          label: remote.label,
-          objectType,
-          type: remote.type,
-          fieldType: remote.fieldType,
-          groupName: remote.groupName,
-          isCustom: !remote.hubspotDefined,
-          description: remote.description,
-          options: remote.options,
-          hubspotStatus: 'exists',
-          pendingChanges: [],
-        });
-      }
-    }
-
-    const allRemotes = Array.from(remoteByObject.values()).flat();
-    const result = reconcile([...state.properties, ...imported], allRemotes, changeFactory());
-
-    deps.store.set(input.projectId, { ...state, properties: result.properties });
-    await persistToSheets(input.projectId);
+    const result = reconcileEntries(state.entries, remotes, changeFactory());
+    deps.store.set(input.projectId, { ...state, entries: result.entries });
     return result.summary;
   }
 
   async function applyChange(input: ApplyChangeInput): Promise<ApplyChangeResult> {
     const state = deps.store.get(input.projectId);
-    const property = state.properties.find((p) =>
-      p.pendingChanges?.some((change) => change.id === input.changeId),
+    const entry = state.entries.find((e) =>
+      e.pendingChanges?.some((change) => change.id === input.changeId),
     );
-    const change = property?.pendingChanges?.find((c) => c.id === input.changeId);
-    if (!property || !change) return { success: false, error: 'Cambio no encontrado' };
+    const change = entry?.pendingChanges?.find((c) => c.id === input.changeId);
+    if (!entry || !change) return { success: false, error: 'Cambio no encontrado' };
 
     const api = deps.propertiesApiFor(input.projectId);
     try {
       if (change.operation === 'create') {
-        await api.createProperty(property.objectType, change.payload, input.environment);
+        await api.createProperty(entry.objectType, change.payload, input.environment);
       } else {
         await api.patchProperty(
-          property.objectType,
-          property.hubspotName,
+          entry.objectType,
+          entryDestName(entry),
           change.payload,
           input.environment,
         );
       }
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Error en HubSpot' };
+      return { success: false, error: hubspotErrorMessage(error) };
     }
 
     const updatedChange = markApplied(change, input.environment);
-    const properties = state.properties.map((p) =>
-      p.id === property.id
+    const entries = state.entries.map((e) =>
+      e.id === entry.id
         ? {
-            ...p,
-            pendingChanges: p.pendingChanges?.map((c) =>
+            ...e,
+            pendingChanges: e.pendingChanges?.map((c) =>
               c.id === input.changeId ? updatedChange : c,
             ),
           }
-        : p,
+        : e,
     );
-    deps.store.set(input.projectId, { ...state, properties });
-    await persistToSheets(input.projectId);
+    deps.store.set(input.projectId, { ...state, entries });
     return { success: true };
   }
 
-  async function discardChange(input: DiscardChangeInput): Promise<OperationResult> {
+  function discardChange(input: DiscardChangeInput): OperationResult {
     const state = deps.store.get(input.projectId);
-    const properties = state.properties.map((p) => ({
-      ...p,
-      pendingChanges: p.pendingChanges?.filter((c) => c.id !== input.changeId),
+    const entries = state.entries.map((e) => ({
+      ...e,
+      pendingChanges: e.pendingChanges?.filter((c) => c.id !== input.changeId),
     }));
-    deps.store.set(input.projectId, { ...state, properties });
-    await persistToSheets(input.projectId);
+    deps.store.set(input.projectId, { ...state, entries });
     return { success: true };
   }
 
@@ -204,75 +214,39 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     return deps.store.get(input.projectId).origins;
   }
 
-  async function createOrigin(input: OriginCreateInput): Promise<DataOrigin> {
+  function createOrigin(input: OriginCreateInput): DataOrigin {
     const state = deps.store.get(input.projectId);
     const origin: DataOrigin = {
       id: deps.newId(),
       name: input.origin.name,
       type: input.origin.type,
       description: input.origin.description,
+      objects: [],
       createdAt: deps.now(),
     };
     deps.store.set(input.projectId, { ...state, origins: [...state.origins, origin] });
-    await persistToSheets(input.projectId);
     return origin;
   }
 
-  async function updateOrigin(input: OriginUpdateInput): Promise<DataOrigin> {
+  function updateOrigin(input: OriginUpdateInput): DataOrigin {
     const state = deps.store.get(input.projectId);
     const origins = state.origins.map((origin) =>
       origin.id === input.origin.id ? { ...origin, ...input.origin } : origin,
     );
     deps.store.set(input.projectId, { ...state, origins });
-    await persistToSheets(input.projectId);
     return input.origin;
   }
 
-  async function deleteOrigin(input: OriginDeleteInput): Promise<OperationResult> {
+  function deleteOrigin(input: OriginDeleteInput): OperationResult {
     const state = deps.store.get(input.projectId);
     deps.store.set(input.projectId, {
       ...state,
       origins: state.origins.filter((origin) => origin.id !== input.originId),
-      mappings: state.mappings.filter((mapping) => mapping.originId !== input.originId),
+      entries: state.entries.map((entry) => ({
+        ...entry,
+        sources: entry.sources.filter((source) => source.originId !== input.originId),
+      })),
     });
-    await persistToSheets(input.projectId);
-    return { success: true };
-  }
-
-  function listMappings(input: MappingsListInput): PropertyOriginMapping[] {
-    const mappings = deps.store.get(input.projectId).mappings;
-    return input.propertyId
-      ? mappings.filter((mapping) => mapping.propertyId === input.propertyId)
-      : mappings;
-  }
-
-  async function upsertMapping(input: MappingUpsertInput): Promise<PropertyOriginMapping> {
-    const state = deps.store.get(input.projectId);
-    const mapping: PropertyOriginMapping = {
-      id: input.mapping.id ?? deps.newId(),
-      propertyId: input.mapping.propertyId,
-      originId: input.mapping.originId,
-      sourceField: input.mapping.sourceField,
-      transformations: input.mapping.transformations ?? [],
-      notes: input.mapping.notes,
-    };
-    const existingIndex = state.mappings.findIndex((m) => m.id === mapping.id);
-    const mappings =
-      existingIndex >= 0
-        ? state.mappings.map((m) => (m.id === mapping.id ? mapping : m))
-        : [...state.mappings, mapping];
-    deps.store.set(input.projectId, { ...state, mappings });
-    await persistToSheets(input.projectId);
-    return mapping;
-  }
-
-  async function deleteMapping(input: MappingDeleteInput): Promise<OperationResult> {
-    const state = deps.store.get(input.projectId);
-    deps.store.set(input.projectId, {
-      ...state,
-      mappings: state.mappings.filter((mapping) => mapping.id !== input.mappingId),
-    });
-    await persistToSheets(input.projectId);
     return { success: true };
   }
 
@@ -280,17 +254,17 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     const state = deps.store.get(input.projectId);
     const origin = state.origins.find((o) => o.id === input.originId);
     if (!origin) throw new Error('Origen no encontrado');
-    return buildOriginExport({
-      origin,
-      properties: state.properties,
-      mappings: state.mappings,
-      now: deps.now,
-    });
+    return buildOriginExport({ origin, entries: state.entries, now: deps.now });
   }
 
   return {
-    listProperties,
-    upsertProperty,
+    listObjects,
+    listHubSpotProperties,
+    listGroups,
+    createGroup,
+    listEntries,
+    upsertEntry,
+    deleteEntry,
     syncHubspot,
     applyChange,
     discardChange,
@@ -298,9 +272,6 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     createOrigin,
     updateOrigin,
     deleteOrigin,
-    listMappings,
-    upsertMapping,
-    deleteMapping,
     exportJson,
   };
 }

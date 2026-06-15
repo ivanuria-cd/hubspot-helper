@@ -121,7 +121,8 @@ interface DriveFile {
 
 | Scope | Motivo |
 |-------|--------|
-| `https://www.googleapis.com/auth/drive.file` | Acceso a archivos creados por la app o seleccionados por el usuario |
+| `https://www.googleapis.com/auth/drive.file` | Acceso a archivos creados/gestionados por la app dentro de la carpeta elegida |
+| `https://www.googleapis.com/auth/drive.metadata.readonly` | Listar carpetas para el selector propio (§14). Scope sensible: requiere verificación de Google para producción con usuarios externos |
 | `https://www.googleapis.com/auth/userinfo.email` | Identificar la cuenta conectada |
 
 ---
@@ -226,4 +227,312 @@ Decisiones tomadas durante la implementación, registradas según SPEC-0000 («c
 
 - Conector: `src/main/connectors/google-drive/{auth,token-store,client,sync,cover-template,picker,index}.ts` (+ specs de `auth`, `token-store`, `client`, `sync`, `cover-template`).
 - Contrato: `src/renderer/shared/types/gdrive.ts`; canales y API en `ipc.ts`, `preload/index.ts`, handlers en `main/index.ts`.
-- UI: `src/renderer/features/connector-gdrive
+- UI: `src/renderer/features/connector-gdrive/` (hook + pantalla), ruta en `router.tsx`, entrada en `ConfigSection.tsx`, claves i18n en `es/ca/eu/en`.
+- Docs/QA: `doc/tutoriales/google-drive/{conectar-google-drive,seleccionar-carpeta,sincronizar-archivos}.md`; `tests/functional/{gdrive-config,gdrive-sync}.spec.ts`.
+- Infra: `.env.example`, `scripts/setup-gdrive-deps.cmd`, `scripts/verify-spec-0004.cmd`.
+
+---
+
+## 13. Configuración de credenciales desde la interfaz (IMPLEMENTADO, 2026-06-15)
+
+### 13.1 Contexto y objetivo
+
+Hoy las credenciales de Google solo se leen de `.env` al arrancar (`src/main/env.ts` → `readEnv()`). El
+objetivo es introducirlas y actualizarlas desde la pantalla del conector, sin tocar `.env` ni reiniciar.
+
+**Decisión asociada (§14):** se elimina el Google Picker y, con él, la `GOOGLE_API_KEY`. La selección de
+carpeta pasa a un selector propio (§14). Por tanto, las credenciales configurables se reducen a
+**Client ID** y **Client Secret** (opcional). La API key desaparece del modelo, del `.env` y de la UI.
+
+### 13.2 Decisiones (validadas con el usuario)
+
+- **Alcance: globales de la app** (un único set). No por proyecto.
+- **Aplicación: al instante.** El conector resuelve las credenciales de forma diferida en cada operación
+  (no se capturan una sola vez al arrancar); guardar surte efecto sin reiniciar.
+- **Almacenamiento: keytar + electron-store.** `clientSecret` en el llavero del SO (keytar, como el PAT de
+  HubSpot y los tokens de Drive); `clientId` (no secreto) en electron-store. `.env` queda como **fallback
+  de solo lectura**: si un campo no está configurado en la app, se usa el de `.env`.
+
+### 13.3 Modelo de datos / contratos
+
+```typescript
+// Credenciales resueltas (uso interno del conector). Sin apiKey (se elimina el Picker).
+interface GoogleCredentials {
+  clientId: string;
+  clientSecret?: string;
+}
+
+// Estado expuesto al renderer: NUNCA devuelve secretos en claro.
+type CredentialSource = 'app' | 'env' | 'none';
+interface GoogleCredentialsStatus {
+  clientId: { set: boolean; source: CredentialSource; preview: string };  // preview = últimos 4 / ''
+  clientSecret: { set: boolean; source: CredentialSource };               // sin preview
+}
+
+// Entrada para guardar (campos opcionales: solo se escriben los presentes).
+interface GoogleCredentialsInput {
+  clientId?: string;
+  clientSecret?: string;
+}
+```
+
+`GoogleCredentialsStore` (nuevo, en `connectors/google-drive/credentials-store.ts`):
+
+- `resolve(): GoogleCredentials` — fusiona valor de la app (prioridad) con `.env` (fallback) campo a campo.
+- `status(): GoogleCredentialsStatus` — para la UI; calcula `source` y enmascara.
+- `set(input: GoogleCredentialsInput): void` — escribe solo los campos presentes (string vacío = borrar ese
+  campo de la app y volver al fallback de `.env`). `clientId` → electron-store; `clientSecret` → keytar.
+- `clear(): void` — borra ambos de la app (vuelve a `.env`).
+
+Servicio keytar: `revops-gdrive`, cuenta `client_secret`. electron-store: fichero `gdrive-credentials`,
+clave `clientId`.
+
+### 13.4 Cambio en el conector (resolución diferida)
+
+`GoogleDriveConnectorDeps.env: GoogleDriveEnv` (valor estático) se sustituye por
+`getEnv: () => GoogleDriveEnv`. Todas las lecturas internas (`deps.env.*` en `getValidAccessToken`,
+`startAuth`, `runAuthFlow`) pasan a `getEnv()`. `GoogleDriveEnv` pierde `apiKey`. En el wiring de Electron,
+`getEnv` lee de `GoogleCredentialsStore.resolve()`. Los tests existentes pasan `getEnv: () => env`
+(cambio mecánico, sin alterar la lógica probada).
+
+### 13.5 IPC
+
+| Canal | Dirección | Input | Output |
+|-------|-----------|-------|--------|
+| `gdrive:get-credentials-status` | renderer → main | — | `GoogleCredentialsStatus` |
+| `gdrive:set-credentials` | renderer → main | `GoogleCredentialsInput` | `{ success, error? }` |
+| `gdrive:clear-credentials` | renderer → main | — | `{ success }` |
+
+El renderer envía los valores en claro por IPC (canal local) y main los persiste; `get-credentials-status`
+**solo** devuelve booleanos, `source` y preview enmascarada, nunca el secreto completo.
+
+### 13.6 Interfaz de usuario
+
+Nueva tarjeta **«Credenciales de Google Cloud»** al inicio de la pantalla del conector (encima de
+«Cuenta Google»):
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Credenciales de Google Cloud            [.env] / [App]  │
+│                                                          │
+│  Client ID        [____________________________]  ●set   │
+│  Client Secret    [•••••••••• (opcional)        ]        │
+│                                                          │
+│  ⓘ Solo se necesita el ID de cliente de OAuth.           │
+│    Cómo crearlo → (enlace a pasos en Google Cloud)       │
+│                                                          │
+│              [Borrar]                      [Guardar]     │
+└──────────────────────────────────────────────────────────┘
+```
+
+- Campo de secreto como `password`; si ya hay valor, placeholder enmascarado con preview (últimos 4) y no
+  se reenvía salvo que el usuario escriba uno nuevo.
+- Badge por campo indicando origen: `App`, `.env` o vacío.
+- Validación ligera al guardar (`clientId` suele acabar en `.apps.googleusercontent.com`); la validación
+  real ocurre al conectar.
+- «Conectar» se habilita cuando hay `clientId`.
+
+### 13.7 Tests requeridos
+
+- `credentials-store.spec.ts`: precedencia app > `.env`; `set` con string vacío revierte a `.env`;
+  `status` enmascara y calcula `source`; keytar y electron-store mockeados.
+- Actualización de specs del conector al nuevo `getEnv` (cambio mecánico).
+
+### 13.8 Seguridad
+
+- `clientSecret` en keytar; `clientId` en electron-store; `.env` solo lectura.
+- El secreto **no** sale de main en claro: la UI solo recibe estado enmascarado.
+- No se registran secretos en logs. Entrada por IPC local; sin envío a terceros.
+
+### 13.9 Fuera de alcance
+
+- Credenciales por proyecto (se mantiene global).
+- Creación/gestión del proyecto de Google Cloud o del OAuth client (lo hace el usuario en la consola).
+
+### 13.10 Impacto
+
+- `connectors/google-drive/credentials-store.ts` (nuevo) + `index.ts` (`getEnv` en deps; `apiKey` fuera; wiring).
+- `shared/types/gdrive.ts`, `ipc.ts`, `preload/index.ts`, handlers en `main/index.ts` (3 canales nuevos).
+- `renderer/features/connector-gdrive/` (tarjeta de credenciales + hook), claves i18n `es/ca/eu/en`.
+- Tutorial `doc/tutoriales/google-drive/configurar-credenciales.md`.
+
+---
+
+## 14. Selección de carpeta sin Picker — selector propio (IMPLEMENTADO, 2026-06-15)
+
+### 14.1 Contexto y decisión
+
+El Google Picker exige **a la vez** token OAuth y una developer key (API key) — es un requisito propio del
+widget, confirmado en la documentación de Google (`PickerBuilder` requiere `setOAuthToken` **y**
+`setDeveloperKey`). Para evitar depender de una API key, se sustituye el Picker por un **selector de
+carpetas propio** dentro de la app, que navega el Drive del usuario vía la Drive API (solo OAuth).
+
+### 14.2 Coste en permisos (scope)
+
+El scope actual `drive.file` no permite **listar** carpetas que la app no creó, así que el selector propio
+necesita añadir un scope de lectura de metadatos:
+
+- **`drive.metadata.readonly`** — listar nombres/IDs/padres de carpetas para navegar. Es un scope sensible:
+  con usuarios externos, Google exige verificación de la app para producción; en modo *testing* o dentro de
+  un dominio Workspace propio no aplica. El usuario acepta este coste a cambio de eliminar la API key.
+- Se conserva `drive.file` para crear/gestionar los archivos de la app dentro de la carpeta elegida (crear
+  un archivo con `parents:[folderId]` es válido bajo `drive.file`).
+
+> Actualiza la tabla de §5 añadiendo `drive.metadata.readonly`. Al cambiar scopes, los tokens existentes
+> deben re-autorizarse (el usuario verá de nuevo la pantalla de consentimiento).
+
+### 14.3 Façade del conector
+
+Se elimina `openPicker`/`buildPickerHtml`/`picker.ts` y la dependencia de la API key. Nuevas operaciones:
+
+```typescript
+interface DriveFolder { id: string; name: string; }
+// Lista subcarpetas de un padre. parentId vacío/'root' = raíz «Mi unidad».
+listFolders(parentId: string): Promise<DriveFolder[]>;
+// Persiste la carpeta elegida en GoogleDriveConfig (folderId/folderName/folderPath).
+setFolder(projectId: string, folder: { id: string; name: string; path: string }): Promise<GoogleDriveFolderResult>;
+```
+
+`listFolders` usa `files.list` con
+`q="mimeType='application/vnd.google-apps.folder' and trashed=false and '<parentId>' in parents"`,
+`fields=files(id,name)`, ordenado por nombre; paginación con `pageToken`.
+
+### 14.4 IPC
+
+| Canal | Dirección | Input | Output |
+|-------|-----------|-------|--------|
+| `gdrive:list-folders` | renderer → main | `{ projectId, parentId }` | `DriveFolder[]` |
+| `gdrive:set-folder` | renderer → main | `{ projectId, folderId, folderName, folderPath }` | `GoogleDriveConfig` |
+
+Se retira `gdrive:select-folder` (Picker) y su handler.
+
+### 14.5 Interfaz de usuario
+
+Modal **«Seleccionar carpeta de trabajo»** lanzado desde «Cambiar carpeta»:
+
+```
+┌──────────────────────────────────────────────┐
+│  Seleccionar carpeta de trabajo               │
+│  Mi unidad / Clientes / ▸                      │  ← breadcrumb navegable
+│  ──────────────────────────────────────────   │
+│  📁 Cliente X                                  │  ← clic = entrar
+│  📁 Cliente Y                                  │
+│  📁 Plantillas                                 │
+│  ──────────────────────────────────────────   │
+│        [Cancelar]   [Seleccionar esta carpeta] │  ← elige el directorio actual
+└──────────────────────────────────────────────┘
+```
+
+- Arranca en «Mi unidad» (`root`); cada carpeta es navegable; breadcrumb para subir.
+- «Seleccionar esta carpeta» fija el directorio actualmente abierto y construye `folderPath` desde el breadcrumb.
+- Estado de carga y vacío («Esta carpeta no tiene subcarpetas»).
+
+### 14.6 Tests requeridos
+
+- `client.spec.ts`: `listFolders` arma el `q` correcto y mapea la respuesta; paginación.
+- Funcional: abrir modal → navegar → seleccionar → la UI muestra la carpeta elegida (mock de `list-folders`/`set-folder`).
+
+### 14.7 Fuera de alcance
+
+- Crear carpetas nuevas desde el selector (posible iteración futura).
+- Unidades compartidas (Shared Drives) — primera versión solo «Mi unidad»; se puede ampliar con
+  `supportsAllDrives`/`corpora` más adelante.
+
+### 14.8 Impacto
+
+- `connectors/google-drive/`: elimina `picker.ts` y `openPicker`; `client.ts`/`index.ts` añaden `listFolders`
+  y `setFolder`; `GoogleDriveEnv` sin `apiKey`; `runAuthFlow` añade scope `drive.metadata.readonly`.
+- `shared/types/gdrive.ts`, `ipc.ts`, `preload/index.ts`, `main/index.ts`: canales `list-folders`/`set-folder`,
+  retirada de `select-folder`.
+- `renderer/features/connector-gdrive/`: modal selector + hook; claves i18n `es/ca/eu/en`.
+- `.env.example`: eliminar `GOOGLE_API_KEY`. Tutorial `seleccionar-carpeta.md` reescrito (sin Picker).
+- §5 (scopes) actualizado.
+
+### 14.10 Ampliación — «Compartido conmigo» (IMPLEMENTADO, 2026-06-15)
+
+El selector inicial lista solo subcarpetas de «Mi unidad». Para incluir carpetas **compartidas con el
+usuario** (sección «Compartido conmigo», que no cuelgan de `root`):
+
+- **Nivel raíz virtual en la UI.** Al abrir, el modal muestra dos ubicaciones de entrada: **Mi unidad**
+  (`root`) y **Compartido conmigo** (`sharedWithMe`). La miga de pan arranca en «Ubicaciones». Ninguna de
+  estas dos entradas «virtuales» (`locations`) es seleccionable como carpeta de trabajo; sí lo son «Mi
+  unidad» y cualquier carpeta real al entrar en ella.
+- **`client.listFolders(parentId)`** añade una rama:
+  - `parentId === 'sharedWithMe'` → `q = "sharedWithMe = true and mimeType = '<folder>' and trashed = false"`.
+  - resto de IDs (incluido `root`) → consulta por `'<parentId>' in parents` (como ahora).
+- **No seleccionable:** se deshabilita «Seleccionar esta carpeta» cuando el nodo actual es el raíz virtual
+  (`locations`) o el contenedor `sharedWithMe`; al entrar en una carpeta compartida concreta, su `id` real
+  ya es seleccionable.
+- **Permisos:** `drive.metadata.readonly` (ya añadido) cubre el listado de «Compartido conmigo». Para que
+  la app cree sus archivos dentro de una carpeta compartida, el usuario debe tener permiso de edición sobre
+  ella (si es de solo lectura, la escritura fallará en tiempo de ejecución; se mostrará el error de la API).
+- **Unidades compartidas (Shared Drives):** siguen fuera de alcance (requieren `supportsAllDrives`/`corpora`).
+- **Tests:** `client.spec.ts` añade un caso de `listFolders('sharedWithMe')` que arma el `q` con
+  `sharedWithMe = true`. Funcional: la raíz del modal muestra «Mi unidad» y «Compartido conmigo».
+
+### 14.11 Ampliación — Unidades compartidas y búsqueda por nombre (IMPLEMENTADO, 2026-06-15)
+
+Dos añadidos al selector de carpeta.
+
+#### A. Unidades compartidas (Shared Drives)
+
+- **Tercera ubicación** en la raíz virtual del modal: **Mi unidad**, **Compartido conmigo** y
+  **Unidades compartidas** (sentinela `sharedDrives`).
+- Al entrar en «Unidades compartidas» se listan las unidades a las que el usuario tiene acceso
+  (`drive.drives.list`). Cada unidad se muestra como carpeta (su `id` es la raíz de esa unidad).
+- Navegar dentro de una unidad compartida usa la misma `files.list` por padre, pero con
+  `supportsAllDrives = true` e `includeItemsFromAllDrives = true`. Estos flags se activan de forma
+  general en `listFolders` (inocuos para «Mi unidad»), de modo que un único camino sirve para todo.
+- El contenedor `sharedDrives` no es seleccionable; sí lo son la raíz de una unidad y sus subcarpetas.
+- **Contrato:** `DriveApi` añade `drivesList(args)` y `filesList` admite los flags
+  `supportsAllDrives`/`includeItemsFromAllDrives`. El façade `listFolders(projectId, parentId)` enruta
+  `parentId === 'sharedDrives'` a `client.listSharedDrives()`; el resto a `client.listFolders(parentId)`.
+  No se añade canal IPC nuevo para esto (se reutiliza `gdrive:list-folders` con el sentinela).
+
+#### B. Búsqueda por nombre
+
+- Campo de búsqueda en el modal. Al escribir un término y buscar, se consulta Drive por nombre:
+  `q = "name contains '<term>' and mimeType = '<folder>' and trashed = false"` con los flags de todas las
+  unidades. Resultados en lista plana (sin jerarquía); seleccionar uno fija la carpeta de trabajo
+  (`folderPath` = nombre de la carpeta). Borrar el término vuelve a la navegación normal.
+- Las comillas simples del término se escapan (`'` → `\'`) para no romper el `q`.
+- **Contrato:** nuevo canal `gdrive:search-folders` (input `{ projectId, query }` → `DriveFolder[]`),
+  façade `searchFolders`, y `client.searchFolders(query)`.
+
+#### Permisos y alcance
+
+- `drive.metadata.readonly` (ya concedido) cubre `drives.list`, la navegación con flags de todas las
+  unidades y la búsqueda por nombre. Crear archivos dentro de una unidad/ carpeta compartida exige permiso
+  de edición del usuario (si no, falla en escritura con el error de la API).
+
+#### Tests
+
+- `client.spec.ts`: `listSharedDrives` llama a `drivesList`; `listFolders` envía
+  `supportsAllDrives/includeItemsFromAllDrives`; `searchFolders` arma `name contains` y escapa comillas.
+
+#### Impacto
+
+- `client.ts` (`listSharedDrives`, `searchFolders`, flags en `listFolders`; `DriveApi` ampliado),
+  `index.ts` (façade `listFolders` enruta sentinela; `searchFolders`; wiring `drivesList`),
+  `ipc.ts`/`preload`/`main` (canal `search-folders`), `FolderPickerDialog.tsx` (tercera ubicación + buscador),
+  i18n `gdrive.folderPicker.*` (sharedDrives, search, searchPlaceholder, searchResults, clearSearch).
+
+### 14.9 Notas de implementación (2026-06-15)
+
+- **Credenciales (§13):** `connectors/google-drive/credentials-store.ts` con `createGoogleCredentialsManager`
+  (puro, backends inyectables) y `createElectronGoogleCredentialsManager` (electron-store para `clientId`,
+  keytar `revops-app:google-drive-credentials`/`client_secret`, `.env` como fallback). Caché en memoria
+  con `ready()` para que `resolve()` sea síncrono. Test `credentials-store.spec.ts` (5 casos).
+- **Conector (§13.4/§14):** `GoogleDriveConnectorDeps.env` → `getEnv()`; `GoogleDriveEnv` sin `apiKey`;
+  se retiran `openPicker`/`buildPickerHtml` (`picker.ts` queda vacío) y `readEnv`. Nuevos `listFolders`/
+  `setFolder` y métodos `getCredentialsStatus`/`setCredentials`/`clearCredentials` en el façade. `client.ts`
+  añade `listFolders`. Scope `drive.metadata.readonly` en `auth.ts`.
+- **IPC:** se retira `gdrive:select-folder`; se añaden `list-folders`, `set-folder`,
+  `get-credentials-status`, `set-credentials`, `clear-credentials` (ipc.ts/preload/main).
+- **UI:** `GoogleCredentialsCard.tsx` (tarjeta de credenciales) y `FolderPickerDialog.tsx` (selector
+  navegable); `useGoogleDriveConnector` y `GoogleDriveConnectorScreen` actualizados; claves i18n
+  `gdrive.credentials.*` y `gdrive.folderPicker.*` en es/ca/eu/en.
+- **Verificación:** 41 tests del conector en verde (incluye `credentials-store` y `listFolders`). El
+  typecheck completo debe ejecutarse en la máquina del usuario (`npm run typecheck`): el clonado al
+  sandbox de esta sesión truncaba ficheros, por lo que la verificación de contrato se hizo sobre los
+  originales. Al cambiar los scopes, las cuentas conectadas deben reautorizar.

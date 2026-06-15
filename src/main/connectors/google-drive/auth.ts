@@ -7,6 +7,7 @@ export const USERINFO_ENDPOINT = 'https://www.googleapis.com/oauth2/v2/userinfo'
 
 export const GOOGLE_SCOPES = [
   'https://www.googleapis.com/auth/drive.file',
+  'https://www.googleapis.com/auth/drive.metadata.readonly',
   'https://www.googleapis.com/auth/userinfo.email',
 ];
 

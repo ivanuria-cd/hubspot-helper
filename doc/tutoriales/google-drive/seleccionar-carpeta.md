@@ -7,8 +7,8 @@
 
 1. En **Configuración > Conectores > Google Drive**, localiza la sección **Carpeta de trabajo**.
 2. Pulsa **Seleccionar carpeta** (o **Cambiar carpeta** si ya había una).
-3. Se abrirá el selector de carpetas de Google. Navega hasta la carpeta del proyecto o cliente.
-4. Selecciona la carpeta y confirma.
+3. Se abre el selector de carpetas de la app. Empieza en **Mi unidad**; haz clic en una carpeta para entrar y usa la ruta superior (migas de pan) para volver atrás.
+4. Cuando estés dentro de la carpeta que quieres usar, pulsa **Seleccionar esta carpeta**.
 5. La app mostrará el nombre de la carpeta elegida junto al icono de carpeta.
 
 ## Resultado esperado
@@ -23,5 +23,8 @@ Sí. Vuelve a esta pantalla y pulsa **Cambiar carpeta**. Ten en cuenta que los a
 **¿La app verá otros archivos que ya tenga esa carpeta?**
 Solo gestionará los archivos que ella misma crea (marcados internamente como gestionados). El resto del contenido de la carpeta no se toca.
 
-**¿Por qué uso el selector de Google y no uno propio de la app?**
-Porque así eliges la carpeta de forma explícita dentro del entorno de Google, lo que mantiene el permiso acotado y evita dar a la app acceso amplio a tu Drive.
+**¿Hace falta una API key de Google?**
+No. El selector es propio de la app y navega tu Drive solo con el permiso OAuth. Para poder listar carpetas, la app pide el permiso de lectura de metadatos de Drive; por eso, al conectar, verás de nuevo la pantalla de consentimiento de Google.
+
+**No veo mis unidades compartidas (Shared Drives).**
+Esta versión del selector navega solo «Mi unidad». El soporte de unidades compartidas queda como ampliación futura.

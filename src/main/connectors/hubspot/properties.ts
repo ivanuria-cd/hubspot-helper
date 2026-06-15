@@ -1,18 +1,17 @@
 /**
  * Acceso a la CRM Properties API v3 de HubSpot.
  * Ref: https://developers.hubspot.com/docs/api/crm/properties
- * Se apoya en el `request()` genérico del conector (SPEC-0003) para reutilizar
- * autenticación, entorno activo y rate limiting.
+ * Se apoya en el `request()` genérico del conector (SPEC-0003).
  */
 import type { HsPropertyOption, HsPropertyType } from '@shared/types/properties';
 import type { HubSpotEnvironment, HubSpotRequest, HubSpotResponse } from '@shared/types/hubspot';
 
-/** Realiza una petición HTTP a HubSpot a través del conector. */
 export type HubSpotRequester = (req: HubSpotRequest) => Promise<HubSpotResponse>;
 
 /** Definición de una propiedad tal como la devuelve HubSpot. */
 export interface RemoteProperty {
   name: string;
+  objectType: string;
   label: string;
   type: HsPropertyType;
   fieldType: string;
@@ -20,6 +19,12 @@ export interface RemoteProperty {
   description?: string;
   hubspotDefined?: boolean;
   options?: HsPropertyOption[];
+}
+
+/** Grupo de propiedades de un objeto. */
+export interface RemoteGroup {
+  name: string;
+  label: string;
 }
 
 interface RawPropertyOption {
@@ -40,18 +45,13 @@ interface RawProperty {
   options?: RawPropertyOption[];
 }
 
-const KNOWN_TYPES: HsPropertyType[] = [
-  'string',
-  'number',
-  'date',
-  'datetime',
-  'enumeration',
-  'bool',
-  'phone_number',
-];
+interface RawGroup {
+  name: string;
+  label: string;
+}
 
 function normalizeType(type: string): HsPropertyType {
-  return KNOWN_TYPES.includes(type as HsPropertyType) ? (type as HsPropertyType) : 'string';
+  return type as HsPropertyType;
 }
 
 function normalizeOptions(options?: RawPropertyOption[]): HsPropertyOption[] | undefined {
@@ -64,9 +64,10 @@ function normalizeOptions(options?: RawPropertyOption[]): HsPropertyOption[] | u
   }));
 }
 
-export function toRemoteProperty(raw: RawProperty): RemoteProperty {
+export function toRemoteProperty(raw: RawProperty, objectType = ''): RemoteProperty {
   return {
     name: raw.name,
+    objectType,
     label: raw.label,
     type: normalizeType(raw.type),
     fieldType: raw.fieldType,
@@ -94,7 +95,7 @@ export function createPropertiesApi(deps: PropertiesApiDeps) {
       path: `/crm/v3/properties/${objectType}`,
     });
     const data = response.data as { results?: RawProperty[] };
-    return (data.results ?? []).map(toRemoteProperty);
+    return (data.results ?? []).map((raw) => toRemoteProperty(raw, objectType));
   }
 
   async function createProperty(
@@ -126,7 +127,37 @@ export function createPropertiesApi(deps: PropertiesApiDeps) {
     });
   }
 
-  return { listProperties, createProperty, patchProperty };
+  async function listGroups(
+    objectType: string,
+    environment?: HubSpotEnvironment,
+  ): Promise<RemoteGroup[]> {
+    const response = await deps.request({
+      projectId: deps.projectId,
+      environment,
+      method: 'GET',
+      path: `/crm/v3/properties/${objectType}/groups`,
+    });
+    const data = response.data as { results?: RawGroup[] };
+    return (data.results ?? []).map((g) => ({ name: g.name, label: g.label }));
+  }
+
+  async function createGroup(
+    objectType: string,
+    group: { name: string; label: string },
+    environment?: HubSpotEnvironment,
+  ): Promise<RemoteGroup> {
+    const response = await deps.request({
+      projectId: deps.projectId,
+      environment,
+      method: 'POST',
+      path: `/crm/v3/properties/${objectType}/groups`,
+      body: group,
+    });
+    const data = response.data as RawGroup;
+    return { name: data.name ?? group.name, label: data.label ?? group.label };
+  }
+
+  return { listProperties, createProperty, patchProperty, listGroups, createGroup };
 }
 
 export type PropertiesApi = ReturnType<typeof createPropertiesApi>;

@@ -1,44 +1,24 @@
-import {
-  Box,
-  Button,
-  Paper,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Box, Button, Paper, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import type { HubSpotProperty } from '@shared/types/properties';
+import type { PropertyEntry } from '@shared/types/properties';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
 
-interface PendingChange {
-  property: HubSpotProperty;
-  changeId: string;
-  summary: string;
-  appliedToSandbox: boolean;
-  appliedToProduction: boolean;
-}
-
 interface PendingChangesViewProps {
-  properties: HubSpotProperty[];
+  entries: PropertyEntry[];
   busy: boolean;
   onApply: (changeId: string, environment: HubSpotEnvironment) => Promise<void>;
   onDiscard: (changeId: string) => Promise<void>;
 }
 
 export function PendingChangesView({
-  properties,
+  entries,
   busy,
   onApply,
   onDiscard,
 }: PendingChangesViewProps): JSX.Element {
   const { t } = useTranslation('common');
-  const changes: PendingChange[] = properties.flatMap((property) =>
-    (property.pendingChanges ?? []).map((change) => ({
-      property,
-      changeId: change.id,
-      summary: change.summary,
-      appliedToSandbox: change.appliedToSandbox,
-      appliedToProduction: change.appliedToProduction,
-    })),
+  const changes = entries.flatMap((entry) =>
+    (entry.pendingChanges ?? []).map((change) => ({ entry, change })),
   );
 
   if (changes.length === 0) {
@@ -47,17 +27,17 @@ export function PendingChangesView({
 
   return (
     <Stack spacing={2}>
-      {changes.map((change, index) => (
-        <Paper key={change.changeId} variant="outlined" sx={{ p: 2 }}>
+      {changes.map(({ entry, change }, index) => (
+        <Paper key={change.id} variant="outlined" sx={{ p: 2 }}>
           <Typography sx={{ fontWeight: 600 }}>
-            [{String(index + 1).padStart(2, '0')}] {change.property.hubspotName} — {change.summary}
+            [{String(index + 1).padStart(2, '0')}] {entry.name} — {change.summary}
           </Typography>
-          <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} flexWrap="wrap">
+          <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} flexWrap="wrap" useFlexGap>
             <Button
               size="small"
               variant="outlined"
               disabled={busy || change.appliedToSandbox}
-              onClick={() => onApply(change.changeId, 'sandbox')}
+              onClick={() => onApply(change.id, 'sandbox')}
             >
               {t('properties.changes.applySandbox')}
             </Button>
@@ -65,11 +45,11 @@ export function PendingChangesView({
               size="small"
               variant="contained"
               disabled={busy || change.appliedToProduction}
-              onClick={() => onApply(change.changeId, 'production')}
+              onClick={() => onApply(change.id, 'production')}
             >
               {t('properties.changes.applyProduction')}
             </Button>
-            <Button size="small" color="inherit" disabled={busy} onClick={() => onDiscard(change.changeId)}>
+            <Button size="small" color="inherit" disabled={busy} onClick={() => onDiscard(change.id)}>
               {t('properties.changes.discard')}
             </Button>
             <Box sx={{ flexGrow: 1 }} />
