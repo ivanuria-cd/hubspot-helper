@@ -33,6 +33,7 @@
     "crm": "CRM",
     "properties": "Propiedades",
     "objects": "Objetos custom",
+    "forms": "Formularios",
     "maps": "Mapas",
     "reporting": "Reporting",
     "config": "Configuración",
@@ -49,7 +50,8 @@
       "google-drive": "Google Drive",
       "mcp": "API / MCP",
       "propiedades": "Propiedades",
-      "objetos-custom": "Objetos custom"
+      "objetos-custom": "Objetos custom",
+      "formularios": "Formularios"
     }
   },
   "topbar": {
@@ -436,6 +438,82 @@
       "associations": "Asociaciones",
       "cancel": "Cancelar",
       "save": "Guardar"
+    }
+  },
+  "forms": {
+    "title": "CRM / Formularios",
+    "syncHs": "Sincronizar HubSpot",
+    "syncing": "Sincronizando…",
+    "syncSummary": "{{imported}} importados · {{updated}} actualizados",
+    "addForm": "Formulario",
+    "search": "Buscar…",
+    "loading": "Cargando formularios…",
+    "empty": "No hay formularios todavía. Sincroniza con HubSpot o crea uno.",
+    "noResults": "Ningún resultado con los filtros actuales.",
+    "pendingChanges": "Cambios pendientes ({{count}})",
+    "writeSheets": {
+      "button": "Volcar a Sheets",
+      "busy": "Volcando…",
+      "success": "Formularios volcados a Google Sheets (id: {{id}}).",
+      "error": "No se pudo volcar: {{error}}"
+    },
+    "filters": {
+      "type": "Tipo",
+      "coverage": "Cobertura",
+      "all": "Todos",
+      "incomplete": "Incompletos"
+    },
+    "coverage": {
+      "complete": "completo",
+      "missing": "faltan {{count}}",
+      "none": "sin origen"
+    },
+    "panel": {
+      "title": "Detalle del formulario",
+      "close": "Cerrar",
+      "fields": "Campos",
+      "origins": "Orígenes asociados",
+      "linkOrigin": "Asociar a origen",
+      "noOrigins": "Sin orígenes asociados",
+      "coverage": "Cobertura por origen",
+      "noCoverage": "Asocia un origen para ver la cobertura.",
+      "coverageSummary": "{{present}}/{{expected}} presentes",
+      "addMissing": "Añadir campos que faltan ({{count}})"
+    },
+    "linkModal": {
+      "title": "Asociar a origen",
+      "object": "Objeto",
+      "origins": "Orígenes",
+      "noOrigins": "No hay orígenes definidos.",
+      "cancel": "Cancelar",
+      "save": "Guardar"
+    },
+    "wizard": {
+      "title": "Crear formulario",
+      "name": "Nombre del formulario",
+      "object": "Objeto",
+      "origins": "Orígenes",
+      "fields": "Campos",
+      "noFields": "Elige un objeto y uno o varios orígenes para preseleccionar campos.",
+      "field": "Campo",
+      "label": "Etiqueta",
+      "fieldType": "Tipo de campo",
+      "required": "Obligatorio",
+      "hidden": "Oculto",
+      "cancel": "Cancelar",
+      "create": "Crear"
+    },
+    "changes": {
+      "title": "Formularios / Cambios pendientes",
+      "back": "Volver a formularios",
+      "applySandbox": "Aplicar en Sandbox",
+      "applyProduction": "Aplicar en Producción",
+      "discard": "Descartar",
+      "sandboxDone": "sandbox ✓",
+      "sandboxPending": "sandbox ✕",
+      "productionDone": "producción ✓",
+      "productionPending": "producción ✕",
+      "empty": "No hay cambios pendientes."
     }
   },
   "_fallbackProbe": "valor por defecto (es)"

@@ -33,6 +33,7 @@
     "crm": "CRM",
     "properties": "Properties",
     "objects": "Custom objects",
+    "forms": "Forms",
     "maps": "Maps",
     "reporting": "Reporting",
     "config": "Settings",
@@ -49,7 +50,8 @@
       "google-drive": "Google Drive",
       "mcp": "API / MCP",
       "propiedades": "Properties",
-      "objetos-custom": "Custom objects"
+      "objetos-custom": "Custom objects",
+      "formularios": "Forms"
     }
   },
   "topbar": {
@@ -359,6 +361,82 @@
       "associations": "Associations",
       "cancel": "Cancel",
       "save": "Save"
+    }
+  },
+  "forms": {
+    "title": "CRM / Forms",
+    "syncHs": "Sync HubSpot",
+    "syncing": "Syncing…",
+    "syncSummary": "{{imported}} imported · {{updated}} updated",
+    "addForm": "Form",
+    "search": "Search…",
+    "loading": "Loading forms…",
+    "empty": "No forms yet. Sync with HubSpot or create one.",
+    "noResults": "No results with the current filters.",
+    "pendingChanges": "Pending changes ({{count}})",
+    "writeSheets": {
+      "button": "Export to Sheets",
+      "busy": "Exporting…",
+      "success": "Forms exported to Google Sheets (id: {{id}}).",
+      "error": "Could not export: {{error}}"
+    },
+    "filters": {
+      "type": "Type",
+      "coverage": "Coverage",
+      "all": "All",
+      "incomplete": "Incomplete"
+    },
+    "coverage": {
+      "complete": "complete",
+      "missing": "{{count}} missing",
+      "none": "no origin"
+    },
+    "panel": {
+      "title": "Form detail",
+      "close": "Close",
+      "fields": "Fields",
+      "origins": "Associated origins",
+      "linkOrigin": "Link to origin",
+      "noOrigins": "No associated origins",
+      "coverage": "Coverage by origin",
+      "noCoverage": "Link an origin to see coverage.",
+      "coverageSummary": "{{present}}/{{expected}} present",
+      "addMissing": "Add missing fields ({{count}})"
+    },
+    "linkModal": {
+      "title": "Link to origin",
+      "object": "Object",
+      "origins": "Origins",
+      "noOrigins": "No origins defined.",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "wizard": {
+      "title": "Create form",
+      "name": "Form name",
+      "object": "Object",
+      "origins": "Origins",
+      "fields": "Fields",
+      "noFields": "Pick an object and one or more origins to preselect fields.",
+      "field": "Field",
+      "label": "Label",
+      "fieldType": "Field type",
+      "required": "Required",
+      "hidden": "Hidden",
+      "cancel": "Cancel",
+      "create": "Create"
+    },
+    "changes": {
+      "title": "Forms / Pending changes",
+      "back": "Back to forms",
+      "applySandbox": "Apply in Sandbox",
+      "applyProduction": "Apply in Production",
+      "discard": "Discard",
+      "sandboxDone": "sandbox ✓",
+      "sandboxPending": "sandbox ✕",
+      "productionDone": "production ✓",
+      "productionPending": "production ✕",
+      "empty": "No pending changes."
     }
   }
 }

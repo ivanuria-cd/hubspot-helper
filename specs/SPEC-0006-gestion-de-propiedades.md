@@ -722,3 +722,50 @@ Cloud District (tokens en `skills/cloud-district-brand`), regla «Table Alternat
   protección `warningOnly:false`, idempotencia).
 - Wiring real: `spreadsheets.get` pide `fields` con `protectedRanges`/`bandedRanges`.
 - Verificado: 6 tests en verde. Typecheck completo a ejecutar en la máquina del usuario.
+
+---
+
+## 20. Ajustes derivados de SPEC-0008 (IMPLEMENTADO, 2026-06-16)
+
+Cambios realizados sobre esta característica durante la implementación de SPEC-0008 (gestión de
+formularios), al ejecutar la suite e2e completa contra un build actualizado. Se documentan aquí para
+mantener la trazabilidad en el SPEC propietario.
+
+### 20.1 `EntryWizard`: el grupo deja de ser obligatorio para guardar (modo «Nueva»)
+
+- **Antes:** `canSubmit` exigía `def.groupName` para crear una propiedad nueva. El grupo se carga de
+  `groupsList` (HubSpot), por lo que **sin portal conectado no se podía crear ninguna entrada** (la lista
+  de grupos venía vacía y «Guardar» quedaba deshabilitado).
+- **Ahora:** en modo «Nueva», `canSubmit = nombre + nombre técnico + etiqueta` (sin exigir grupo). El
+  grupo se resuelve antes de **aplicar** el cambio en HubSpot (el payload de creación sigue admitiendo
+  `groupName`; si está vacío se asigna/edita antes de aplicar). Esto permite definir entradas locales sin
+  portal y desbloquea el flujo de trabajo offline.
+- **Fichero:** `renderer/features/property-management/components/EntryWizard.tsx` (`canSubmit`).
+- **Nota:** decisión menor de UX tomada desde SPEC-0008; si se prefiere mantener el grupo obligatorio,
+  revertir esta línea y dotar al asistente de un grupo por defecto sin depender de HubSpot.
+
+### 20.2 Tests funcionales (e2e) alineados con el rediseño §16
+
+Los e2e de propiedades apuntaban al **diálogo antiguo** de «Añadir propiedad» (campos «Nombre técnico
+(HubSpot)»/«Etiqueta», botón «Crear»), sustituido por el `EntryWizard` (modo Existente/Nueva, botón
+«Guardar»). Se actualizaron:
+
+- **`tests/functional/properties-flow.spec.ts`**: flujo nuevo (rellenar «Nombre de la propiedad» → toggle
+  «Nueva» → nombre técnico + etiqueta → «Guardar»). Aserciones corregidas: badge **«✕ falta»** (i18n
+  `properties.status.missing` = «falta», antes el test esperaba «missing») y panel por
+  `getByRole('region', { name: 'Definición' })` + `getByRole('heading', { name: 'Cambios pendientes' })`
+  (evita el match múltiple con el botón de toolbar y «Sin cambios pendientes»).
+- **`tests/functional/export-json.spec.ts`**: reescrito al asistente (fuente añadida dentro del wizard; con
+  un único origen se autoselecciona) y `schema_version` esperado **= 2** (era 1; el contrato es 2 desde
+  §16.4 / `origin-export.ts`). **Retirado de la ejecución (`test.fixme`)**: la exportación abre el **diálogo
+  nativo de «guardar como»** (por diseño, para que el usuario elija ubicación) y Playwright no puede cerrar
+  diálogos del SO. La generación del JSON sigue cubierta por los **unitarios** de `origin-export`.
+- **`tests/functional/origin-crud.spec.ts`**: sin cambios (no pulsa el botón singular «Propiedad», que por
+  match de subcadena de Playwright colisionaba con el ítem de sidebar «Propiedad**es**»).
+- Desambiguación de selector: donde se pulsa el botón «Propiedad» se usa `{ name: 'Propiedad', exact: true }`.
+
+### 20.3 Estado e2e tras los ajustes
+
+- Verde: `properties-flow`, `origin-crud` (+ resto de la suite no relacionada).
+- `export-json` en `fixme` (diálogo nativo de descarga; cubierto por unitarios).
+- La generación del JSON de exportación no cambia de comportamiento; solo se ajustó la prueba.

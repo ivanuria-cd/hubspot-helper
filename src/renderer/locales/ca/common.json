@@ -33,6 +33,7 @@
     "crm": "CRM",
     "properties": "Propietats",
     "objects": "Objectes personalitzats",
+    "forms": "Formularis",
     "maps": "Mapes",
     "reporting": "Informes",
     "config": "Configuració",
@@ -49,7 +50,8 @@
       "google-drive": "Google Drive",
       "mcp": "API / MCP",
       "propiedades": "Propietats",
-      "objetos-custom": "Objectes personalitzats"
+      "objetos-custom": "Objectes personalitzats",
+      "formularios": "Formularis"
     }
   },
   "topbar": {
@@ -359,6 +361,82 @@
       "associations": "Associacions",
       "cancel": "Cancel·la",
       "save": "Desa"
+    }
+  },
+  "forms": {
+    "title": "CRM / Formularis",
+    "syncHs": "Sincronitza HubSpot",
+    "syncing": "Sincronitzant…",
+    "syncSummary": "{{imported}} importats · {{updated}} actualitzats",
+    "addForm": "Formulari",
+    "search": "Cerca…",
+    "loading": "Carregant formularis…",
+    "empty": "Encara no hi ha formularis. Sincronitza amb HubSpot o crea'n un.",
+    "noResults": "Cap resultat amb els filtres actuals.",
+    "pendingChanges": "Canvis pendents ({{count}})",
+    "writeSheets": {
+      "button": "Bolca a Sheets",
+      "busy": "Bolcant…",
+      "success": "Formularis bolcats a Google Sheets (id: {{id}}).",
+      "error": "No s'ha pogut bolcar: {{error}}"
+    },
+    "filters": {
+      "type": "Tipus",
+      "coverage": "Cobertura",
+      "all": "Tots",
+      "incomplete": "Incomplets"
+    },
+    "coverage": {
+      "complete": "complet",
+      "missing": "en falten {{count}}",
+      "none": "sense origen"
+    },
+    "panel": {
+      "title": "Detall del formulari",
+      "close": "Tanca",
+      "fields": "Camps",
+      "origins": "Orígens associats",
+      "linkOrigin": "Associa a origen",
+      "noOrigins": "Sense orígens associats",
+      "coverage": "Cobertura per origen",
+      "noCoverage": "Associa un origen per veure la cobertura.",
+      "coverageSummary": "{{present}}/{{expected}} presents",
+      "addMissing": "Afegeix els camps que falten ({{count}})"
+    },
+    "linkModal": {
+      "title": "Associa a origen",
+      "object": "Objecte",
+      "origins": "Orígens",
+      "noOrigins": "No hi ha orígens definits.",
+      "cancel": "Cancel·la",
+      "save": "Desa"
+    },
+    "wizard": {
+      "title": "Crea formulari",
+      "name": "Nom del formulari",
+      "object": "Objecte",
+      "origins": "Orígens",
+      "fields": "Camps",
+      "noFields": "Tria un objecte i un o més orígens per preseleccionar camps.",
+      "field": "Camp",
+      "label": "Etiqueta",
+      "fieldType": "Tipus de camp",
+      "required": "Obligatori",
+      "hidden": "Ocult",
+      "cancel": "Cancel·la",
+      "create": "Crea"
+    },
+    "changes": {
+      "title": "Formularis / Canvis pendents",
+      "back": "Torna als formularis",
+      "applySandbox": "Aplica a Sandbox",
+      "applyProduction": "Aplica a Producció",
+      "discard": "Descarta",
+      "sandboxDone": "sandbox ✓",
+      "sandboxPending": "sandbox ✕",
+      "productionDone": "producció ✓",
+      "productionPending": "producció ✕",
+      "empty": "No hi ha canvis pendents."
     }
   }
 }
