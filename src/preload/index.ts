@@ -61,6 +61,14 @@ const api: RevOpsApi = {
   originsCreate: (input) => ipcRenderer.invoke(IpcChannels.originsCreate, input),
   originsUpdate: (input) => ipcRenderer.invoke(IpcChannels.originsUpdate, input),
   originsDelete: (input) => ipcRenderer.invoke(IpcChannels.originsDelete, input),
+  objectsListSchemas: (input) => ipcRenderer.invoke(IpcChannels.objectsListSchemas, input),
+  objectsGetSchema: (input) => ipcRenderer.invoke(IpcChannels.objectsGetSchema, input),
+  objectsUpsertDraft: (input) => ipcRenderer.invoke(IpcChannels.objectsUpsertDraft, input),
+  objectsRequestArchive: (input) => ipcRenderer.invoke(IpcChannels.objectsRequestArchive, input),
+  objectsDeleteDraft: (input) => ipcRenderer.invoke(IpcChannels.objectsDeleteDraft, input),
+  objectsSyncHubspot: (input) => ipcRenderer.invoke(IpcChannels.objectsSyncHubspot, input),
+  objectsApplyChange: (input) => ipcRenderer.invoke(IpcChannels.objectsApplyChange, input),
+  objectsDiscardChange: (input) => ipcRenderer.invoke(IpcChannels.objectsDiscardChange, input),
 };
 
 contextBridge.exposeInMainWorld('api', api);

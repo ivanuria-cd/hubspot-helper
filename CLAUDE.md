@@ -17,7 +17,8 @@ Todos los SPECs están en `specs/`. Estado actual:
 | [SPEC-0004](specs/SPEC-0004-conector-google-drive.md) | Conector Google Drive | IMPLEMENTADO (credenciales por UI §13 + selector propio sin Picker §14) |
 | [SPEC-0005](specs/SPEC-0005-capa-mcp-api.md) | Capa MCP / API | IMPLEMENTADO |
 | [SPEC-0006](specs/SPEC-0006-gestion-de-propiedades.md) | Gestión de Propiedades | IMPLEMENTADO (rediseño §16 en BORRADOR) |
-| [SPEC-0007](specs/SPEC-0007-objetos-custom-hubspot.md) | Objetos Custom de HubSpot | BORRADOR |
+| [SPEC-0007](specs/SPEC-0007-objetos-custom-hubspot.md) | Objetos Custom de HubSpot | IMPLEMENTADO |
+| [SPEC-0008](specs/SPEC-0008-gestion-de-formularios.md) | Gestión de Formularios | BORRADOR |
 
 Leer el SPEC correspondiente antes de implementar o modificar cualquier característica.
 
@@ -37,3 +38,4 @@ Límites estrictos para evitar solapamientos entre SPECs:
 | SPEC-0005 | Servidor MCP (stdio + HTTP/SSE), registry de tools, autenticación por token local, UI de configuración MCP | No implementa ninguna tool de negocio; las tools las registra cada SPEC de característica |
 | SPEC-0006 | Mapa de propiedades HubSpot: orígenes de datos, entradas por objeto (nombre + propiedad HubSpot destino + orígenes con definición genérica y mapeo de opciones), selección de objetos (estándar + custom existentes), cambios pendientes en HubSpot, exportación JSON, Google Sheets, tools MCP de propiedades | No crea objetos custom (eso es SPEC-0007); no gestiona registros/instancias; no toca workflows ni sequences |
 | SPEC-0007 | Creación y gestión de objetos custom de HubSpot (CRM Schemas API); catálogo de objetos para SPEC-0006 | No gestiona registros (instancias); no define las entradas de propiedades (eso es SPEC-0006) |
+| SPEC-0008 | Formularios HubSpot (Marketing Forms API v3): importar (legacy + nueva), crear formularios solo-campos, asociar a orígenes de SPEC-0006, revisar cobertura, añadir campos en bloque, cambios pendientes/sincronización, volcado a Sheets, tools MCP de formularios | No edita estilos/lógica/consentimiento ni borra formularios; no crea propiedades ni objetos (SPEC-0006/0007); no define orígenes; no gestiona submissions |

@@ -32,6 +32,7 @@
     "dashboard": "Aginte-panela",
     "crm": "CRM",
     "properties": "Propietateak",
+    "objects": "Objektu pertsonalizatuak",
     "maps": "Mapak",
     "reporting": "Txostenak",
     "config": "Konfigurazioa",
@@ -47,7 +48,8 @@
       "hubspot": "HubSpot",
       "google-drive": "Google Drive",
       "mcp": "API / MCP",
-      "propiedades": "Propietateak"
+      "propiedades": "Propietateak",
+      "objetos-custom": "Objektu pertsonalizatuak"
     }
   },
   "topbar": {
@@ -284,6 +286,77 @@
       "transformations": "Transformazioak (jatorri balioa → HubSpot balioa)",
       "addRule": "Gehitu araua",
       "notes": "Oharrak",
+      "cancel": "Utzi",
+      "save": "Gorde"
+    }
+  },
+  "customObjects": {
+    "title": "CRM / Objektu pertsonalizatuak",
+    "syncHs": "Sinkronizatu HubSpot",
+    "syncing": "Sinkronizatzen…",
+    "syncSummary": "{{created}} sortuta · {{divergent}} desberdin · {{draft}} zirriborro",
+    "addObject": "Objektu pertsonalizatua",
+    "pendingChanges": "Aldaketa zainak ({{count}})",
+    "loading": "Objektuak kargatzen…",
+    "empty": "Oraindik ez dago objektu pertsonalizaturik. Sortu bat edo sinkronizatu HubSpot-ekin.",
+    "propCount": "{{count}} propietate",
+    "status": {
+      "created": "sortuta",
+      "divergent": "desberdina",
+      "draft": "zirriborroa",
+      "archived": "artxibatuta"
+    },
+    "changes": {
+      "title": "Objektu pertsonalizatuak / Aldaketa zainak",
+      "back": "Itzuli objektuetara",
+      "applySandbox": "Aplikatu Sandbox-en",
+      "applyProduction": "Aplikatu Produkzioan",
+      "discard": "Baztertu",
+      "state": "Egoera",
+      "sandboxDone": "sandbox ✓",
+      "sandboxPending": "sandbox ✕",
+      "productionDone": "produkzioa ✓",
+      "productionPending": "produkzioa ✕",
+      "empty": "Ez dago aldaketa zainik."
+    },
+    "panel": {
+      "title": "Objektuaren xehetasuna",
+      "name": "Barne-izena",
+      "primary": "Propietate nagusia",
+      "ids": "IDak ingurunearen arabera",
+      "properties": "Propietateak",
+      "pendingChanges": "Aldaketa zainak",
+      "noChanges": "Ez dago aldaketa zainik",
+      "edit": "Editatu",
+      "archive": "Artxibatu",
+      "confirmArchive": "Berretsi artxibatzea",
+      "archiveWarning": "Artxibatzeko, lehenik objektuaren erregistroak eta propietateak ezabatu behar dira HubSpot-en.",
+      "deleteDraft": "Ezabatu zirriborroa",
+      "close": "Itxi"
+    },
+    "wizard": {
+      "title": "Sortu objektu pertsonalizatua",
+      "editTitle": "Editatu objektu pertsonalizatua",
+      "identity": "Identitatea",
+      "name": "Barne-izena",
+      "nameHelp": "Minuskulak, zenbakiak eta azpimarrak soilik; letraz hasi. Ezin da gero aldatu.",
+      "singular": "Etiketa singularra",
+      "plural": "Etiketa plurala",
+      "description": "Deskribapena",
+      "properties": "Hasierako propietateak",
+      "propName": "Barne-izena",
+      "propLabel": "Etiketa",
+      "propType": "Mota",
+      "propFieldType": "Eremu mota",
+      "unique": "Bakarra",
+      "removeProperty": "Kendu propietatea",
+      "addProperty": "Gehitu propietatea",
+      "display": "Bistaratzea",
+      "primary": "Propietate nagusia",
+      "required": "Beharrezkoak",
+      "secondary": "Bigarren mailakoak",
+      "searchable": "Bilaketa",
+      "associations": "Elkarteak",
       "cancel": "Utzi",
       "save": "Gorde"
     }

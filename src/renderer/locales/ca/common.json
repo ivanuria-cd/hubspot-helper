@@ -32,6 +32,7 @@
     "dashboard": "Tauler",
     "crm": "CRM",
     "properties": "Propietats",
+    "objects": "Objectes personalitzats",
     "maps": "Mapes",
     "reporting": "Informes",
     "config": "Configuració",
@@ -47,7 +48,8 @@
       "hubspot": "HubSpot",
       "google-drive": "Google Drive",
       "mcp": "API / MCP",
-      "propiedades": "Propietats"
+      "propiedades": "Propietats",
+      "objetos-custom": "Objectes personalitzats"
     }
   },
   "topbar": {
@@ -284,6 +286,77 @@
       "transformations": "Transformacions (valor origen → valor HubSpot)",
       "addRule": "Afegeix regla",
       "notes": "Notes",
+      "cancel": "Cancel·la",
+      "save": "Desa"
+    }
+  },
+  "customObjects": {
+    "title": "CRM / Objectes personalitzats",
+    "syncHs": "Sincronitza HubSpot",
+    "syncing": "Sincronitzant…",
+    "syncSummary": "{{created}} creats · {{divergent}} divergents · {{draft}} esborranys",
+    "addObject": "Objecte personalitzat",
+    "pendingChanges": "Canvis pendents ({{count}})",
+    "loading": "Carregant objectes…",
+    "empty": "Encara no hi ha objectes personalitzats. Crea'n un o sincronitza amb HubSpot.",
+    "propCount": "{{count}} propietat(s)",
+    "status": {
+      "created": "creat",
+      "divergent": "divergeix",
+      "draft": "esborrany",
+      "archived": "arxivat"
+    },
+    "changes": {
+      "title": "Objectes personalitzats / Canvis pendents",
+      "back": "Torna als objectes",
+      "applySandbox": "Aplica al Sandbox",
+      "applyProduction": "Aplica a Producció",
+      "discard": "Descarta",
+      "state": "Estat",
+      "sandboxDone": "sandbox ✓",
+      "sandboxPending": "sandbox ✕",
+      "productionDone": "producció ✓",
+      "productionPending": "producció ✕",
+      "empty": "No hi ha canvis pendents."
+    },
+    "panel": {
+      "title": "Detall de l'objecte",
+      "name": "Nom intern",
+      "primary": "Propietat principal",
+      "ids": "IDs per entorn",
+      "properties": "Propietats",
+      "pendingChanges": "Canvis pendents",
+      "noChanges": "Sense canvis pendents",
+      "edit": "Edita",
+      "archive": "Arxiva",
+      "confirmArchive": "Confirma l'arxivat",
+      "archiveWarning": "Arxivar requereix esborrar abans els registres i propietats de l'objecte a HubSpot.",
+      "deleteDraft": "Elimina l'esborrany",
+      "close": "Tanca"
+    },
+    "wizard": {
+      "title": "Crea objecte personalitzat",
+      "editTitle": "Edita objecte personalitzat",
+      "identity": "Identitat",
+      "name": "Nom intern",
+      "nameHelp": "Només minúscules, números i guions baixos; comença per lletra. No es pot canviar després.",
+      "singular": "Etiqueta singular",
+      "plural": "Etiqueta plural",
+      "description": "Descripció",
+      "properties": "Propietats inicials",
+      "propName": "Nom intern",
+      "propLabel": "Etiqueta",
+      "propType": "Tipus",
+      "propFieldType": "Tipus de camp",
+      "unique": "Únic",
+      "removeProperty": "Treu propietat",
+      "addProperty": "Afegeix propietat",
+      "display": "Visualització",
+      "primary": "Propietat principal",
+      "required": "Requerides",
+      "secondary": "Secundàries",
+      "searchable": "Cerca",
+      "associations": "Associacions",
       "cancel": "Cancel·la",
       "save": "Desa"
     }

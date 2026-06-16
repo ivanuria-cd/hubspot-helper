@@ -32,6 +32,7 @@
     "dashboard": "Dashboard",
     "crm": "CRM",
     "properties": "Propiedades",
+    "objects": "Objetos custom",
     "maps": "Mapas",
     "reporting": "Reporting",
     "config": "Configuración",
@@ -47,7 +48,8 @@
       "hubspot": "HubSpot",
       "google-drive": "Google Drive",
       "mcp": "API / MCP",
-      "propiedades": "Propiedades"
+      "propiedades": "Propiedades",
+      "objetos-custom": "Objetos custom"
     }
   },
   "topbar": {
@@ -363,6 +365,77 @@
       "radio": "Opción única",
       "checkbox": "Casillas múltiples",
       "booleancheckbox": "Sí/No"
+    }
+  },
+  "customObjects": {
+    "title": "CRM / Objetos custom",
+    "syncHs": "Sincronizar HubSpot",
+    "syncing": "Sincronizando…",
+    "syncSummary": "{{created}} creados · {{divergent}} divergentes · {{draft}} borradores",
+    "addObject": "Objeto custom",
+    "pendingChanges": "Cambios pendientes ({{count}})",
+    "loading": "Cargando objetos…",
+    "empty": "No hay objetos custom todavía. Crea uno o sincroniza con HubSpot.",
+    "propCount": "{{count}} propiedad(es)",
+    "status": {
+      "created": "creado",
+      "divergent": "diverge",
+      "draft": "borrador",
+      "archived": "archivado"
+    },
+    "changes": {
+      "title": "Objetos custom / Cambios pendientes",
+      "back": "Volver a objetos",
+      "applySandbox": "Aplicar en Sandbox",
+      "applyProduction": "Aplicar en Producción",
+      "discard": "Descartar",
+      "state": "Estado",
+      "sandboxDone": "sandbox ✓",
+      "sandboxPending": "sandbox ✕",
+      "productionDone": "producción ✓",
+      "productionPending": "producción ✕",
+      "empty": "No hay cambios pendientes."
+    },
+    "panel": {
+      "title": "Detalle del objeto",
+      "name": "Nombre interno",
+      "primary": "Propiedad principal",
+      "ids": "IDs por entorno",
+      "properties": "Propiedades",
+      "pendingChanges": "Cambios pendientes",
+      "noChanges": "Sin cambios pendientes",
+      "edit": "Editar",
+      "archive": "Archivar",
+      "confirmArchive": "Confirmar archivado",
+      "archiveWarning": "Archivar requiere borrar antes los registros y propiedades del objeto en HubSpot.",
+      "deleteDraft": "Eliminar borrador",
+      "close": "Cerrar"
+    },
+    "wizard": {
+      "title": "Crear objeto custom",
+      "editTitle": "Editar objeto custom",
+      "identity": "Identidad",
+      "name": "Nombre interno",
+      "nameHelp": "Solo minúsculas, números y guiones bajos; empieza por letra. No se puede cambiar después.",
+      "singular": "Etiqueta singular",
+      "plural": "Etiqueta plural",
+      "description": "Descripción",
+      "properties": "Propiedades iniciales",
+      "propName": "Nombre interno",
+      "propLabel": "Etiqueta",
+      "propType": "Tipo",
+      "propFieldType": "Tipo de campo",
+      "unique": "Único",
+      "removeProperty": "Quitar propiedad",
+      "addProperty": "Añadir propiedad",
+      "display": "Visualización",
+      "primary": "Propiedad principal",
+      "required": "Requeridas",
+      "secondary": "Secundarias",
+      "searchable": "Búsqueda",
+      "associations": "Asociaciones",
+      "cancel": "Cancelar",
+      "save": "Guardar"
     }
   },
   "_fallbackProbe": "valor por defecto (es)"

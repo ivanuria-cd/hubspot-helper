@@ -10,6 +10,8 @@ import { createElectronGoogleDriveConnector } from './connectors/google-drive';
 import { createElectronMcpService, mcpRegistry } from './mcp';
 import { createElectronPropertyService } from './property-management';
 import { registerPropertyTools } from './property-management/mcp-tools';
+import { createElectronCustomObjectService } from './custom-objects';
+import { registerCustomObjectTools } from './custom-objects/mcp-tools';
 import {
   buildPropertyMapTabs,
   PROPERTY_MAP_FEATURE_KEY,
@@ -46,6 +48,14 @@ import type {
   OriginUpdateInput,
   ProjectScopedInput,
 } from '@shared/types/properties';
+import type {
+  ObjectApplyChangeInput,
+  ObjectDeleteDraftInput,
+  ObjectDiscardChangeInput,
+  ObjectGetSchemaInput,
+  ObjectsListSchemasInput,
+  ObjectUpsertDraftInput,
+} from '@shared/types/custom-objects';
 
 let mainWindow: BrowserWindow | null = null;
 let mcpService: ReturnType<typeof createElectronMcpService> | null = null;
@@ -67,6 +77,9 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
 
   const properties = createElectronPropertyService({ hubspot });
   registerPropertyTools(mcpRegistry, properties);
+
+  const customObjects = createElectronCustomObjectService({ hubspot });
+  registerCustomObjectTools(mcpRegistry, customObjects);
 
   ipcMain.handle(IpcChannels.appGetVersion, () => app.getVersion());
   ipcMain.handle(IpcChannels.updaterCheck, () => checkForUpdates());
@@ -200,6 +213,30 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   );
   ipcMain.handle(IpcChannels.originsDelete, (_event, input: OriginDeleteInput) =>
     properties.deleteOrigin(input),
+  );
+  ipcMain.handle(IpcChannels.objectsListSchemas, (_event, input: ObjectsListSchemasInput) =>
+    customObjects.listDefinitions(input),
+  );
+  ipcMain.handle(IpcChannels.objectsGetSchema, (_event, input: ObjectGetSchemaInput) =>
+    customObjects.getDefinition(input),
+  );
+  ipcMain.handle(IpcChannels.objectsUpsertDraft, (_event, input: ObjectUpsertDraftInput) =>
+    customObjects.upsertDraft(input),
+  );
+  ipcMain.handle(IpcChannels.objectsRequestArchive, (_event, input: ObjectGetSchemaInput) =>
+    customObjects.requestArchive(input),
+  );
+  ipcMain.handle(IpcChannels.objectsDeleteDraft, (_event, input: ObjectDeleteDraftInput) =>
+    customObjects.deleteDraft(input),
+  );
+  ipcMain.handle(IpcChannels.objectsSyncHubspot, (_event, input: ObjectsListSchemasInput) =>
+    customObjects.syncHubspot(input),
+  );
+  ipcMain.handle(IpcChannels.objectsApplyChange, (_event, input: ObjectApplyChangeInput) =>
+    customObjects.applyChange(input),
+  );
+  ipcMain.handle(IpcChannels.objectsDiscardChange, (_event, input: ObjectDiscardChangeInput) =>
+    customObjects.discardChange(input),
   );
 
   return mcp;

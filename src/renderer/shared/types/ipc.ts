@@ -62,6 +62,17 @@ import type {
   PropertyEntry,
   WriteSheetsResult,
 } from '@shared/types/properties';
+import type {
+  CustomObjectDefinition,
+  CustomObjectsSyncResult,
+  ObjectApplyChangeInput,
+  ObjectChangeResult,
+  ObjectDeleteDraftInput,
+  ObjectDiscardChangeInput,
+  ObjectGetSchemaInput,
+  ObjectsListSchemasInput,
+  ObjectUpsertDraftInput,
+} from '@shared/types/custom-objects';
 
 export const IpcChannels = {
   appGetVersion: 'app:get-version',
@@ -113,6 +124,14 @@ export const IpcChannels = {
   originsCreate: 'origins:create',
   originsUpdate: 'origins:update',
   originsDelete: 'origins:delete',
+  objectsListSchemas: 'objects:list-schemas',
+  objectsGetSchema: 'objects:get-schema',
+  objectsUpsertDraft: 'objects:upsert-draft',
+  objectsRequestArchive: 'objects:request-archive',
+  objectsDeleteDraft: 'objects:delete-draft',
+  objectsSyncHubspot: 'objects:sync-hubspot',
+  objectsApplyChange: 'objects:apply-change',
+  objectsDiscardChange: 'objects:discard-change',
 } as const;
 
 export type UpdaterStatus =
@@ -174,4 +193,12 @@ export interface RevOpsApi {
   originsCreate(input: OriginCreateInput): Promise<DataOrigin>;
   originsUpdate(input: OriginUpdateInput): Promise<DataOrigin>;
   originsDelete(input: OriginDeleteInput): Promise<OperationResult>;
+  objectsListSchemas(input: ObjectsListSchemasInput): Promise<CustomObjectDefinition[]>;
+  objectsGetSchema(input: ObjectGetSchemaInput): Promise<CustomObjectDefinition | null>;
+  objectsUpsertDraft(input: ObjectUpsertDraftInput): Promise<CustomObjectDefinition>;
+  objectsRequestArchive(input: ObjectGetSchemaInput): Promise<ObjectChangeResult>;
+  objectsDeleteDraft(input: ObjectDeleteDraftInput): Promise<ObjectChangeResult>;
+  objectsSyncHubspot(input: ObjectsListSchemasInput): Promise<CustomObjectsSyncResult>;
+  objectsApplyChange(input: ObjectApplyChangeInput): Promise<ObjectChangeResult>;
+  objectsDiscardChange(input: ObjectDiscardChangeInput): Promise<ObjectChangeResult>;
 }
