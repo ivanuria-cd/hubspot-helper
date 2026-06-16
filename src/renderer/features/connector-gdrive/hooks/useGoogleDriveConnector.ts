@@ -145,6 +145,7 @@ export function useGoogleDriveConnector(projectId: string): UseGoogleDriveConnec
     lastSync,
     connect,
     listFolders,
+    searchFolders,
     setFolder,
     saveCredentials,
     clearCredentials,
