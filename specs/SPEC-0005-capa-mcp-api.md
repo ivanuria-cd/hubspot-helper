@@ -69,14 +69,19 @@ Pantalla en `Config > API / MCP`:
 │  │ {                                              │    │
 │  │   "mcpServers": {                              │    │
 │  │     "revops": {                                │    │
-│  │       "url": "http://127.0.0.1:3741/sse",      │    │
-│  │       "headers": { "x-api-key": "..." }        │    │
+│  │       "command": "npx",                        │    │
+│  │       "args": ["-y","mcp-remote",              │    │
+│  │         "http://127.0.0.1:3741/sse",           │    │
+│  │         "--header","x-api-key:${REVOPS_TOKEN}"]│    │
+│  │       "env": { "REVOPS_TOKEN": "..." }         │    │
 │  │     }                                          │    │
 │  │   }                                            │    │
 │  │ }                                              │    │
 │  └────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────┘
 ```
+
+> **Corrección de diseño (2026-06-10):** el snippet original usaba el formato `url` + `headers`. Claude Desktop **no admite ese formato** en `claude_desktop_config.json`: su esquema solo valida servidores **stdio** (`command` + `args`); una entrada con `url` se rechaza como configuración inválida (y en algunas versiones borra el bloque `mcpServers` o casca al arrancar). Los servidores remotos/SSE se añaden por **Settings > Connectors** o se puentean a stdio con **`mcp-remote`**. Por eso la pantalla genera el bloque `command`/`args` con `npx -y mcp-remote <url> --header x-api-key:${REVOPS_TOKEN}` y el token en `env` (el indirecto `${...}` evita el bug de `mcp-remote` al partir cabeceras). El servidor sigue siendo SSE en `127.0.0.1`; `mcp-remote` actúa de puente local.
 
 ---
 

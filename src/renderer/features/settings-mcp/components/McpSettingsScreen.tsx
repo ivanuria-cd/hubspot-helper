@@ -26,8 +26,15 @@ function buildConfigSnippet(port: number, token: string): string {
     {
       mcpServers: {
         revops: {
-          url: `http://127.0.0.1:${port}/sse`,
-          headers: { 'x-api-key': token },
+          command: 'npx',
+          args: [
+            '-y',
+            'mcp-remote',
+            `http://127.0.0.1:${port}/sse`,
+            '--header',
+            'x-api-key:${REVOPS_TOKEN}',
+          ],
+          env: { REVOPS_TOKEN: token },
         },
       },
     },

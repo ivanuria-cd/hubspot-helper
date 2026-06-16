@@ -31,6 +31,7 @@
     "label": "Capabilities menu",
     "dashboard": "Dashboard",
     "crm": "CRM",
+    "properties": "Properties",
     "maps": "Maps",
     "reporting": "Reporting",
     "config": "Settings",
@@ -45,7 +46,8 @@
     "features": {
       "hubspot": "HubSpot",
       "google-drive": "Google Drive",
-      "mcp": "API / MCP"
+      "mcp": "API / MCP",
+      "propiedades": "Properties"
     }
   },
   "topbar": {
@@ -131,6 +133,37 @@
       "synced": "Synced",
       "conflict": "Conflict",
       "pending": "Pending sync"
+    },
+    "credentials": {
+      "title": "Google Cloud credentials",
+      "clientId": "Client ID",
+      "clientSecret": "Client secret",
+      "clientIdPlaceholder": "Paste the OAuth client ID",
+      "clientSecretPlaceholder": "Optional (only desktop apps that require it)",
+      "alreadySet": "Set ({{preview}}) — type a new one to change it",
+      "alreadySetSecret": "Set — type a new one to change it",
+      "help": "Only the OAuth client ID is needed; the folder picker does not use an API key.",
+      "save": "Save",
+      "clear": "Clear",
+      "saved": "Credentials saved.",
+      "cleared": "Credentials cleared; .env will be used if present.",
+      "error": "Could not save credentials.",
+      "source": { "app": "App", "env": ".env" }
+    },
+    "folderPicker": {
+      "title": "Select working folder",
+      "locations": "Locations",
+      "myDrive": "My Drive",
+      "sharedWithMe": "Shared with me",
+      "sharedDrives": "Shared drives",
+      "searchPlaceholder": "Search folder by name…",
+      "searchResults": "Search results",
+      "searchEmpty": "No folders found with that name.",
+      "clearSearch": "Clear search",
+      "loading": "Loading folders…",
+      "empty": "This folder has no subfolders.",
+      "selectThis": "Select this folder",
+      "cancel": "Cancel"
     }
   },
   "update": {
@@ -139,5 +172,120 @@
   },
   "sections": {
     "placeholder": "This section will be completed in a later SPEC."
+  },
+  "properties": {
+    "title": "CRM / Properties",
+    "syncHs": "Sync HubSpot",
+    "syncing": "Syncing…",
+    "syncSummary": "{{updated}} up to date · {{divergent}} divergent · {{missing}} missing",
+    "addProperty": "Property",
+    "manageOrigins": "Origins ({{count}})",
+    "exportJson": "Export JSON",
+    "writeSheets": {
+      "button": "Export to Google Sheets",
+      "busy": "Exporting…",
+      "success": "Map written to Google Sheets (id: {{id}}).",
+      "error": "Could not export: {{error}}"
+    },
+    "pendingChanges": "Pending changes ({{count}})",
+    "search": "Search…",
+    "loading": "Loading properties…",
+    "empty": "No properties yet. Sync with HubSpot or add one.",
+    "noResults": "No results with the current filters.",
+    "originsLabel": "Origins:",
+    "noOrigins": "No origins",
+    "viewChanges": "View changes",
+    "applyInHs": "Apply in HS",
+    "filters": {
+      "object": "Object",
+      "type": "Type",
+      "origin": "Origin",
+      "status": "Status",
+      "all": "All"
+    },
+    "status": {
+      "exists": "exists",
+      "divergent": "divergent",
+      "missing": "missing"
+    },
+    "panel": {
+      "definition": "Definition",
+      "hubspotName": "HubSpot name",
+      "label": "Label",
+      "object": "Object",
+      "type": "Type",
+      "fieldType": "Field type",
+      "group": "Group",
+      "custom": "Custom",
+      "options": "Options",
+      "description": "Description",
+      "origins": "Mapped origins",
+      "noMappings": "No mapped origins",
+      "pendingChanges": "Pending changes",
+      "noChanges": "No pending changes",
+      "sourceField": "Source field",
+      "transformations": "Transformations",
+      "notes": "Notes",
+      "addMapping": "Add origin",
+      "save": "Save",
+      "delete": "Delete",
+      "close": "Close"
+    },
+    "addDialog": {
+      "title": "Add property",
+      "editTitle": "Edit property",
+      "hubspotName": "Technical name (HubSpot)",
+      "label": "Label",
+      "object": "Object",
+      "type": "Type",
+      "fieldType": "Field type",
+      "group": "Group",
+      "description": "Description",
+      "cancel": "Cancel",
+      "create": "Create",
+      "save": "Save"
+    },
+    "originsModal": {
+      "title": "Manage origins",
+      "name": "Name",
+      "type": "Type",
+      "description": "Description",
+      "add": "Add origin",
+      "edit": "Edit",
+      "delete": "Delete",
+      "empty": "No origins defined.",
+      "cancel": "Cancel",
+      "save": "Save",
+      "close": "Close",
+      "types": {
+        "integration": "Integration",
+        "migration": "Migration",
+        "user": "User",
+        "workflow": "Workflow"
+      }
+    },
+    "changes": {
+      "title": "Properties / Pending changes",
+      "back": "Back to properties",
+      "applySandbox": "Apply in Sandbox",
+      "applyProduction": "Apply in Production",
+      "state": "State",
+      "sandboxDone": "sandbox ✓",
+      "sandboxPending": "sandbox ✕",
+      "productionDone": "production ✓",
+      "productionPending": "production ✕",
+      "discard": "Discard",
+      "empty": "No pending changes."
+    },
+    "mappingDialog": {
+      "title": "Map origin",
+      "origin": "Origin",
+      "sourceField": "Source field",
+      "transformations": "Transformations (source value → HubSpot value)",
+      "addRule": "Add rule",
+      "notes": "Notes",
+      "cancel": "Cancel",
+      "save": "Save"
+    }
   }
 }

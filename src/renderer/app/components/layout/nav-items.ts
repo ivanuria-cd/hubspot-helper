@@ -1,5 +1,6 @@
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import HubIcon from '@mui/icons-material/Hub';
+import TuneIcon from '@mui/icons-material/Tune';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import InsightsIcon from '@mui/icons-material/Insights';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -21,6 +22,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { path: '', labelKey: 'sidebar.dashboard', icon: DashboardIcon, endsGroup: true },
   { path: 'crm', labelKey: 'sidebar.crm', icon: HubIcon },
+  { path: 'crm/properties', labelKey: 'sidebar.properties', icon: TuneIcon },
   { path: 'crm/maps', labelKey: 'sidebar.maps', icon: AccountTreeIcon, endsGroup: true },
   { path: 'reporting', labelKey: 'sidebar.reporting', icon: InsightsIcon, endsGroup: true },
   { path: 'help', labelKey: 'sidebar.help', icon: HelpOutlineIcon, footer: true },

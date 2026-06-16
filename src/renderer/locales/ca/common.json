@@ -31,6 +31,7 @@
     "label": "Menú de capacitats",
     "dashboard": "Tauler",
     "crm": "CRM",
+    "properties": "Propietats",
     "maps": "Mapes",
     "reporting": "Informes",
     "config": "Configuració",
@@ -45,7 +46,8 @@
     "features": {
       "hubspot": "HubSpot",
       "google-drive": "Google Drive",
-      "mcp": "API / MCP"
+      "mcp": "API / MCP",
+      "propiedades": "Propietats"
     }
   },
   "topbar": {
@@ -131,6 +133,37 @@
       "synced": "Sincronitzat",
       "conflict": "En conflicte",
       "pending": "Pendent de sincronitzar"
+    },
+    "credentials": {
+      "title": "Credencials de Google Cloud",
+      "clientId": "ID de client",
+      "clientSecret": "Secret de client",
+      "clientIdPlaceholder": "Enganxa l'ID de client d'OAuth",
+      "clientSecretPlaceholder": "Opcional (només apps d'escriptori que ho exigeixin)",
+      "alreadySet": "Configurat ({{preview}}) — escriu-ne un de nou per canviar-lo",
+      "alreadySetSecret": "Configurat — escriu-ne un de nou per canviar-lo",
+      "help": "Només cal l'ID de client d'OAuth; el selector de carpeta no fa servir API key.",
+      "save": "Desa",
+      "clear": "Esborra",
+      "saved": "Credencials desades.",
+      "cleared": "Credencials esborrades; s'usarà el .env si existeix.",
+      "error": "No s'han pogut desar les credencials.",
+      "source": { "app": "App", "env": ".env" }
+    },
+    "folderPicker": {
+      "title": "Selecciona la carpeta de treball",
+      "locations": "Ubicacions",
+      "myDrive": "La meva unitat",
+      "sharedWithMe": "Compartit amb mi",
+      "sharedDrives": "Unitats compartides",
+      "searchPlaceholder": "Cerca una carpeta pel nom…",
+      "searchResults": "Resultats de la cerca",
+      "searchEmpty": "No s'ha trobat cap carpeta amb aquest nom.",
+      "clearSearch": "Neteja la cerca",
+      "loading": "Carregant carpetes…",
+      "empty": "Aquesta carpeta no té subcarpetes.",
+      "selectThis": "Selecciona aquesta carpeta",
+      "cancel": "Cancel·la"
     }
   },
   "update": {
@@ -139,5 +172,120 @@
   },
   "sections": {
     "placeholder": "Aquesta secció es completarà en un SPEC posterior."
+  },
+  "properties": {
+    "title": "CRM / Propietats",
+    "syncHs": "Sincronitza HubSpot",
+    "syncing": "Sincronitzant…",
+    "syncSummary": "{{updated}} al dia · {{divergent}} divergents · {{missing}} sense crear",
+    "addProperty": "Propietat",
+    "manageOrigins": "Orígens ({{count}})",
+    "exportJson": "Exporta JSON",
+    "writeSheets": {
+      "button": "Bolca a Google Sheets",
+      "busy": "Bolcant…",
+      "success": "Mapa bolcat a Google Sheets (id: {{id}}).",
+      "error": "No s'ha pogut bolcar: {{error}}"
+    },
+    "pendingChanges": "Canvis pendents ({{count}})",
+    "search": "Cerca…",
+    "loading": "Carregant propietats…",
+    "empty": "Encara no hi ha propietats. Sincronitza amb HubSpot o afegeix-ne una.",
+    "noResults": "Cap resultat amb els filtres actuals.",
+    "originsLabel": "Orígens:",
+    "noOrigins": "Sense orígens",
+    "viewChanges": "Veure canvis",
+    "applyInHs": "Aplica a HS",
+    "filters": {
+      "object": "Objecte",
+      "type": "Tipus",
+      "origin": "Origen",
+      "status": "Estat",
+      "all": "Tots"
+    },
+    "status": {
+      "exists": "existeix",
+      "divergent": "divergeix",
+      "missing": "falta"
+    },
+    "panel": {
+      "definition": "Definició",
+      "hubspotName": "Nom HubSpot",
+      "label": "Etiqueta",
+      "object": "Objecte",
+      "type": "Tipus",
+      "fieldType": "Tipus de camp",
+      "group": "Grup",
+      "custom": "Personalitzada",
+      "options": "Opcions",
+      "description": "Descripció",
+      "origins": "Orígens mapejats",
+      "noMappings": "Sense orígens mapejats",
+      "pendingChanges": "Canvis pendents",
+      "noChanges": "Sense canvis pendents",
+      "sourceField": "Camp origen",
+      "transformations": "Transformacions",
+      "notes": "Notes",
+      "addMapping": "Afegeix origen",
+      "save": "Desa",
+      "delete": "Elimina",
+      "close": "Tanca"
+    },
+    "addDialog": {
+      "title": "Afegeix propietat",
+      "editTitle": "Edita propietat",
+      "hubspotName": "Nom tècnic (HubSpot)",
+      "label": "Etiqueta",
+      "object": "Objecte",
+      "type": "Tipus",
+      "fieldType": "Tipus de camp",
+      "group": "Grup",
+      "description": "Descripció",
+      "cancel": "Cancel·la",
+      "create": "Crea",
+      "save": "Desa"
+    },
+    "originsModal": {
+      "title": "Gestiona orígens",
+      "name": "Nom",
+      "type": "Tipus",
+      "description": "Descripció",
+      "add": "Afegeix origen",
+      "edit": "Edita",
+      "delete": "Elimina",
+      "empty": "No hi ha orígens definits.",
+      "cancel": "Cancel·la",
+      "save": "Desa",
+      "close": "Tanca",
+      "types": {
+        "integration": "Integració",
+        "migration": "Migració",
+        "user": "Usuari",
+        "workflow": "Workflow"
+      }
+    },
+    "changes": {
+      "title": "Propietats / Canvis pendents",
+      "back": "Torna a propietats",
+      "applySandbox": "Aplica a Sandbox",
+      "applyProduction": "Aplica a Producció",
+      "state": "Estat",
+      "sandboxDone": "sandbox ✓",
+      "sandboxPending": "sandbox ✕",
+      "productionDone": "producció ✓",
+      "productionPending": "producció ✕",
+      "discard": "Descarta",
+      "empty": "No hi ha canvis pendents."
+    },
+    "mappingDialog": {
+      "title": "Mapeja origen",
+      "origin": "Origen",
+      "sourceField": "Camp origen",
+      "transformations": "Transformacions (valor origen → valor HubSpot)",
+      "addRule": "Afegeix regla",
+      "notes": "Notes",
+      "cancel": "Cancel·la",
+      "save": "Desa"
+    }
   }
 }

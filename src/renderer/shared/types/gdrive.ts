@@ -49,6 +49,43 @@ export interface GoogleDriveFolderResult {
   folderPath: string;
 }
 
+/** Carpeta de Drive devuelta por el selector propio (§14). */
+export interface DriveFolder {
+  id: string;
+  name: string;
+}
+
+export interface GoogleDriveListFoldersInput {
+  projectId: string;
+  /** Padre cuyas subcarpetas listar. Vacío o 'root' = «Mi unidad». */
+  parentId: string;
+}
+
+export interface GoogleDriveSetFolderInput {
+  projectId: string;
+  folderId: string;
+  folderName: string;
+  folderPath: string;
+}
+
+export interface GoogleDriveSearchFoldersInput {
+  projectId: string;
+  query: string;
+}
+
+/** Origen de cada credencial expuesto a la UI (§13). */
+export type GoogleCredentialSource = 'app' | 'env' | 'none';
+
+export interface GoogleCredentialsStatus {
+  clientId: { set: boolean; source: GoogleCredentialSource; preview: string };
+  clientSecret: { set: boolean; source: GoogleCredentialSource };
+}
+
+export interface GoogleCredentialsInput {
+  clientId?: string;
+  clientSecret?: string;
+}
+
 export interface GoogleDriveSyncResult {
   synced: DriveFile[];
   conflicts: DriveFile[];

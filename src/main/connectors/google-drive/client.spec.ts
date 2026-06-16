@@ -13,6 +13,7 @@ import { buildCover } from './cover-template';
 function fakeApi(overrides: Partial<DriveApi> = {}): DriveApi {
   return {
     filesList: vi.fn().mockResolvedValue({ files: [] }),
+    drivesList: vi.fn().mockResolvedValue({ drives: [] }),
     filesCreate: vi.fn().mockResolvedValue({ id: 'new-id', modifiedTime: '2026-01-01T00:00:00Z' }),
     filesGet: vi.fn().mockResolvedValue({ id: 'x' }),
     filesExport: vi.fn().mockResolvedValue(''),
@@ -54,6 +55,92 @@ describe('cliente Drive', () => {
       expect.objectContaining({ q: expect.stringContaining("'folder-1' in parents") }),
     );
     expect(files[0]).toMatchObject({ driveId: '1', featureKey: 'props' });
+  });
+
+  it('listFolders consulta subcarpetas del padre y ordena por nombre', async () => {
+    const api = fakeApi({
+      filesList: vi.fn().mockResolvedValue({
+        files: [
+          { id: 'b', name: 'Beta' },
+          { id: 'a', name: 'Alfa' },
+        ],
+      }),
+    });
+    const client = createDriveClient(api);
+    const folders = await client.listFolders('parent-1');
+    expect(api.filesList).toHaveBeenCalledWith(
+      expect.objectContaining({
+        q: expect.stringContaining(`mimeType = '${MIME_FOLDER}'`),
+      }),
+    );
+    expect(api.filesList).toHaveBeenCalledWith(
+      expect.objectContaining({ q: expect.stringContaining("'parent-1' in parents") }),
+    );
+    expect(folders.map((f) => f.id)).toEqual(['a', 'b']);
+  });
+
+  it('listFolders usa "root" cuando el padre va vacío', async () => {
+    const api = fakeApi();
+    const client = createDriveClient(api);
+    await client.listFolders('');
+    expect(api.filesList).toHaveBeenCalledWith(
+      expect.objectContaining({ q: expect.stringContaining("'root' in parents") }),
+    );
+  });
+
+  it('listFolders("sharedWithMe") consulta con sharedWithMe = true', async () => {
+    const api = fakeApi();
+    const client = createDriveClient(api);
+    await client.listFolders('sharedWithMe');
+    expect(api.filesList).toHaveBeenCalledWith(
+      expect.objectContaining({ q: expect.stringContaining('sharedWithMe = true') }),
+    );
+    expect(api.filesList).not.toHaveBeenCalledWith(
+      expect.objectContaining({ q: expect.stringContaining('in parents') }),
+    );
+  });
+
+  it('listFolders envía los flags de todas las unidades (§14.11)', async () => {
+    const api = fakeApi();
+    const client = createDriveClient(api);
+    await client.listFolders('root');
+    expect(api.filesList).toHaveBeenCalledWith(
+      expect.objectContaining({ supportsAllDrives: true, includeItemsFromAllDrives: true }),
+    );
+  });
+
+  it('listSharedDrives consulta drivesList y mapea id/name', async () => {
+    const api = fakeApi({
+      drivesList: vi.fn().mockResolvedValue({
+        drives: [
+          { id: 'd2', name: 'Ventas' },
+          { id: 'd1', name: 'Marketing' },
+        ],
+      }),
+    });
+    const client = createDriveClient(api);
+    const drives = await client.listSharedDrives();
+    expect(api.drivesList).toHaveBeenCalled();
+    expect(drives.map((d) => d.name)).toEqual(['Marketing', 'Ventas']);
+  });
+
+  it('searchFolders arma "name contains" y escapa comillas simples', async () => {
+    const api = fakeApi();
+    const client = createDriveClient(api);
+    await client.searchFolders("O'Brien");
+    expect(api.filesList).toHaveBeenCalledWith(
+      expect.objectContaining({
+        q: expect.stringContaining("name contains 'O\\'Brien'"),
+        supportsAllDrives: true,
+      }),
+    );
+  });
+
+  it('searchFolders con término vacío no llama a la API', async () => {
+    const api = fakeApi();
+    const client = createDriveClient(api);
+    expect(await client.searchFolders('   ')).toEqual([]);
+    expect(api.filesList).not.toHaveBeenCalled();
   });
 
   it('reutiliza la subcarpeta de feature si ya existe', async () => {

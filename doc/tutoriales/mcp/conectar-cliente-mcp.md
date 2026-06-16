@@ -12,6 +12,8 @@
 5. Pulsa **Copiar configuración** para copiar el snippet listo para tu cliente MCP.
 6. Pega el snippet en el fichero de configuración de tu cliente (por ejemplo, el `claude_desktop_config.json` de Claude Desktop) y reinícialo.
 
+> **Por qué `mcp-remote`:** Claude Desktop solo admite servidores **stdio** en su fichero de configuración (no acepta `url`/`headers`). El snippet usa `npx mcp-remote` como puente local hacia el servidor SSE de la app, con el token en `env`. Requiere tener **Node.js/npx** instalado. Alternativa sin fichero: añadir el servidor remoto desde **Settings > Connectors** de Claude Desktop con la URL `http://127.0.0.1:3741/sse` y la cabecera `x-api-key`.
+
 ## Resultado esperado
 
 - El cliente MCP se conecta al servidor local y lista las **tools disponibles**.
