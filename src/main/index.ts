@@ -12,6 +12,13 @@ import { createElectronPropertyService } from './property-management';
 import { registerPropertyTools } from './property-management/mcp-tools';
 import { createElectronCustomObjectService } from './custom-objects';
 import { registerCustomObjectTools } from './custom-objects/mcp-tools';
+import { createElectronFormService } from './forms-management';
+import { registerFormTools } from './forms-management/mcp-tools';
+import {
+  buildFormsTabs,
+  FORMS_FEATURE_KEY,
+  FORMS_SHEETS_SCHEMA_VERSION,
+} from './forms-management/sheets-model';
 import {
   buildPropertyMapTabs,
   PROPERTY_MAP_FEATURE_KEY,
@@ -56,6 +63,19 @@ import type {
   ObjectsListSchemasInput,
   ObjectUpsertDraftInput,
 } from '@shared/types/custom-objects';
+import type {
+  FormAddMissingFieldsInput,
+  FormApplyChangeInput,
+  FormCoverageInput,
+  FormCreateDefinitionInput,
+  FormDiscardChangeInput,
+  FormGetInput,
+  FormLinkDeleteInput,
+  FormLinksListInput,
+  FormLinkUpsertInput,
+  FormsListInput,
+  FormsSyncInput,
+} from '@shared/types/forms';
 
 let mainWindow: BrowserWindow | null = null;
 let mcpService: ReturnType<typeof createElectronMcpService> | null = null;
@@ -80,6 +100,9 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
 
   const customObjects = createElectronCustomObjectService({ hubspot });
   registerCustomObjectTools(mcpRegistry, customObjects);
+
+  const forms = createElectronFormService({ hubspot });
+  registerFormTools(mcpRegistry, forms);
 
   ipcMain.handle(IpcChannels.appGetVersion, () => app.getVersion());
   ipcMain.handle(IpcChannels.updaterCheck, () => checkForUpdates());
@@ -238,6 +261,57 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   ipcMain.handle(IpcChannels.objectsDiscardChange, (_event, input: ObjectDiscardChangeInput) =>
     customObjects.discardChange(input),
   );
+  ipcMain.handle(IpcChannels.formsList, (_event, input: FormsListInput) => forms.listForms(input));
+  ipcMain.handle(IpcChannels.formsPendingChanges, (_event, input: FormsListInput) =>
+    forms.listPendingChanges(input.projectId),
+  );
+  ipcMain.handle(IpcChannels.formsSyncHubspot, (_event, input: FormsSyncInput) =>
+    forms.syncHubspot(input),
+  );
+  ipcMain.handle(IpcChannels.formsGet, (_event, input: FormGetInput) => forms.getForm(input));
+  ipcMain.handle(IpcChannels.formsCreateDefinition, (_event, input: FormCreateDefinitionInput) =>
+    forms.createDefinition(input),
+  );
+  ipcMain.handle(IpcChannels.formsCoverage, (_event, input: FormCoverageInput) =>
+    forms.coverage(input),
+  );
+  ipcMain.handle(IpcChannels.formsAddMissingFields, (_event, input: FormAddMissingFieldsInput) =>
+    forms.addMissingFields(input),
+  );
+  ipcMain.handle(IpcChannels.formsApplyChange, (_event, input: FormApplyChangeInput) =>
+    forms.applyChange(input),
+  );
+  ipcMain.handle(IpcChannels.formsDiscardChange, (_event, input: FormDiscardChangeInput) =>
+    forms.discardChange(input),
+  );
+  ipcMain.handle(IpcChannels.formLinksList, (_event, input: FormLinksListInput) =>
+    forms.listLinks(input),
+  );
+  ipcMain.handle(IpcChannels.formLinksUpsert, (_event, input: FormLinkUpsertInput) =>
+    forms.upsertLink(input),
+  );
+  ipcMain.handle(IpcChannels.formLinksDelete, (_event, input: FormLinkDeleteInput) =>
+    forms.deleteLink(input),
+  );
+  ipcMain.handle(IpcChannels.formsWriteSheets, (_event, input: FormsListInput) => {
+    const reports = forms
+      .listForms(input)
+      .flatMap((form) => forms.coverage({ projectId: input.projectId, formId: form.id }));
+    const tabs = buildFormsTabs(
+      forms.listForms(input),
+      forms.listLinks(input),
+      reports,
+      properties.listOrigins(input),
+      new Date().toISOString(),
+    );
+    return gdrive.writeSpreadsheet({
+      projectId: input.projectId,
+      name: 'Formularios HubSpot',
+      featureKey: FORMS_FEATURE_KEY,
+      schemaVersion: FORMS_SHEETS_SCHEMA_VERSION,
+      tabs,
+    });
+  });
 
   return mcp;
 }

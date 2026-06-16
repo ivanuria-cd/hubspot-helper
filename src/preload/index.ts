@@ -69,6 +69,19 @@ const api: RevOpsApi = {
   objectsSyncHubspot: (input) => ipcRenderer.invoke(IpcChannels.objectsSyncHubspot, input),
   objectsApplyChange: (input) => ipcRenderer.invoke(IpcChannels.objectsApplyChange, input),
   objectsDiscardChange: (input) => ipcRenderer.invoke(IpcChannels.objectsDiscardChange, input),
+  formsList: (input) => ipcRenderer.invoke(IpcChannels.formsList, input),
+  formsPendingChanges: (input) => ipcRenderer.invoke(IpcChannels.formsPendingChanges, input),
+  formsSyncHubspot: (input) => ipcRenderer.invoke(IpcChannels.formsSyncHubspot, input),
+  formsGet: (input) => ipcRenderer.invoke(IpcChannels.formsGet, input),
+  formsCreateDefinition: (input) => ipcRenderer.invoke(IpcChannels.formsCreateDefinition, input),
+  formsCoverage: (input) => ipcRenderer.invoke(IpcChannels.formsCoverage, input),
+  formsAddMissingFields: (input) => ipcRenderer.invoke(IpcChannels.formsAddMissingFields, input),
+  formsApplyChange: (input) => ipcRenderer.invoke(IpcChannels.formsApplyChange, input),
+  formsDiscardChange: (input) => ipcRenderer.invoke(IpcChannels.formsDiscardChange, input),
+  formLinksList: (input) => ipcRenderer.invoke(IpcChannels.formLinksList, input),
+  formLinksUpsert: (input) => ipcRenderer.invoke(IpcChannels.formLinksUpsert, input),
+  formLinksDelete: (input) => ipcRenderer.invoke(IpcChannels.formLinksDelete, input),
+  formsWriteSheets: (input) => ipcRenderer.invoke(IpcChannels.formsWriteSheets, input),
 };
 
 contextBridge.exposeInMainWorld('api', api);

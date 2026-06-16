@@ -18,7 +18,7 @@ Todos los SPECs están en `specs/`. Estado actual:
 | [SPEC-0005](specs/SPEC-0005-capa-mcp-api.md) | Capa MCP / API | IMPLEMENTADO |
 | [SPEC-0006](specs/SPEC-0006-gestion-de-propiedades.md) | Gestión de Propiedades | IMPLEMENTADO (rediseño §16 en BORRADOR) |
 | [SPEC-0007](specs/SPEC-0007-objetos-custom-hubspot.md) | Objetos Custom de HubSpot | IMPLEMENTADO |
-| [SPEC-0008](specs/SPEC-0008-gestion-de-formularios.md) | Gestión de Formularios | BORRADOR |
+| [SPEC-0008](specs/SPEC-0008-gestion-de-formularios.md) | Gestión de Formularios | IMPLEMENTADO (typecheck/e2e + PR pendientes de ejecutar en máquina) |
 
 Leer el SPEC correspondiente antes de implementar o modificar cualquier característica.
 

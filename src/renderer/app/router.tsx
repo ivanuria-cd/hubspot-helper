@@ -9,6 +9,7 @@ import { McpSettingsScreen } from '@renderer/features/settings-mcp';
 import { HelpSection } from '@renderer/features/help';
 import { PropertyManagementScreen } from '@renderer/features/property-management';
 import { CustomObjectsScreen } from '@renderer/features/custom-objects';
+import { FormsManagementScreen } from '@renderer/features/forms-management';
 
 export const routes: RouteObject[] = [
   { path: '/', element: <WelcomeRoute /> },
@@ -20,6 +21,7 @@ export const routes: RouteObject[] = [
       { path: 'crm', element: <SectionPlaceholder titleKey="sidebar.crm" /> },
       { path: 'crm/properties', element: <PropertyManagementScreen /> },
       { path: 'crm/objects', element: <CustomObjectsScreen /> },
+      { path: 'crm/forms', element: <FormsManagementScreen /> },
       { path: 'crm/maps', element: <SectionPlaceholder titleKey="sidebar.maps" /> },
       { path: 'reporting', element: <SectionPlaceholder titleKey="sidebar.reporting" /> },
       { path: 'config', element: <ConfigSection /> },

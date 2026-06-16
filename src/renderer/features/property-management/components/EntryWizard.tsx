@@ -204,7 +204,9 @@ export function EntryWizard({
     setBulkOpen(false);
   };
 
-  const canSubmit = name.trim() && (mode === 'existing' ? existingName : def.hubspotName.trim() && def.label.trim() && def.groupName);
+  // El grupo se resuelve antes de aplicar en HubSpot (puede no haber grupos sin portal);
+  // para guardar la entrada local basta nombre técnico + etiqueta.
+  const canSubmit = name.trim() && (mode === 'existing' ? existingName : def.hubspotName.trim() && def.label.trim());
 
   const handleSubmit = async (): Promise<void> => {
     const builtSources: EntrySource[] = sources.map((s) => ({

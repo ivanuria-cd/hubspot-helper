@@ -73,6 +73,27 @@ import type {
   ObjectsListSchemasInput,
   ObjectUpsertDraftInput,
 } from '@shared/types/custom-objects';
+import type {
+  FormAddMissingFieldsInput,
+  FormApplyChangeInput,
+  FormApplyChangeResult,
+  FormChange,
+  FormCoverageInput,
+  FormCoverageReport,
+  FormCreateDefinitionInput,
+  FormDiscardChangeInput,
+  FormGetInput,
+  FormLinkDeleteInput,
+  FormLinksListInput,
+  FormLinkUpsertInput,
+  FormOriginLink,
+  FormsListInput,
+  FormsOperationResult,
+  FormsSyncInput,
+  FormsSyncResult,
+  FormsWriteSheetsResult,
+  HubSpotForm,
+} from '@shared/types/forms';
 
 export const IpcChannels = {
   appGetVersion: 'app:get-version',
@@ -132,6 +153,19 @@ export const IpcChannels = {
   objectsSyncHubspot: 'objects:sync-hubspot',
   objectsApplyChange: 'objects:apply-change',
   objectsDiscardChange: 'objects:discard-change',
+  formsList: 'forms:list',
+  formsPendingChanges: 'forms:pending-changes',
+  formsSyncHubspot: 'forms:sync-hubspot',
+  formsGet: 'forms:get',
+  formsCreateDefinition: 'forms:create-definition',
+  formsCoverage: 'forms:coverage',
+  formsAddMissingFields: 'forms:add-missing-fields',
+  formsApplyChange: 'forms:apply-change',
+  formsDiscardChange: 'forms:discard-change',
+  formLinksList: 'form-links:list',
+  formLinksUpsert: 'form-links:upsert',
+  formLinksDelete: 'form-links:delete',
+  formsWriteSheets: 'forms:write-sheets',
 } as const;
 
 export type UpdaterStatus =
@@ -201,4 +235,17 @@ export interface RevOpsApi {
   objectsSyncHubspot(input: ObjectsListSchemasInput): Promise<CustomObjectsSyncResult>;
   objectsApplyChange(input: ObjectApplyChangeInput): Promise<ObjectChangeResult>;
   objectsDiscardChange(input: ObjectDiscardChangeInput): Promise<ObjectChangeResult>;
+  formsList(input: FormsListInput): Promise<HubSpotForm[]>;
+  formsPendingChanges(input: FormsListInput): Promise<FormChange[]>;
+  formsSyncHubspot(input: FormsSyncInput): Promise<FormsSyncResult>;
+  formsGet(input: FormGetInput): Promise<HubSpotForm>;
+  formsCreateDefinition(input: FormCreateDefinitionInput): Promise<FormChange>;
+  formsCoverage(input: FormCoverageInput): Promise<FormCoverageReport[]>;
+  formsAddMissingFields(input: FormAddMissingFieldsInput): Promise<FormChange>;
+  formsApplyChange(input: FormApplyChangeInput): Promise<FormApplyChangeResult>;
+  formsDiscardChange(input: FormDiscardChangeInput): Promise<FormsOperationResult>;
+  formLinksList(input: FormLinksListInput): Promise<FormOriginLink[]>;
+  formLinksUpsert(input: FormLinkUpsertInput): Promise<FormOriginLink>;
+  formLinksDelete(input: FormLinkDeleteInput): Promise<FormsOperationResult>;
+  formsWriteSheets(input: FormsListInput): Promise<FormsWriteSheetsResult>;
 }

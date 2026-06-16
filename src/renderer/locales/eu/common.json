@@ -33,6 +33,7 @@
     "crm": "CRM",
     "properties": "Propietateak",
     "objects": "Objektu pertsonalizatuak",
+    "forms": "Inprimakiak",
     "maps": "Mapak",
     "reporting": "Txostenak",
     "config": "Konfigurazioa",
@@ -49,7 +50,8 @@
       "google-drive": "Google Drive",
       "mcp": "API / MCP",
       "propiedades": "Propietateak",
-      "objetos-custom": "Objektu pertsonalizatuak"
+      "objetos-custom": "Objektu pertsonalizatuak",
+      "formularios": "Inprimakiak"
     }
   },
   "topbar": {
@@ -359,6 +361,82 @@
       "associations": "Elkarteak",
       "cancel": "Utzi",
       "save": "Gorde"
+    }
+  },
+  "forms": {
+    "title": "CRM / Inprimakiak",
+    "syncHs": "Sinkronizatu HubSpot",
+    "syncing": "Sinkronizatzen…",
+    "syncSummary": "{{imported}} inportatuta · {{updated}} eguneratuta",
+    "addForm": "Inprimakia",
+    "search": "Bilatu…",
+    "loading": "Inprimakiak kargatzen…",
+    "empty": "Oraindik ez dago inprimakirik. Sinkronizatu HubSpot-ekin edo sortu bat.",
+    "noResults": "Ez dago emaitzarik uneko iragazkiekin.",
+    "pendingChanges": "Aldaketa zain ({{count}})",
+    "writeSheets": {
+      "button": "Esportatu Sheets-era",
+      "busy": "Esportatzen…",
+      "success": "Inprimakiak Google Sheets-era esportatu dira (id: {{id}}).",
+      "error": "Ezin izan da esportatu: {{error}}"
+    },
+    "filters": {
+      "type": "Mota",
+      "coverage": "Estaldura",
+      "all": "Guztiak",
+      "incomplete": "Osatugabeak"
+    },
+    "coverage": {
+      "complete": "osatua",
+      "missing": "{{count}} falta",
+      "none": "jatorririk gabe"
+    },
+    "panel": {
+      "title": "Inprimakiaren xehetasuna",
+      "close": "Itxi",
+      "fields": "Eremuak",
+      "origins": "Lotutako jatorriak",
+      "linkOrigin": "Lotu jatorrira",
+      "noOrigins": "Lotutako jatorririk ez",
+      "coverage": "Estaldura jatorriz",
+      "noCoverage": "Lotu jatorri bat estaldura ikusteko.",
+      "coverageSummary": "{{present}}/{{expected}} present",
+      "addMissing": "Gehitu falta diren eremuak ({{count}})"
+    },
+    "linkModal": {
+      "title": "Lotu jatorrira",
+      "object": "Objektua",
+      "origins": "Jatorriak",
+      "noOrigins": "Ez dago jatorririk definituta.",
+      "cancel": "Utzi",
+      "save": "Gorde"
+    },
+    "wizard": {
+      "title": "Sortu inprimakia",
+      "name": "Inprimakiaren izena",
+      "object": "Objektua",
+      "origins": "Jatorriak",
+      "fields": "Eremuak",
+      "noFields": "Aukeratu objektu bat eta jatorri bat edo gehiago eremuak aurrehautatzeko.",
+      "field": "Eremua",
+      "label": "Etiketa",
+      "fieldType": "Eremu mota",
+      "required": "Beharrezkoa",
+      "hidden": "Ezkutua",
+      "cancel": "Utzi",
+      "create": "Sortu"
+    },
+    "changes": {
+      "title": "Inprimakiak / Aldaketa zain",
+      "back": "Itzuli inprimakietara",
+      "applySandbox": "Aplikatu Sandbox-ean",
+      "applyProduction": "Aplikatu Produkzioan",
+      "discard": "Baztertu",
+      "sandboxDone": "sandbox ✓",
+      "sandboxPending": "sandbox ✕",
+      "productionDone": "produkzioa ✓",
+      "productionPending": "produkzioa ✕",
+      "empty": "Ez dago aldaketa zain."
     }
   }
 }
