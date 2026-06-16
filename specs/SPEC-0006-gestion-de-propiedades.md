@@ -510,6 +510,8 @@ interface HubSpotObject {
      - `enum`: definir las **opciones de origen** y, si el destino HubSpot es `enumeration`, el **mapeo** opción origen → opción HubSpot.
    - Notas opcionales.
 
+> **Sincronización con SPEC-0007 (editor de tipo/`fieldType`).** El editor de la **definición de propiedad de HubSpot** (`type` → `fieldType`) del `EntryWizard` se comparte conceptualmente con el asistente de creación de objetos custom de **[SPEC-0007](SPEC-0007-objetos-custom-hubspot.md)**: el mapeo `FIELD_TYPES_BY_TYPE` y las claves i18n `properties.fieldTypes.*` deben ser **idénticos** en ambas interfaces. Cualquier cambio en los tipos/fieldTypes admitidos o en sus etiquetas debe aplicarse en los dos sitios a la vez (y anotarse en ambos SPECs). Ver SPEC-0007 §4 y §14.
+
 ### 16.4 Estructura del Google Sheets (schema_version: 2)
 
 El documento de Drive sube a `schema_version: 2` y refleja el nuevo modelo:
