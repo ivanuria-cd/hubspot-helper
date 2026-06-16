@@ -79,9 +79,7 @@ describe('buildPropertyMapTabs', () => {
   });
 
   it('refleja erratas en claves sin corregirlas', () => {
-    const withTypo: PropertyEntry[] = [
-      { ...entries[0], name: 'Graod' },
-    ];
+    const withTypo: PropertyEntry[] = [{ ...entries[0], name: 'Graod' }];
     const entradas = buildPropertyMapTabs(withTypo, origins)[2];
     expect(entradas.rows[1][2]).toBe('Graod');
   });

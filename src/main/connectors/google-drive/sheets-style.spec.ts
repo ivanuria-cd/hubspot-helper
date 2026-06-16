@@ -4,13 +4,7 @@ import type { SheetTab } from './sheets-client';
 
 const tabs: SheetTab[] = [
   { title: '00_Portada', rows: [['RevOps Assistant'], ['schema_version', 2]] },
-  {
-    title: '02_Entradas',
-    rows: [
-      ['ID', 'Nombre'],
-      ['e1', 'Grado'],
-    ],
-  },
+  { title: '02_Entradas', rows: [['ID', 'Nombre'], ['e1', 'Grado']] },
 ];
 
 function navy() {
@@ -34,26 +28,23 @@ describe('buildStyleRequests', () => {
     });
   });
 
-  it('da formato a la cabecera de la hoja de datos (negrita + navy + borde inferior + congelado)', () => {
+  it('cabecera negrita + navy + borde inferior + congelado', () => {
     const reqs = buildStyleRequests(freshMeta, tabs);
-    const frozen = reqs.find((r) => 'updateSheetProperties' in r);
-    expect(frozen).toBeTruthy();
-    const header = reqs.find(
-      (r) =>
-        'repeatCell' in r &&
-        (r as { repeatCell: { cell: { userEnteredFormat?: { textFormat?: { bold?: boolean } } } } }).repeatCell.cell
-          .userEnteredFormat?.textFormat?.bold === true,
-    );
-    expect(header).toBeTruthy();
-    const border = reqs.find((r) => 'updateBorders' in r) as
-      | { updateBorders: { bottom: { color: unknown } } }
-      | undefined;
+    expect(reqs.find((r) => 'updateSheetProperties' in r)).toBeTruthy();
+    expect(
+      reqs.find(
+        (r) =>
+          'repeatCell' in r &&
+          (r as { repeatCell: { cell: { userEnteredFormat?: { textFormat?: { bold?: boolean } } } } }).repeatCell.cell
+            .userEnteredFormat?.textFormat?.bold === true,
+      ),
+    ).toBeTruthy();
+    const border = reqs.find((r) => 'updateBorders' in r) as { updateBorders: { bottom: { color: unknown } } } | undefined;
     expect(border?.updateBorders.bottom.color).toEqual(navy());
-    const banding = reqs.find((r) => 'addBanding' in r);
-    expect(banding).toBeTruthy();
+    expect(reqs.find((r) => 'addBanding' in r)).toBeTruthy();
   });
 
-  it('la portada lleva acento lima en el valor de schema_version y no lleva banding', () => {
+  it('portada con acento lima y sin banding', () => {
     const reqs = buildStyleRequests([{ properties: { sheetId: 0, title: '00_Portada' } }], [tabs[0]]);
     expect(reqs.some((r) => 'addBanding' in r)).toBe(false);
     const lime = parseInt(CD.accent.slice(1), 16);
@@ -69,13 +60,9 @@ describe('buildStyleRequests', () => {
     expect(hasLime).toBe(true);
   });
 
-  it('es idempotente: elimina protecciones y bandas previas', () => {
+  it('idempotente: borra protecciones y bandas previas', () => {
     const meta: SheetMeta[] = [
-      {
-        properties: { sheetId: 1, title: '02_Entradas' },
-        protectedRanges: [{ protectedRangeId: 99 }],
-        bandedRanges: [{ bandedRangeId: 77 }],
-      },
+      { properties: { sheetId: 1, title: '02_Entradas' }, protectedRanges: [{ protectedRangeId: 99 }], bandedRanges: [{ bandedRangeId: 77 }] },
     ];
     const reqs = buildStyleRequests(meta, [tabs[1]]);
     expect(reqs).toContainEqual({ deleteProtectedRange: { protectedRangeId: 99 } });
