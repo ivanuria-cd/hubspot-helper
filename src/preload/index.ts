@@ -57,6 +57,8 @@ const api: RevOpsApi = {
     ipcRenderer.invoke(IpcChannels.propertiesDiscardChange, input),
   propertiesExportJson: (input) => ipcRenderer.invoke(IpcChannels.propertiesExportJson, input),
   propertiesWriteSheets: (input) => ipcRenderer.invoke(IpcChannels.propertiesWriteSheets, input),
+  propertiesLoadSheets: (input) => ipcRenderer.invoke(IpcChannels.propertiesLoadSheets, input),
+  propertiesDriveMeta: (input) => ipcRenderer.invoke(IpcChannels.propertiesDriveMeta, input),
   originsList: (input) => ipcRenderer.invoke(IpcChannels.originsList, input),
   originsCreate: (input) => ipcRenderer.invoke(IpcChannels.originsCreate, input),
   originsUpdate: (input) => ipcRenderer.invoke(IpcChannels.originsUpdate, input),
@@ -69,6 +71,12 @@ const api: RevOpsApi = {
   objectsSyncHubspot: (input) => ipcRenderer.invoke(IpcChannels.objectsSyncHubspot, input),
   objectsApplyChange: (input) => ipcRenderer.invoke(IpcChannels.objectsApplyChange, input),
   objectsDiscardChange: (input) => ipcRenderer.invoke(IpcChannels.objectsDiscardChange, input),
+  customObjectsWriteSheets: (input) =>
+    ipcRenderer.invoke(IpcChannels.customObjectsWriteSheets, input),
+  customObjectsLoadSheets: (input) =>
+    ipcRenderer.invoke(IpcChannels.customObjectsLoadSheets, input),
+  customObjectsDriveMeta: (input) =>
+    ipcRenderer.invoke(IpcChannels.customObjectsDriveMeta, input),
   formsList: (input) => ipcRenderer.invoke(IpcChannels.formsList, input),
   formsPendingChanges: (input) => ipcRenderer.invoke(IpcChannels.formsPendingChanges, input),
   formsSyncHubspot: (input) => ipcRenderer.invoke(IpcChannels.formsSyncHubspot, input),
@@ -82,6 +90,8 @@ const api: RevOpsApi = {
   formLinksUpsert: (input) => ipcRenderer.invoke(IpcChannels.formLinksUpsert, input),
   formLinksDelete: (input) => ipcRenderer.invoke(IpcChannels.formLinksDelete, input),
   formsWriteSheets: (input) => ipcRenderer.invoke(IpcChannels.formsWriteSheets, input),
+  formsLoadSheets: (input) => ipcRenderer.invoke(IpcChannels.formsLoadSheets, input),
+  formsDriveMeta: (input) => ipcRenderer.invoke(IpcChannels.formsDriveMeta, input),
 };
 
 contextBridge.exposeInMainWorld('api', api);

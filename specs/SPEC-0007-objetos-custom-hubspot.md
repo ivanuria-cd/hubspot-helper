@@ -303,7 +303,7 @@ Se exponen en la sección **Ayuda** (visor de SPEC-0002) automáticamente.
 
 | Hace | No hace |
 |------|---------|
-| Crear, editar (labels, display/required/searchable props, asociaciones, descripción) y archivar objetos custom vía CRM Object Schemas API v3; catálogo para SPEC-0006; alta como cambio pendiente revisable (sandbox→producción) | No gestiona **registros/instancias** de los objetos; no define las **entradas** de propiedades (SPEC-0006); no crea propiedades sueltas sobre objetos existentes (SPEC-0006); no ofrece **hard delete**; no gestiona **association labels** personalizadas (solo `associatedObjects`); no toca workflows ni formularios |
+| Crear, editar (labels, display/required/searchable props, asociaciones, descripción) y archivar objetos custom vía CRM Object Schemas API v3; catálogo para SPEC-0006; alta como cambio pendiente revisable (sandbox→producción); **documento Drive del catálogo de objetos custom con el patrón común (§15, BORRADOR)** | No gestiona **registros/instancias** de los objetos; no define las **entradas** de propiedades (SPEC-0006); no crea propiedades sueltas sobre objetos existentes (SPEC-0006); no ofrece **hard delete**; no gestiona **association labels** personalizadas (solo `associatedObjects`); no toca workflows ni formularios; el documento Drive **no** es fuente de verdad (SPEC-0004 §15) |
 
 ---
 
@@ -348,3 +348,57 @@ Decisiones y desviaciones registradas según la norma «cada iteración sobre un
 
 - Tests unitarios (Vitest) de `changes`, `reconcile`, `schemas` y `service` en verde (18 casos en la primera ejecución limpia); la prueba de integración MCP sigue en verde con las nuevas tools.
 - Durante la verificación, el espejo del sandbox truncó/desincronizó de forma intermitente algunos ficheros (`service.ts` y los `common.json`), provocando falsos errores de transform de esbuild ajenos al código. Los originales están sanos (verificado vía herramienta de lectura). El **typecheck y el test completos deben ejecutarse en la máquina del usuario**.
+
+---
+
+## 15. Documento Drive del catálogo de objetos custom (IMPLEMENTADO, 2026-06-17)
+
+Objetos custom no tenía documento de Drive. Para unificar la experiencia con el resto de características,
+estrena uno adoptando el **patrón común de SPEC-0004 §15** (botón crear-o-actualizar, carga desde Drive,
+modal al salir). El documento **no** es fuente de verdad: el estado operativo sigue en `electron-store` y
+HubSpot.
+
+### 15.1 Contenido del documento (Google Sheets)
+
+`featureKey: custom-objects`. Un Google Sheets con identidad CD y `schema_version: 1`:
+
+| Hoja | Contenido |
+|------|-----------|
+| `00_Portada` | Identidad CD, descripción, guía de uso, `schema_version` |
+| `01_Objetos` | Un objeto custom por fila: nombre interno, labels (singular/plural), descripción, `objectTypeId` por entorno, estado de reconciliación |
+| `02_Propiedades` | Propiedades de cada objeto: objeto, nombre interno, etiqueta, tipo, `fieldType`, flags (display/required/searchable/unique) |
+| `03_Asociaciones` | Asociaciones declaradas (`associatedObjects`) por objeto |
+
+El builder es puro y testeable (`buildCustomObjectsTabs(objects)`), reutilizando el estilo/protección de
+SPEC-0006 §19. Las erratas de nombres/etiquetas se vuelcan verbatim (SPEC-0000).
+
+### 15.2 Patrón común (idéntico al resto)
+
+- Botón **«Actualizar archivo en Drive»** (crear-o-actualizar, best-effort) → canal
+  `custom-objects:write-sheets` que arma las hojas con `buildCustomObjectsTabs` y escribe vía
+  `gdrive.writeSpreadsheet`. Registra `lastWrittenAt`.
+- Botón **«Cargar desde Drive»** → canal `custom-objects:load-sheets`. Implementado con documento de estado
+  companion (SPEC-0004 §15.5): `main/custom-objects/drive-state.ts`
+  (`CUSTOM_OBJECTS_STATE_FEATURE_KEY = 'custom-objects-state'`, `serializeCustomObjectsState`,
+  `parseCustomObjectsState`); el handler hace `gdrive.readFile` + parse + `service.applyDriveState`
+  (reemplaza `definitions`). El builder `buildCustomObjectsTabs` solo produce el Sheets legible. Canal de
+  metadatos `custom-objects:drive-meta`.
+- Modal **`DriveDirtyGuard`** al salir con cambios sin actualizar; preferencia «no volver a preguntar» por
+  proyecto.
+- UI mediante los componentes compartidos `DriveDocActions` / `DriveDirtyGuard` (SPEC-0004 §15.4) e i18n
+  compartida `drive.doc.*` / `drive.dirtyGuard.*`.
+
+### 15.3 Tests requeridos
+
+- `sheets-model.spec.ts` (custom-objects): el builder produce las cuatro hojas con encabezados y una fila por
+  objeto/propiedad/asociación; round-trip `parseCustomObjectsTabs(buildCustomObjectsTabs(x)) ≈ x`.
+- Funcional: «Actualizar archivo en Drive» best-effort sin carpeta no rompe; «Cargar desde Drive» pide
+  confirmación y reconstruye la lista (mock del conector).
+
+### 15.4 Impacto
+
+- `main/custom-objects/sheets-model.ts` (builder + parser inverso), `service.ts`/`store.ts`
+  (`lastWrittenAt`, reemplazo de estado), handlers `custom-objects:write-sheets` / `custom-objects:load-sheets`.
+- `ipc.ts`/`preload`/`RevOpsApi` (dos canales nuevos).
+- `CustomObjectsScreen.tsx`: añade `DriveDocActions` + `DriveDirtyGuard`.
+- i18n: usa las claves compartidas `drive.doc.*` / `drive.dirtyGuard.*`.

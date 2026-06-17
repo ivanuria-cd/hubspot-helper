@@ -46,6 +46,7 @@ Este documento define las reglas que rigen **todos** los demás SPECs y el desar
 - Librería: **`i18next`** + **`react-i18next`**. Los ficheros de traducción son JSON organizados por `locale/feature`.
 - Las fechas, números y monedas se formatean con la API nativa `Intl` según el locale activo.
 - Ningún SPEC de característica puede usar texto literal en componentes React — debe referenciar siempre la clave de traducción.
+- **Nombres de idioma en selectores (autónimos):** en cualquier desplegable de selección de idioma, el nombre de cada idioma se muestra **SIEMPRE en su propio idioma objetivo** (autónimo), nunca traducido al idioma activo de la interfaz. Valores canónicos: `es` → «Castellano», `ca` → «Català», `eu` → «Euskara», `en` → «English». La **etiqueta** del campo selector (p. ej. «Idioma» / «Language») sí se traduce al idioma activo; las **opciones** no. Los autónimos son una única fuente de verdad (constante compartida), no claves de traducción por locale.
 
 ---
 

@@ -14,6 +14,7 @@ import type {
   HubSpotSaveTokenResult,
 } from '@shared/types/hubspot';
 import type {
+  DriveDocMeta,
   DriveFolder,
   GoogleCredentialsInput,
   GoogleCredentialsStatus,
@@ -30,6 +31,7 @@ import type {
   GoogleDriveSyncResult,
   GoogleDriveWriteFileInput,
   GoogleDriveWriteFileResult,
+  LoadSheetsResult,
 } from '@shared/types/gdrive';
 import type {
   McpOperationResult,
@@ -141,6 +143,8 @@ export const IpcChannels = {
   propertiesDiscardChange: 'properties:discard-change',
   propertiesExportJson: 'properties:export-json',
   propertiesWriteSheets: 'properties:write-sheets',
+  propertiesLoadSheets: 'properties:load-sheets',
+  propertiesDriveMeta: 'properties:drive-meta',
   originsList: 'origins:list',
   originsCreate: 'origins:create',
   originsUpdate: 'origins:update',
@@ -153,6 +157,9 @@ export const IpcChannels = {
   objectsSyncHubspot: 'objects:sync-hubspot',
   objectsApplyChange: 'objects:apply-change',
   objectsDiscardChange: 'objects:discard-change',
+  customObjectsWriteSheets: 'custom-objects:write-sheets',
+  customObjectsLoadSheets: 'custom-objects:load-sheets',
+  customObjectsDriveMeta: 'custom-objects:drive-meta',
   formsList: 'forms:list',
   formsPendingChanges: 'forms:pending-changes',
   formsSyncHubspot: 'forms:sync-hubspot',
@@ -166,6 +173,8 @@ export const IpcChannels = {
   formLinksUpsert: 'form-links:upsert',
   formLinksDelete: 'form-links:delete',
   formsWriteSheets: 'forms:write-sheets',
+  formsLoadSheets: 'forms:load-sheets',
+  formsDriveMeta: 'forms:drive-meta',
 } as const;
 
 export type UpdaterStatus =
@@ -223,6 +232,8 @@ export interface RevOpsApi {
   propertiesDiscardChange(input: DiscardChangeInput): Promise<OperationResult>;
   propertiesExportJson(input: ExportJsonInput): Promise<OriginExport>;
   propertiesWriteSheets(input: ProjectScopedInput): Promise<WriteSheetsResult>;
+  propertiesLoadSheets(input: ProjectScopedInput): Promise<LoadSheetsResult>;
+  propertiesDriveMeta(input: ProjectScopedInput): Promise<DriveDocMeta>;
   originsList(input: ProjectScopedInput): Promise<DataOrigin[]>;
   originsCreate(input: OriginCreateInput): Promise<DataOrigin>;
   originsUpdate(input: OriginUpdateInput): Promise<DataOrigin>;
@@ -235,6 +246,9 @@ export interface RevOpsApi {
   objectsSyncHubspot(input: ObjectsListSchemasInput): Promise<CustomObjectsSyncResult>;
   objectsApplyChange(input: ObjectApplyChangeInput): Promise<ObjectChangeResult>;
   objectsDiscardChange(input: ObjectDiscardChangeInput): Promise<ObjectChangeResult>;
+  customObjectsWriteSheets(input: ObjectsListSchemasInput): Promise<WriteSheetsResult>;
+  customObjectsLoadSheets(input: ObjectsListSchemasInput): Promise<LoadSheetsResult>;
+  customObjectsDriveMeta(input: ObjectsListSchemasInput): Promise<DriveDocMeta>;
   formsList(input: FormsListInput): Promise<HubSpotForm[]>;
   formsPendingChanges(input: FormsListInput): Promise<FormChange[]>;
   formsSyncHubspot(input: FormsSyncInput): Promise<FormsSyncResult>;
@@ -248,4 +262,6 @@ export interface RevOpsApi {
   formLinksUpsert(input: FormLinkUpsertInput): Promise<FormOriginLink>;
   formLinksDelete(input: FormLinkDeleteInput): Promise<FormsOperationResult>;
   formsWriteSheets(input: FormsListInput): Promise<FormsWriteSheetsResult>;
+  formsLoadSheets(input: FormsListInput): Promise<LoadSheetsResult>;
+  formsDriveMeta(input: FormsListInput): Promise<DriveDocMeta>;
 }

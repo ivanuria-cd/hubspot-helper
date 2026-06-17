@@ -24,6 +24,27 @@ import {
   PROPERTY_MAP_FEATURE_KEY,
   SHEETS_SCHEMA_VERSION,
 } from './property-management/sheets-model';
+import {
+  PROPERTY_STATE_FEATURE_KEY,
+  parsePropertyState,
+  serializePropertyState,
+} from './property-management/drive-state';
+import {
+  FORMS_STATE_FEATURE_KEY,
+  parseFormsState,
+  serializeFormsState,
+} from './forms-management/drive-state';
+import {
+  buildCustomObjectsTabs,
+  CUSTOM_OBJECTS_FEATURE_KEY,
+  CUSTOM_OBJECTS_SHEETS_SCHEMA_VERSION,
+} from './custom-objects/sheets-model';
+import {
+  CUSTOM_OBJECTS_STATE_FEATURE_KEY,
+  parseCustomObjectsState,
+  serializeCustomObjectsState,
+} from './custom-objects/drive-state';
+import type { LoadSheetsResult } from '@shared/types/gdrive';
 import type { SupportedLanguage } from '@shared/i18n/languages';
 import type { NewProjectInput, Project } from '@shared/types/project';
 import type {
@@ -211,20 +232,49 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   ipcMain.handle(IpcChannels.propertiesExportJson, (_event, input: ExportJsonInput) =>
     properties.exportJson(input),
   );
-  ipcMain.handle(IpcChannels.propertiesWriteSheets, (_event, input: ProjectScopedInput) => {
-    const tabs = buildPropertyMapTabs(
-      properties.listEntries({ projectId: input.projectId }),
-      properties.listOrigins(input),
-      new Date().toISOString(),
-    );
-    return gdrive.writeSpreadsheet({
+  ipcMain.handle(IpcChannels.propertiesWriteSheets, async (_event, input: ProjectScopedInput) => {
+    const entries = properties.listEntries({ projectId: input.projectId });
+    const origins = properties.listOrigins(input);
+    const tabs = buildPropertyMapTabs(entries, origins, new Date().toISOString());
+    const result = await gdrive.writeSpreadsheet({
       projectId: input.projectId,
       name: 'Mapa de propiedades CRM',
       featureKey: PROPERTY_MAP_FEATURE_KEY,
       schemaVersion: SHEETS_SCHEMA_VERSION,
       tabs,
     });
+    if (result.success) {
+      await gdrive.writeFile({
+        projectId: input.projectId,
+        featureKey: PROPERTY_STATE_FEATURE_KEY,
+        content: serializePropertyState({ entries, origins }),
+      });
+      properties.markDriveWritten(input);
+    }
+    return result;
   });
+  ipcMain.handle(
+    IpcChannels.propertiesLoadSheets,
+    async (_event, input: ProjectScopedInput): Promise<LoadSheetsResult> => {
+      const read = await gdrive.readFile({
+        projectId: input.projectId,
+        featureKey: PROPERTY_STATE_FEATURE_KEY,
+      });
+      if (!read.success || !read.content) {
+        return { success: false, error: read.error ?? 'No hay documento de estado en Drive.' };
+      }
+      try {
+        const state = parsePropertyState(read.content);
+        properties.applyDriveState(input, { entries: state.entries, origins: state.origins });
+        return { success: true, schemaVersion: state.schemaVersion };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Error al cargar' };
+      }
+    },
+  );
+  ipcMain.handle(IpcChannels.propertiesDriveMeta, (_event, input: ProjectScopedInput) =>
+    properties.getDriveMeta(input),
+  );
   ipcMain.handle(IpcChannels.originsList, (_event, input: ProjectScopedInput) =>
     properties.listOrigins(input),
   );
@@ -261,6 +311,51 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   ipcMain.handle(IpcChannels.objectsDiscardChange, (_event, input: ObjectDiscardChangeInput) =>
     customObjects.discardChange(input),
   );
+  ipcMain.handle(
+    IpcChannels.customObjectsWriteSheets,
+    async (_event, input: ObjectsListSchemasInput) => {
+      const objects = customObjects.listDefinitions(input);
+      const tabs = buildCustomObjectsTabs(objects, new Date().toISOString());
+      const result = await gdrive.writeSpreadsheet({
+        projectId: input.projectId,
+        name: 'Objetos custom',
+        featureKey: CUSTOM_OBJECTS_FEATURE_KEY,
+        schemaVersion: CUSTOM_OBJECTS_SHEETS_SCHEMA_VERSION,
+        tabs,
+      });
+      if (result.success) {
+        await gdrive.writeFile({
+          projectId: input.projectId,
+          featureKey: CUSTOM_OBJECTS_STATE_FEATURE_KEY,
+          content: serializeCustomObjectsState({ objects }),
+        });
+        customObjects.markDriveWritten(input);
+      }
+      return result;
+    },
+  );
+  ipcMain.handle(
+    IpcChannels.customObjectsLoadSheets,
+    async (_event, input: ObjectsListSchemasInput): Promise<LoadSheetsResult> => {
+      const read = await gdrive.readFile({
+        projectId: input.projectId,
+        featureKey: CUSTOM_OBJECTS_STATE_FEATURE_KEY,
+      });
+      if (!read.success || !read.content) {
+        return { success: false, error: read.error ?? 'No hay documento de estado en Drive.' };
+      }
+      try {
+        const state = parseCustomObjectsState(read.content);
+        customObjects.applyDriveState(input, { objects: state.objects });
+        return { success: true, schemaVersion: state.schemaVersion };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Error al cargar' };
+      }
+    },
+  );
+  ipcMain.handle(IpcChannels.customObjectsDriveMeta, (_event, input: ObjectsListSchemasInput) =>
+    customObjects.getDriveMeta(input),
+  );
   ipcMain.handle(IpcChannels.formsList, (_event, input: FormsListInput) => forms.listForms(input));
   ipcMain.handle(IpcChannels.formsPendingChanges, (_event, input: FormsListInput) =>
     forms.listPendingChanges(input.projectId),
@@ -293,25 +388,58 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   ipcMain.handle(IpcChannels.formLinksDelete, (_event, input: FormLinkDeleteInput) =>
     forms.deleteLink(input),
   );
-  ipcMain.handle(IpcChannels.formsWriteSheets, (_event, input: FormsListInput) => {
-    const reports = forms
-      .listForms(input)
-      .flatMap((form) => forms.coverage({ projectId: input.projectId, formId: form.id }));
+  ipcMain.handle(IpcChannels.formsWriteSheets, async (_event, input: FormsListInput) => {
+    const formsList = forms.listForms(input);
+    const links = forms.listLinks(input);
+    const reports = formsList.flatMap((form) =>
+      forms.coverage({ projectId: input.projectId, formId: form.id }),
+    );
     const tabs = buildFormsTabs(
-      forms.listForms(input),
-      forms.listLinks(input),
+      formsList,
+      links,
       reports,
       properties.listOrigins(input),
       new Date().toISOString(),
     );
-    return gdrive.writeSpreadsheet({
+    const result = await gdrive.writeSpreadsheet({
       projectId: input.projectId,
       name: 'Formularios HubSpot',
       featureKey: FORMS_FEATURE_KEY,
       schemaVersion: FORMS_SHEETS_SCHEMA_VERSION,
       tabs,
     });
+    if (result.success) {
+      await gdrive.writeFile({
+        projectId: input.projectId,
+        featureKey: FORMS_STATE_FEATURE_KEY,
+        content: serializeFormsState({ forms: formsList, links }),
+      });
+      forms.markDriveWritten(input);
+    }
+    return result;
   });
+  ipcMain.handle(
+    IpcChannels.formsLoadSheets,
+    async (_event, input: FormsListInput): Promise<LoadSheetsResult> => {
+      const read = await gdrive.readFile({
+        projectId: input.projectId,
+        featureKey: FORMS_STATE_FEATURE_KEY,
+      });
+      if (!read.success || !read.content) {
+        return { success: false, error: read.error ?? 'No hay documento de estado en Drive.' };
+      }
+      try {
+        const state = parseFormsState(read.content);
+        forms.applyDriveState(input, { forms: state.forms, links: state.links });
+        return { success: true, schemaVersion: state.schemaVersion };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : 'Error al cargar' };
+      }
+    },
+  );
+  ipcMain.handle(IpcChannels.formsDriveMeta, (_event, input: FormsListInput) =>
+    forms.getDriveMeta(input),
+  );
 
   return mcp;
 }

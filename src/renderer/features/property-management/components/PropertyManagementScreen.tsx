@@ -17,6 +17,9 @@ import SyncIcon from '@mui/icons-material/Sync';
 import EditIcon from '@mui/icons-material/Edit';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
+import { useDriveDoc } from '@shared/hooks/useDriveDoc';
+import { DriveDocActions } from '@shared/components/DriveDocActions';
+import { DriveDirtyGuard } from '@shared/components/DriveDirtyGuard';
 import type { PropertyEntry } from '@shared/types/properties';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
 import { useEntriesStore } from '../store/entries-store';
@@ -53,8 +56,19 @@ export function PropertyManagementScreen(): JSX.Element | null {
   const [originsOpen, setOriginsOpen] = useState(false);
   const [exportAnchor, setExportAnchor] = useState<null | HTMLElement>(null);
   const [busy, setBusy] = useState(false);
-  const [sheetsBusy, setSheetsBusy] = useState(false);
-  const [sheetsMsg, setSheetsMsg] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
+
+  const driveDoc = useDriveDoc({
+    hasData: (entries?.length ?? 0) > 0,
+    fetchMeta: () => window.api.propertiesDriveMeta({ projectId }),
+    update: () => window.api.propertiesWriteSheets({ projectId }),
+    load: () => window.api.propertiesLoadSheets({ projectId }),
+    messages: {
+      updateSuccess: t('drive.doc.updateSuccess'),
+      updateError: (error) => t('drive.doc.updateError', { error }),
+      loadSuccess: t('drive.doc.loadSuccess'),
+      loadError: (error) => t('drive.doc.loadError', { error }),
+    },
+  });
 
   useEffect(() => {
     if (!projectId) return;
@@ -83,22 +97,7 @@ export function PropertyManagementScreen(): JSX.Element | null {
     }
   };
 
-  const handleWriteSheets = async (): Promise<void> => {
-    setSheetsBusy(true);
-    setSheetsMsg(null);
-    try {
-      const result = await window.api.propertiesWriteSheets({ projectId });
-      setSheetsMsg(
-        result.success
-          ? { kind: 'success', text: t('properties.writeSheets.success', { id: result.spreadsheetId ?? '' }) }
-          : { kind: 'error', text: t('properties.writeSheets.error', { error: result.error ?? '' }) },
-      );
-    } finally {
-      setSheetsBusy(false);
-    }
-  };
-
-  const handleExport = async (originId: string, originName: string): Promise<void> => {
+  const handleExport = async(originId: string, originName: string): Promise<void> => {
     setExportAnchor(null);
     const data = await window.api.propertiesExportJson({ projectId, originId });
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -137,12 +136,6 @@ export function PropertyManagementScreen(): JSX.Element | null {
           {t('properties.syncSummary', lastSync as unknown as Record<string, number>)}
         </Alert>
       ) : null}
-      {sheetsMsg && view === 'list' ? (
-        <Alert severity={sheetsMsg.kind} sx={{ mb: 2 }} onClose={() => setSheetsMsg(null)}>
-          {sheetsMsg.text}
-        </Alert>
-      ) : null}
-
       {view === 'changes' ? (
         <PendingChangesView
           entries={entries ?? []}
@@ -183,13 +176,7 @@ export function PropertyManagementScreen(): JSX.Element | null {
             <Button variant="outlined" disabled={(origins ?? []).length === 0} onClick={(e) => setExportAnchor(e.currentTarget)}>
               {t('properties.exportJson')}
             </Button>
-            <Button
-              variant="outlined"
-              disabled={(entries ?? []).length === 0 || sheetsBusy}
-              onClick={() => void handleWriteSheets()}
-            >
-              {sheetsBusy ? t('properties.writeSheets.busy') : t('properties.writeSheets.button')}
-            </Button>
+            <DriveDocActions doc={driveDoc} updateDisabled={(entries?.length ?? 0) === 0} />
             <Button variant="text" disabled={pendingCount === 0} onClick={() => setView('changes')}>
               {t('properties.pendingChanges', { count: pendingCount })}
             </Button>
@@ -286,6 +273,13 @@ export function PropertyManagementScreen(): JSX.Element | null {
         onCreate={(origin) => createOrigin(projectId, origin)}
         onUpdate={(origin) => updateOrigin(projectId, origin)}
         onDelete={(originId) => removeOrigin(projectId, originId)}
+      />
+
+      <DriveDirtyGuard
+        dirty={driveDoc.dirty}
+        projectId={projectId}
+        featureKey="property-management"
+        onUpdate={driveDoc.update}
       />
     </Box>
   );

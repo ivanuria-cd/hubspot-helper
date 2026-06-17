@@ -24,8 +24,10 @@ import type {
   HubSpotForm,
 } from '@shared/types/forms';
 import type { PropertyEntry } from '@shared/types/properties';
+import type { DriveDocMeta } from '@shared/types/gdrive';
 import type { FormsApi } from '../connectors/hubspot/forms';
 import type { FormsStore } from './store';
+import type { FormsDriveState } from './drive-state';
 import { buildCoverageReport, missingItems } from './coverage';
 import { buildAddFieldsChange, buildCreateFormChange, markApplied } from './pending-changes';
 
@@ -51,8 +53,15 @@ function hubspotErrorMessage(error: unknown): string {
 }
 
 export function createFormService(deps: FormServiceDeps) {
+  const isoNow = deps.now;
+
   function changeFactory() {
     return { newId: deps.newId, now: deps.now };
+  }
+
+  function markChanged(projectId: string): void {
+    const timestamps = deps.store.getTimestamps(projectId);
+    deps.store.setTimestamps(projectId, { ...timestamps, lastChangedAt: isoNow() });
   }
 
   function listForms(input: FormsListInput): HubSpotForm[] {
@@ -80,6 +89,7 @@ export function createFormService(deps: FormServiceDeps) {
       else imported += 1;
     }
     deps.store.set(input.projectId, { ...state, forms: remote });
+    markChanged(input.projectId);
     return { imported, updated };
   }
 
@@ -108,6 +118,7 @@ export function createFormService(deps: FormServiceDeps) {
       ? state.links.map((l) => (l.id === link.id ? link : l))
       : [...state.links, link];
     deps.store.set(input.projectId, { ...state, links });
+    markChanged(input.projectId);
     return link;
   }
 
@@ -117,6 +128,7 @@ export function createFormService(deps: FormServiceDeps) {
       ...state,
       links: state.links.filter((link) => link.id !== input.linkId),
     });
+    markChanged(input.projectId);
     return { success: true };
   }
 
@@ -141,6 +153,7 @@ export function createFormService(deps: FormServiceDeps) {
     const state = deps.store.get(input.projectId);
     const change = buildCreateFormChange(input.definition, changeFactory());
     deps.store.set(input.projectId, { ...state, changes: [...state.changes, change] });
+    markChanged(input.projectId);
     return change;
   }
 
@@ -161,6 +174,7 @@ export function createFormService(deps: FormServiceDeps) {
       changeFactory(),
     );
     deps.store.set(input.projectId, { ...state, changes: [...state.changes, change] });
+    markChanged(input.projectId);
     return change;
   }
 
@@ -206,6 +220,7 @@ export function createFormService(deps: FormServiceDeps) {
       changes: fresh.changes.map((c) => (c.id === change.id ? applied : c)),
       links: newLink ? [...fresh.links, newLink] : fresh.links,
     });
+    markChanged(input.projectId);
     return { success: true, formId: resultFormId };
   }
 
@@ -215,7 +230,24 @@ export function createFormService(deps: FormServiceDeps) {
       ...state,
       changes: state.changes.filter((c) => c.id !== input.changeId),
     });
+    markChanged(input.projectId);
     return { success: true };
+  }
+
+  function getDriveMeta(input: { projectId: string }): DriveDocMeta {
+    return deps.store.getTimestamps(input.projectId);
+  }
+
+  function markDriveWritten(input: { projectId: string }): void {
+    const timestamps = deps.store.getTimestamps(input.projectId);
+    deps.store.setTimestamps(input.projectId, { ...timestamps, lastWrittenAt: isoNow() });
+  }
+
+  function applyDriveState(input: { projectId: string }, state: FormsDriveState): void {
+    const current = deps.store.get(input.projectId);
+    deps.store.set(input.projectId, { ...current, forms: state.forms, links: state.links });
+    const now = isoNow();
+    deps.store.setTimestamps(input.projectId, { lastWrittenAt: now, lastChangedAt: now });
   }
 
   return {
@@ -231,6 +263,9 @@ export function createFormService(deps: FormServiceDeps) {
     listPendingChanges,
     applyChange,
     discardChange,
+    getDriveMeta,
+    markDriveWritten,
+    applyDriveState,
   };
 }
 

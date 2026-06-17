@@ -32,9 +32,11 @@ import type { PropertiesApi, RemoteProperty } from '../connectors/hubspot/proper
 import type { ObjectsApi } from '../connectors/hubspot/objects';
 import type { PropertyStore } from './store';
 import type { HubSpotPropertyRef } from '@shared/types/properties';
+import type { DriveDocMeta } from '@shared/types/gdrive';
 import { reconcileEntries } from './reconcile';
 import { markApplied, cleanOptions } from './pending-changes';
 import { buildOriginExport } from './origin-export';
+import type { PropertyDriveState } from './drive-state';
 
 /** Sanea las opciones de la definición destino para no almacenar opciones vacías. */
 function sanitizeRef(ref: HubSpotPropertyRef): HubSpotPropertyRef {
@@ -86,8 +88,15 @@ function hubspotErrorMessage(error: unknown): string {
 }
 
 export function createPropertyService(deps: PropertyServiceDeps) {
+  const isoNow = deps.now ?? (() => new Date().toISOString());
+
   function changeFactory() {
     return { newId: deps.newId, now: deps.now };
+  }
+
+  function markChanged(projectId: string): void {
+    const timestamps = deps.store.getTimestamps(projectId);
+    deps.store.setTimestamps(projectId, { ...timestamps, lastChangedAt: isoNow() });
   }
 
   function listObjects(input: ProjectScopedInput): Promise<HubSpotObject[]> {
@@ -134,6 +143,7 @@ export function createPropertyService(deps: PropertyServiceDeps) {
       ? state.entries.map((e) => (e.id === entry.id ? entry : e))
       : [...state.entries, entry];
     deps.store.set(input.projectId, { ...state, entries });
+    markChanged(input.projectId);
     return entry;
   }
 
@@ -143,6 +153,7 @@ export function createPropertyService(deps: PropertyServiceDeps) {
       ...state,
       entries: state.entries.filter((e) => e.id !== input.entryId),
     });
+    markChanged(input.projectId);
     return { success: true };
   }
 
@@ -158,6 +169,7 @@ export function createPropertyService(deps: PropertyServiceDeps) {
 
     const result = reconcileEntries(state.entries, remotes, changeFactory());
     deps.store.set(input.projectId, { ...state, entries: result.entries });
+    markChanged(input.projectId);
     return result.summary;
   }
 
@@ -197,6 +209,7 @@ export function createPropertyService(deps: PropertyServiceDeps) {
         : e,
     );
     deps.store.set(input.projectId, { ...state, entries });
+    markChanged(input.projectId);
     return { success: true };
   }
 
@@ -207,6 +220,7 @@ export function createPropertyService(deps: PropertyServiceDeps) {
       pendingChanges: e.pendingChanges?.filter((c) => c.id !== input.changeId),
     }));
     deps.store.set(input.projectId, { ...state, entries });
+    markChanged(input.projectId);
     return { success: true };
   }
 
@@ -225,6 +239,7 @@ export function createPropertyService(deps: PropertyServiceDeps) {
       createdAt: deps.now(),
     };
     deps.store.set(input.projectId, { ...state, origins: [...state.origins, origin] });
+    markChanged(input.projectId);
     return origin;
   }
 
@@ -234,6 +249,7 @@ export function createPropertyService(deps: PropertyServiceDeps) {
       origin.id === input.origin.id ? { ...origin, ...input.origin } : origin,
     );
     deps.store.set(input.projectId, { ...state, origins });
+    markChanged(input.projectId);
     return input.origin;
   }
 
@@ -247,6 +263,7 @@ export function createPropertyService(deps: PropertyServiceDeps) {
         sources: entry.sources.filter((source) => source.originId !== input.originId),
       })),
     });
+    markChanged(input.projectId);
     return { success: true };
   }
 
@@ -255,6 +272,30 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     const origin = state.origins.find((o) => o.id === input.originId);
     if (!origin) throw new Error('Origen no encontrado');
     return buildOriginExport({ origin, entries: state.entries, now: deps.now });
+  }
+
+  function getDriveMeta(input: ProjectScopedInput): DriveDocMeta {
+    const timestamps = deps.store.getTimestamps(input.projectId);
+    return {
+      lastWrittenAt: timestamps.lastWrittenAt,
+      lastChangedAt: timestamps.lastChangedAt,
+    };
+  }
+
+  function markDriveWritten(input: ProjectScopedInput): void {
+    const timestamps = deps.store.getTimestamps(input.projectId);
+    deps.store.setTimestamps(input.projectId, { ...timestamps, lastWrittenAt: isoNow() });
+  }
+
+  function applyDriveState(input: ProjectScopedInput, state: PropertyDriveState): void {
+    const current = deps.store.get(input.projectId);
+    deps.store.set(input.projectId, {
+      ...current,
+      entries: state.entries,
+      origins: state.origins,
+    });
+    const stamp = isoNow();
+    deps.store.setTimestamps(input.projectId, { lastWrittenAt: stamp, lastChangedAt: stamp });
   }
 
   return {
@@ -273,6 +314,9 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     updateOrigin,
     deleteOrigin,
     exportJson,
+    getDriveMeta,
+    markDriveWritten,
+    applyDriveState,
   };
 }
 

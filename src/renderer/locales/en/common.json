@@ -1,11 +1,7 @@
 {
   "appName": "RevOps Assistant",
   "language": {
-    "label": "Language",
-    "es": "Spanish",
-    "ca": "Catalan",
-    "eu": "Basque",
-    "en": "English"
+    "label": "Language"
   },
   "welcome": {
     "title": "RevOps Assistant",
@@ -152,7 +148,10 @@
       "saved": "Credentials saved.",
       "cleared": "Credentials cleared; .env will be used if present.",
       "error": "Could not save credentials.",
-      "source": { "app": "App", "env": ".env" }
+      "source": {
+        "app": "App",
+        "env": ".env"
+      }
     },
     "folderPicker": {
       "title": "Select working folder",
@@ -168,6 +167,30 @@
       "empty": "This folder has no subfolders.",
       "selectThis": "Select this folder",
       "cancel": "Cancel"
+    }
+  },
+  "drive": {
+    "doc": {
+      "update": "Update file in Drive",
+      "updating": "Updating…",
+      "load": "Load from Drive",
+      "loading": "Loading…",
+      "updateSuccess": "File updated in Drive.",
+      "updateError": "Could not update: {{error}}",
+      "loadSuccess": "State loaded from Drive.",
+      "loadError": "Could not load: {{error}}",
+      "noFolder": "Select a Google Drive folder to use this feature.",
+      "loadConfirmTitle": "Load from Drive",
+      "loadConfirmBody": "This will replace the local state with the content of the Drive file. Continue?",
+      "cancel": "Cancel"
+    },
+    "dirtyGuard": {
+      "title": "Unsaved changes in Drive",
+      "body": "You have changes that haven't been updated in the Drive file. Update it before leaving?",
+      "dontAsk": "Don't ask again for this project",
+      "cancel": "Cancel",
+      "leave": "Leave without updating",
+      "updateAndLeave": "Update and leave"
     }
   },
   "update": {

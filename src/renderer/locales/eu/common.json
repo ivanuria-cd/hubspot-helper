@@ -1,11 +1,7 @@
 {
   "appName": "RevOps Assistant",
   "language": {
-    "label": "Hizkuntza",
-    "es": "Gaztelania",
-    "ca": "Katalana",
-    "eu": "Euskara",
-    "en": "Ingelesa"
+    "label": "Hizkuntza"
   },
   "welcome": {
     "title": "RevOps Assistant",
@@ -152,7 +148,10 @@
       "saved": "Kredentzialak gordeta.",
       "cleared": "Kredentzialak ezabatuta; .env erabiliko da existitzen bada.",
       "error": "Ezin izan dira kredentzialak gorde.",
-      "source": { "app": "App", "env": ".env" }
+      "source": {
+        "app": "App",
+        "env": ".env"
+      }
     },
     "folderPicker": {
       "title": "Hautatu lan-karpeta",
@@ -168,6 +167,30 @@
       "empty": "Karpeta honek ez du azpikarpetarik.",
       "selectThis": "Hautatu karpeta hau",
       "cancel": "Utzi"
+    }
+  },
+  "drive": {
+    "doc": {
+      "update": "Eguneratu fitxategia Driven",
+      "updating": "Eguneratzen…",
+      "load": "Kargatu Drivetik",
+      "loading": "Kargatzen…",
+      "updateSuccess": "Fitxategia Driven eguneratu da.",
+      "updateError": "Ezin izan da eguneratu: {{error}}",
+      "loadSuccess": "Egoera Drivetik kargatu da.",
+      "loadError": "Ezin izan da kargatu: {{error}}",
+      "noFolder": "Hautatu Google Drive karpeta bat funtzio hau erabiltzeko.",
+      "loadConfirmTitle": "Kargatu Drivetik",
+      "loadConfirmBody": "Honek tokiko egoera Drive fitxategiaren edukiarekin ordeztuko du. Jarraitu?",
+      "cancel": "Utzi"
+    },
+    "dirtyGuard": {
+      "title": "Driven gorde gabeko aldaketak",
+      "body": "Drive fitxategian eguneratu gabeko aldaketak dituzu. Irten aurretik eguneratu nahi duzu?",
+      "dontAsk": "Ez galdetu berriro proiektu honetan",
+      "cancel": "Utzi",
+      "leave": "Irten eguneratu gabe",
+      "updateAndLeave": "Eguneratu eta irten"
     }
   },
   "update": {

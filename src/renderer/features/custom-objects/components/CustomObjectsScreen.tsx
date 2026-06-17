@@ -13,6 +13,9 @@ import SyncIcon from '@mui/icons-material/Sync';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
 import { useObjectsStore } from '@renderer/features/property-management/store/objects-store';
+import { useDriveDoc } from '@shared/hooks/useDriveDoc';
+import { DriveDocActions } from '@shared/components/DriveDocActions';
+import { DriveDirtyGuard } from '@shared/components/DriveDirtyGuard';
 import type { CustomObjectDefinition } from '@shared/types/custom-objects';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
 import { useCustomObjectsStore } from '../store/custom-objects-store';
@@ -58,6 +61,19 @@ export function CustomObjectsScreen(): JSX.Element | null {
     () => (definitions ?? []).reduce((sum, d) => sum + (d.pendingChanges?.length ?? 0), 0),
     [definitions],
   );
+
+  const driveDoc = useDriveDoc({
+    hasData: (definitions?.length ?? 0) > 0,
+    fetchMeta: () => window.api.customObjectsDriveMeta({ projectId }),
+    update: () => window.api.customObjectsWriteSheets({ projectId }),
+    load: () => window.api.customObjectsLoadSheets({ projectId }),
+    messages: {
+      updateSuccess: t('drive.doc.updateSuccess'),
+      updateError: (error) => t('drive.doc.updateError', { error }),
+      loadSuccess: t('drive.doc.loadSuccess'),
+      loadError: (error) => t('drive.doc.loadError', { error }),
+    },
+  });
 
   if (!activeProject) return null;
 
@@ -128,6 +144,8 @@ export function CustomObjectsScreen(): JSX.Element | null {
             <Button variant="text" disabled={pendingCount === 0} onClick={() => setView('changes')}>
               {t('customObjects.pendingChanges', { count: pendingCount })}
             </Button>
+            <Box sx={{ flexGrow: 1 }} />
+            <DriveDocActions doc={driveDoc} updateDisabled={(definitions?.length ?? 0) === 0} />
           </Stack>
 
           {loading ? (
@@ -194,6 +212,13 @@ export function CustomObjectsScreen(): JSX.Element | null {
           await remove(projectId, objectId);
           setSelected(null);
         }}
+      />
+
+      <DriveDirtyGuard
+        dirty={driveDoc.dirty}
+        projectId={projectId}
+        featureKey="custom-objects"
+        onUpdate={driveDoc.update}
       />
     </Box>
   );

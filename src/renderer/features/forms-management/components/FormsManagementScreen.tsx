@@ -3,6 +3,9 @@ import { Alert, Box, Button, MenuItem, Stack, TextField, Typography } from '@mui
 import SyncIcon from '@mui/icons-material/Sync';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
+import { useDriveDoc } from '@shared/hooks/useDriveDoc';
+import { DriveDocActions } from '@shared/components/DriveDocActions';
+import { DriveDirtyGuard } from '@shared/components/DriveDirtyGuard';
 import type { HubSpotForm } from '@shared/types/forms';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
 import { useFormsStore } from '../store/forms-store';
@@ -47,10 +50,19 @@ export function FormsManagementScreen(): JSX.Element | null {
   const [typeFilter, setTypeFilter] = useState('all');
   const [coverageFilter, setCoverageFilter] = useState('all');
   const [busy, setBusy] = useState(false);
-  const [sheetsBusy, setSheetsBusy] = useState(false);
-  const [sheetsMsg, setSheetsMsg] = useState<{ kind: 'success' | 'error'; text: string } | null>(
-    null,
-  );
+
+  const driveDoc = useDriveDoc({
+    hasData: forms.length > 0,
+    fetchMeta: () => window.api.formsDriveMeta({ projectId }),
+    update: () => window.api.formsWriteSheets({ projectId }),
+    load: () => window.api.formsLoadSheets({ projectId }),
+    messages: {
+      updateSuccess: t('drive.doc.updateSuccess'),
+      updateError: (error) => t('drive.doc.updateError', { error }),
+      loadSuccess: t('drive.doc.loadSuccess'),
+      loadError: (error) => t('drive.doc.loadError', { error }),
+    },
+  });
 
   useEffect(() => {
     if (!projectId) return;
@@ -98,21 +110,6 @@ export function FormsManagementScreen(): JSX.Element | null {
     }
   };
 
-  const handleWriteSheets = async (): Promise<void> => {
-    setSheetsBusy(true);
-    setSheetsMsg(null);
-    try {
-      const result = await window.api.formsWriteSheets({ projectId });
-      setSheetsMsg(
-        result.success
-          ? { kind: 'success', text: t('forms.writeSheets.success', { id: result.spreadsheetId ?? '' }) }
-          : { kind: 'error', text: t('forms.writeSheets.error', { error: result.error ?? '' }) },
-      );
-    } finally {
-      setSheetsBusy(false);
-    }
-  };
-
   return (
     <Box>
       <Stack direction="row" alignItems="center" sx={{ mb: 2 }}>
@@ -145,12 +142,6 @@ export function FormsManagementScreen(): JSX.Element | null {
           {t('forms.syncSummary', lastSync as unknown as Record<string, number>)}
         </Alert>
       ) : null}
-      {sheetsMsg && view === 'list' ? (
-        <Alert severity={sheetsMsg.kind} sx={{ mb: 2 }} onClose={() => setSheetsMsg(null)}>
-          {sheetsMsg.text}
-        </Alert>
-      ) : null}
-
       {view === 'changes' ? (
         <FormPendingChangesView
           changes={changes}
@@ -164,13 +155,7 @@ export function FormsManagementScreen(): JSX.Element | null {
             <Button variant="contained" onClick={() => setWizardOpen(true)}>
               {t('forms.addForm')}
             </Button>
-            <Button
-              variant="outlined"
-              disabled={forms.length === 0 || sheetsBusy}
-              onClick={() => void handleWriteSheets()}
-            >
-              {sheetsBusy ? t('forms.writeSheets.busy') : t('forms.writeSheets.button')}
-            </Button>
+            <DriveDocActions doc={driveDoc} updateDisabled={forms.length === 0} />
             <Button variant="text" disabled={changes.length === 0} onClick={() => setView('changes')}>
               {t('forms.pendingChanges', { count: changes.length })}
             </Button>
@@ -259,6 +244,13 @@ export function FormsManagementScreen(): JSX.Element | null {
           await upsertLink(projectId, link);
           if (selected) await loadCoverage(projectId, selected.id);
         }}
+      />
+
+      <DriveDirtyGuard
+        dirty={driveDoc.dirty}
+        projectId={projectId}
+        featureKey="forms-management"
+        onUpdate={driveDoc.update}
       />
     </Box>
   );

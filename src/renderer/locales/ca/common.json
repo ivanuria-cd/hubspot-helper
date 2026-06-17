@@ -1,11 +1,7 @@
 {
   "appName": "RevOps Assistant",
   "language": {
-    "label": "Idioma",
-    "es": "Castellà",
-    "ca": "Català",
-    "eu": "Basc",
-    "en": "Anglès"
+    "label": "Idioma"
   },
   "welcome": {
     "title": "RevOps Assistant",
@@ -152,7 +148,10 @@
       "saved": "Credencials desades.",
       "cleared": "Credencials esborrades; s'usarà el .env si existeix.",
       "error": "No s'han pogut desar les credencials.",
-      "source": { "app": "App", "env": ".env" }
+      "source": {
+        "app": "App",
+        "env": ".env"
+      }
     },
     "folderPicker": {
       "title": "Selecciona la carpeta de treball",
@@ -168,6 +167,30 @@
       "empty": "Aquesta carpeta no té subcarpetes.",
       "selectThis": "Selecciona aquesta carpeta",
       "cancel": "Cancel·la"
+    }
+  },
+  "drive": {
+    "doc": {
+      "update": "Actualitza el fitxer a Drive",
+      "updating": "Actualitzant…",
+      "load": "Carrega des de Drive",
+      "loading": "Carregant…",
+      "updateSuccess": "Fitxer actualitzat a Drive.",
+      "updateError": "No s'ha pogut actualitzar: {{error}}",
+      "loadSuccess": "Estat carregat des de Drive.",
+      "loadError": "No s'ha pogut carregar: {{error}}",
+      "noFolder": "Selecciona una carpeta de Google Drive per usar aquesta funció.",
+      "loadConfirmTitle": "Carrega des de Drive",
+      "loadConfirmBody": "Això reemplaçarà l'estat local amb el contingut del fitxer de Drive. Vols continuar?",
+      "cancel": "Cancel·la"
+    },
+    "dirtyGuard": {
+      "title": "Canvis sense desar a Drive",
+      "body": "Tens canvis que no s'han actualitzat al fitxer de Drive. Vols actualitzar-lo abans de sortir?",
+      "dontAsk": "No tornis a preguntar en aquest projecte",
+      "cancel": "Cancel·la",
+      "leave": "Surt sense actualitzar",
+      "updateAndLeave": "Actualitza i surt"
     }
   },
   "update": {

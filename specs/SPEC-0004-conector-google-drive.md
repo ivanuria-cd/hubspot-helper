@@ -40,12 +40,11 @@ Implementar el conector Google Drive: autenticación OAuth 2.0, permiso acotado 
   — Qué puede modificar el usuario
   — Qué NO debe modificar (datos gestionados por la app)
   — Versión de esquema del archivo (ej: `schema_version: 2`) para gestionar migraciones y evitar incompatibilidades entre versiones de la app
-- La app usa los archivos Drive como fuente de verdad: al abrir la app, sincroniza el estado local con Drive. Si el usuario modificó manualmente el archivo, prevalece la versión de Drive. El usuario también puede solicitar una sincronización manual desde la app en cualquier momento sin necesidad de reiniciarla.
+- ~~La app usa los archivos Drive como fuente de verdad: al abrir la app, sincroniza el estado local con Drive. Si el usuario modificó manualmente el archivo, prevalece la versión de Drive.~~ **Revocado por §15 (BORRADOR, 2026-06-17).** Drive **ya no es fuente de verdad**. El estado operativo de cada característica vive en `electron-store` (local) y/o HubSpot; el documento de Drive es un **artefacto exportable y reimportable**. El usuario puede solicitar en cualquier momento actualizar el archivo de Drive desde la app, o cargar su contenido de vuelta al estado local. Ver §15.
 - Cada archivo tiene metadata de la app almacenada en las `appProperties` del fichero Drive (sin afectar al contenido visible).
 
 ### Conflictos
-- La sincronización es unidireccional desde el punto de vista de la app: **Drive manda**.
-- Si la app detecta que tiene datos más nuevos que Drive (el usuario cambió algo offline), muestra un aviso y deja al usuario decidir qué versión conservar.
+- ~~La sincronización es unidireccional desde el punto de vista de la app: **Drive manda**.~~ **Revocado por §15 (BORRADOR, 2026-06-17).** No hay sincronización automática ni «Drive manda». La escritura a Drive es siempre una acción explícita del usuario (botón crear-o-actualizar) y la lectura de vuelta es una carga explícita. No existe resolución automática de conflictos: la carga desde Drive **sobrescribe** el estado local del feature, previa confirmación. Ver §15.
 
 ---
 
@@ -536,3 +535,138 @@ Dos añadidos al selector de carpeta.
   typecheck completo debe ejecutarse en la máquina del usuario (`npm run typecheck`): el clonado al
   sandbox de esta sesión truncaba ficheros, por lo que la verificación de contrato se hizo sobre los
   originales. Al cambiar los scopes, las cuentas conectadas deben reautorizar.
+
+---
+
+## 15. Unificación de los documentos de Drive — patrón común (IMPLEMENTADO, 2026-06-17)
+
+### 15.1 Motivación
+
+Las características que producen un documento en Drive lo hacían de forma inconsistente: Propiedades
+(SPEC-0006) y Formularios (SPEC-0008) ofrecen un botón de volcado, pero con etiquetas y claves i18n
+distintas («Volcar a Google Sheets» vs «Volcar a Sheets») y sin componente compartido; Objetos custom
+(SPEC-0007) no ofrecía documento alguno. Además, el §2 de este SPEC declaraba a Drive como **fuente de
+verdad** con sincronización donde «Drive manda», en contradicción con lo realmente implementado en
+SPEC-0006 §18 y SPEC-0008 (la fuente operativa es el estado local). Esta sección unifica el patrón y
+formaliza la decisión.
+
+Esta sección es **transversal**: define el patrón canónico y los componentes compartidos. Cada SPEC de
+característica (0006, 0007, 0008) añade su propia sección que lo referencia y describe su builder/parser
+concreto.
+
+### 15.2 Decisión: Drive no es fuente de verdad
+
+- El estado operativo de cada característica vive en `electron-store` (local) y/o HubSpot.
+- El documento de Drive es un **artefacto exportable y reimportable**, no la fuente de verdad.
+- No hay sincronización automática al abrir la app ni resolución automática de conflictos.
+- Toda escritura a Drive es una **acción explícita** del usuario (botón crear-o-actualizar).
+- Toda lectura de vuelta es una **carga explícita** que sobrescribe el estado local del feature, previa
+  confirmación.
+
+### 15.3 Patrón de UI unificado
+
+Tres elementos comunes, idénticos en todas las características que tengan documento Drive:
+
+1. **Botón único «Actualizar archivo en Drive»** (crear-o-actualizar):
+   - Si el documento del feature no existe en la carpeta seleccionada, lo **crea**; si existe (mismo
+     `featureKey`/`appProperties`), lo **actualiza** reescribiendo su contenido.
+   - **Best-effort**: si no hay cuenta de Google conectada o carpeta seleccionada, la acción no falla;
+     muestra un aviso indicando que falta configurar Drive. El estado local sigue siendo válido.
+   - Sustituye a los actuales «Volcar a Google Sheets» / «Volcar a Sheets». Se elimina el verbo «volcar».
+   - Tras éxito, registra el `lastWrittenAt` (timestamp) del documento en el estado del feature (ver 15.4).
+
+2. **Botón «Cargar desde Drive»** (reimportar):
+   - Lee el documento del feature desde Drive y **reconstruye el estado local** a partir del esquema
+     versionado que la propia app escribió (ver 15.5).
+   - Pide **confirmación** antes de sobrescribir el estado local (la carga es destructiva).
+   - Best-effort igual que el botón de actualizar.
+
+3. **Modal recordatorio al salir con cambios sin actualizar**:
+   - Cada feature mantiene un flag *dirty* = «hay cambios locales posteriores al último
+     `lastWrittenAt`».
+   - Al navegar fuera de la pantalla del feature con estado *dirty*, se muestra un modal:
+     «Tienes cambios sin guardar en Drive. ¿Actualizar el archivo ahora?» con acciones
+     **[Actualizar y salir]** / **[Salir sin actualizar]** / **[Cancelar]** y un checkbox
+     **«No volver a preguntar en este proyecto»**.
+   - La preferencia «no volver a preguntar» se persiste por proyecto en `electron-store`.
+
+### 15.4 Componentes y contratos compartidos
+
+Por ser interacción genérica con el conector de Drive, los elementos compartidos se definen aquí:
+
+- **Hook `useDriveDoc`** (`renderer/shared/hooks/`): encapsula el estado *dirty*, el `lastWrittenAt`, y las
+  acciones `update()` / `load()` para un feature dado. Recibe el canal IPC de escritura/lectura y un
+  selector del timestamp del último cambio local.
+- **Componente `DriveDocActions`** (`renderer/shared/components/`): renderiza los dos botones
+  («Actualizar archivo en Drive», «Cargar desde Drive») con estados busy/disabled y el aviso de
+  éxito/error, usando claves i18n compartidas `drive.doc.*` (`update`, `updating`, `load`, `loading`,
+  `updateSuccess`, `updateError`, `loadSuccess`, `loadError`, `noFolder`).
+- **Componente `DriveDirtyGuard`** (`renderer/shared/components/`): el modal recordatorio descrito en
+  15.3.3, con claves i18n compartidas `drive.dirtyGuard.*`. Se integra con el router del App Shell
+  (SPEC-0002) mediante un guard de navegación; el estado *dirty* lo aporta cada feature.
+- **Persistencia de «no volver a preguntar»**: clave por proyecto en `electron-store`
+  (`driveDirtyGuard.skip.<featureKey>`).
+
+### 15.5 Lectura de vuelta — documento de estado companion (decisión de implementación)
+
+**Decisión 2026-06-17 (implementada).** En lugar de parsear el Google Sheets «bonito» (que es un
+resumen legible y, por tanto, *lossy*: aplana entradas→fuentes→opciones, guarda nombres en vez de IDs,
+no serializa la estructura completa de formularios u objetos), la carga se hace desde un **documento de
+estado companion**: un Google Doc gestionado, por característica, cuyo cuerpo es el **JSON íntegro** del
+estado local. Ventajas: round-trip 100% fiel, reutiliza el `writeFile`/`readFile` ya probados del
+conector (cero cambios en `sheets-client`/`sheets-style` ni en sus tests), y mantiene el Sheets limpio
+para humanos. Por ello **no** se implementa `readSpreadsheet`.
+
+- **Escritura.** «Actualizar archivo en Drive» escribe **dos** ficheros gestionados en la carpeta del
+  proyecto: el Sheets legible (`featureKey` del feature, vía `writeSpreadsheet`) y el Doc de estado
+  (`featureKey` + sufijo `-state`, vía `writeFile`) con `serializeXState(snapshot)` →
+  `JSON.stringify({ schema_version, …datos })`.
+- **Lectura.** «Cargar desde Drive» hace `readFile({ featureKey: '<feature>-state' })` y
+  `parseXState(content)`: valida `schema_version`; si es **mayor** que la soportada, aborta con aviso (la
+  app es más antigua que el documento); reconstruye el estado local **sobrescribiéndolo**.
+- Canales IPC por feature: `properties:load-sheets` / `forms:load-sheets` / `custom-objects:load-sheets`
+  (carga) y `properties:drive-meta` / `forms:drive-meta` / `custom-objects:drive-meta` (timestamps para
+  el flag *dirty*). No se añade `gdrive:read-spreadsheet`.
+- `featureKey` de estado: `property-management-state`, `forms-management-state`, `custom-objects-state`.
+
+### 15.6 Alcance e impacto
+
+- **SPEC-0004 (este)**: revoca Drive-fuente-de-verdad (§2); define `useDriveDoc`
+  (`renderer/shared/hooks/`), `DriveDocActions` y `DriveDirtyGuard` (`renderer/shared/components/`) y las
+  claves i18n compartidas `drive.doc.*` / `drive.dirtyGuard.*`. La carga usa el documento de estado
+  companion vía `writeFile`/`readFile` (15.5), **no** `readSpreadsheet`.
+- **SPEC-0006/0007/0008**: cada uno adopta el patrón (sección propia): botón unificado, modal al salir,
+  carga desde el documento de estado con su `serialize`/`parse`. Objetos custom (0007) estrena documento
+  Drive.
+
+### 15.9 Notas de implementación (2026-06-17)
+
+- **Componentes compartidos.** `useDriveDoc` (estado *dirty*, mensajes, `update()`/`load()`),
+  `DriveDocActions` (los dos botones + Alert) y `DriveDirtyGuard` (modal). El guard usa `useBlocker` de
+  react-router (la app monta `RouterProvider` con `createMemoryRouter`, un data router), por lo que **no**
+  hizo falta tocar `router.tsx`.
+- **«No volver a preguntar».** Se persiste en `localStorage` del renderer con clave
+  `revops:driveGuardSkip:<projectId>:<featureKey>` (en lugar de electron-store, para no añadir un canal
+  IPC). Es persistencia por proyecto + característica equivalente.
+- **Tipos compartidos.** `DriveDocMeta` y `LoadSheetsResult` en `shared/types/gdrive.ts`.
+- **Cableado.** Canales y métodos `*LoadSheets` / `*DriveMeta` (y `customObjectsWriteSheets`) en
+  `ipc.ts`/`preload`/`main`. Los handlers de escritura ahora escriben Sheets + Doc de estado y registran
+  `lastWrittenAt`.
+- **Estado *dirty*.** Cada servicio persiste `lastWrittenAt`/`lastChangedAt` por proyecto; las mutaciones
+  fijan `lastChangedAt`, la escritura fija `lastWrittenAt` y la carga iguala ambos.
+- **Verificación.** Pendiente `npm run typecheck` / `npm run test` en la máquina del usuario (el espejo del
+  sandbox corrompe ficheros; los originales se verificaron sanos vía herramienta de lectura).
+
+### 15.7 Tests requeridos
+
+- `client.spec.ts` / conector: `readSpreadsheet` localiza por `appProperties` y mapea hojas; devuelve
+  `null` si no existe.
+- `useDriveDoc.spec.ts`: cálculo del flag *dirty* a partir de `lastWrittenAt` vs último cambio local.
+- Funcional: salir de una pantalla *dirty* dispara el modal; «no volver a preguntar» lo silencia en el
+  proyecto; «Cargar desde Drive» pide confirmación y reconstruye el estado (mock del conector).
+
+### 15.8 Fuera de alcance
+
+- Interpretar ediciones manuales del usuario fuera del esquema (la carga reimporta el documento generado
+  por la app; las celdas editadas a mano que no encajen en el esquema se ignoran).
+- Sincronización automática o en segundo plano.

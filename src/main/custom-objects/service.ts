@@ -17,8 +17,10 @@ import type {
   SchemaChange,
 } from '@shared/types/custom-objects';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
+import type { DriveDocMeta } from '@shared/types/gdrive';
 import type { SchemasApi } from '../connectors/hubspot/schemas';
 import type { CustomObjectStore } from './store';
+import type { CustomObjectsDriveState } from './drive-state';
 import { buildArchiveChange, cleanOptions, markApplied } from './changes';
 import { reconcileDefinitions } from './reconcile';
 
@@ -53,8 +55,15 @@ function sanitizeDefinition(
 }
 
 export function createCustomObjectService(deps: CustomObjectServiceDeps) {
+  const isoNow = deps.now ?? (() => new Date().toISOString());
+
   function changeFactory() {
     return { newId: deps.newId, now: deps.now };
+  }
+
+  function markChanged(projectId: string): void {
+    const timestamps = deps.store.getTimestamps(projectId);
+    deps.store.setTimestamps(projectId, { ...timestamps, lastChangedAt: isoNow() });
   }
 
   function listDefinitions(input: ObjectsListSchemasInput): CustomObjectDefinition[] {
@@ -83,6 +92,7 @@ export function createCustomObjectService(deps: CustomObjectServiceDeps) {
       ? state.definitions.map((d) => (d.id === definition.id ? definition : d))
       : [...state.definitions, definition];
     deps.store.set(input.projectId, { definitions });
+    markChanged(input.projectId);
     return definition;
   }
 
@@ -98,6 +108,7 @@ export function createCustomObjectService(deps: CustomObjectServiceDeps) {
       d.id === def.id ? { ...d, pendingChanges: [...(d.pendingChanges ?? []), change] } : d,
     );
     deps.store.set(input.projectId, { definitions });
+    markChanged(input.projectId);
     return { success: true };
   }
 
@@ -106,6 +117,7 @@ export function createCustomObjectService(deps: CustomObjectServiceDeps) {
     deps.store.set(input.projectId, {
       definitions: state.definitions.filter((d) => d.id !== input.objectId),
     });
+    markChanged(input.projectId);
     return { success: true };
   }
 
@@ -123,6 +135,7 @@ export function createCustomObjectService(deps: CustomObjectServiceDeps) {
           changeFactory(),
         );
         deps.store.set(input.projectId, { definitions: result.definitions });
+        markChanged(input.projectId);
         return result.summary;
       });
   }
@@ -182,6 +195,7 @@ export function createCustomObjectService(deps: CustomObjectServiceDeps) {
         : d,
     );
     deps.store.set(input.projectId, { definitions });
+    markChanged(input.projectId);
     return { success: true };
   }
 
@@ -192,7 +206,23 @@ export function createCustomObjectService(deps: CustomObjectServiceDeps) {
       pendingChanges: d.pendingChanges?.filter((c: SchemaChange) => c.id !== input.changeId),
     }));
     deps.store.set(input.projectId, { definitions });
+    markChanged(input.projectId);
     return { success: true };
+  }
+
+  function getDriveMeta(input: { projectId: string }): DriveDocMeta {
+    return deps.store.getTimestamps(input.projectId);
+  }
+
+  function markDriveWritten(input: { projectId: string }): void {
+    const timestamps = deps.store.getTimestamps(input.projectId);
+    deps.store.setTimestamps(input.projectId, { ...timestamps, lastWrittenAt: isoNow() });
+  }
+
+  function applyDriveState(input: { projectId: string }, state: CustomObjectsDriveState): void {
+    deps.store.set(input.projectId, { definitions: state.objects });
+    const now = isoNow();
+    deps.store.setTimestamps(input.projectId, { lastWrittenAt: now, lastChangedAt: now });
   }
 
   return {
@@ -204,6 +234,9 @@ export function createCustomObjectService(deps: CustomObjectServiceDeps) {
     syncHubspot,
     applyChange,
     discardChange,
+    getDriveMeta,
+    markDriveWritten,
+    applyDriveState,
   };
 }
 

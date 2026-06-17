@@ -408,3 +408,52 @@ Bitácora de cambios durante la implementación (SPEC-0000: cada iteración sobr
 - **2026-06-16 — Descargas (export JSON):** tras crear la propiedad, `export-json` se bloqueaba en el **diálogo nativo de guardar** (Playwright no puede cerrar diálogos del SO) porque `main` no gestionaba descargas. Añadido en `main/index.ts` un `configureDownloads()` (`session.defaultSession.on('will-download', …)` con `item.setSavePath(join(app.getPath('downloads'), filename))`) que guarda en Descargas sin preguntar — quita fricción al export y desbloquea el test. `properties-flow`: el assert de cambios pendientes se apunta al encabezado del panel (`getByRole('heading', { name: 'Cambios pendientes' })`) para evitar el match múltiple (botón toolbar + encabezado + «Sin cambios pendientes»). **Requiere reconstruir.**
 - **2026-06-16 — Decisión del usuario (descargas + export-json):** revertido `configureDownloads()` de `main/index.ts` (import `join` incluido); el export vuelve a abrir el **diálogo nativo de «guardar como»** para que el usuario elija la ubicación (comportamiento deseado). En consecuencia, el e2e `export-json` se **retira** de la ejecución (`test.fixme`): no es testeable de forma fiable porque Playwright no puede cerrar diálogos nativos del SO; la generación del JSON queda cubierta por los unitarios de `origin-export`. Estado e2e: `properties-flow` y `origin-crud` en verde; `export-json`, `new-form`, `forms-flow`, `link-origin` en `fixme`.
 
+---
+
+## 15. Adopción del patrón común de documentos Drive (IMPLEMENTADO, 2026-06-17)
+
+Adopta el patrón unificado de **SPEC-0004 §15**. La decisión de fuente de verdad ya era la correcta (el
+estado operativo vive en `electron-store`; ver §2 «Persistencia de asociaciones»), así que aquí solo se
+unifican la UI y se añade la carga desde Drive.
+
+### 15.1 Cambios respecto al volcado actual
+
+- El botón **«Volcar a Sheets»** se renombra a **«Actualizar archivo en Drive»** y pasa a usar el
+  componente compartido `DriveDocActions` con las claves i18n compartidas `drive.doc.*`. Se retiran las
+  claves `forms.writeSheets.*` (o quedan como alias temporal). El canal `forms:write-sheets` conserva su
+  comportamiento crear-o-actualizar best-effort; al éxito registra `lastWrittenAt`.
+- Se añade el botón **«Cargar desde Drive»** y el modal recordatorio al salir (`DriveDirtyGuard`).
+
+### 15.2 Carga desde Drive (documento de estado companion)
+
+**Implementado** según SPEC-0004 §15.5 (documento de estado companion JSON, no parseo del Sheets bonito).
+
+- `main/forms-management/drive-state.ts`: `FORMS_STATE_FEATURE_KEY = 'forms-management-state'`,
+  `serializeFormsState({ forms, links })` y `parseFormsState(content)` (valida `schema_version`; aborta si
+  es mayor).
+- Canal `forms:load-sheets` (`{ projectId }` → `{ success, schemaVersion?, error? }`): el handler hace
+  `gdrive.readFile({ featureKey: FORMS_STATE_FEATURE_KEY })`, `parseFormsState` y `service.applyDriveState`
+  (reemplaza inventario de formularios + asociaciones). La cobertura se recalcula; no re-sincroniza con
+  HubSpot. El handler de escritura escribe además el Doc de estado y llama `service.markDriveWritten`.
+- Las erratas de claves/etiquetas se conservan verbatim (SPEC-0000).
+
+### 15.3 Estado *dirty* y modal
+
+- El store de formularios expone `lastWrittenAt` y el timestamp del último cambio local (alta de
+  formulario, asociación a origen, añadir campos). `useDriveDoc` calcula *dirty*; al salir de la pantalla
+  con *dirty* se muestra `DriveDirtyGuard`. La preferencia «no volver a preguntar» se persiste por proyecto.
+
+### 15.4 Tests
+
+- `drive-state.spec.ts`: `parseFormsState(serializeFormsState(x)) ≈ x` (round-trip; erratas verbatim);
+  aborta si `schema_version` > soportada.
+- `service.spec.ts`: `getDriveMeta`/`markDriveWritten`/`applyDriveState` (timestamps y reemplazo de estado).
+
+### 15.5 Impacto
+
+- `main/forms-management/sheets-model.ts` (parser inverso), `service.ts`/`store.ts` (`lastWrittenAt`,
+  reemplazo de estado), handler `forms:load-sheets`.
+- `ipc.ts`/`preload`/`RevOpsApi` (canal `forms:load-sheets`).
+- `FormsManagementScreen.tsx`: usa `DriveDocActions` + `DriveDirtyGuard` (retira el botón propio de
+  volcado); i18n migrado a `drive.doc.*` / `drive.dirtyGuard.*`.
+

@@ -119,3 +119,19 @@ export interface GoogleDriveOperationResult {
   success: boolean;
   error?: string;
 }
+
+/**
+ * Metadatos del documento Drive de una característica para detectar cambios sin actualizar (§15).
+ * `dirty` = hay datos y `lastChangedAt` es posterior a `lastWrittenAt` (o nunca se escribió).
+ */
+export interface DriveDocMeta {
+  lastWrittenAt: string | null;
+  lastChangedAt: string | null;
+}
+
+/** Resultado de cargar el estado local desde el documento Drive de una característica (§15). */
+export interface LoadSheetsResult {
+  success: boolean;
+  schemaVersion?: number;
+  error?: string;
+}

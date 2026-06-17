@@ -122,4 +122,54 @@ describe('createCustomObjectService', () => {
     expect(result.success).toBe(false);
     expect(result.error).toBe('name already in use');
   });
+
+  it('getDriveMeta refleja lastChangedAt tras una mutación', () => {
+    const { service } = makeService({});
+    expect(service.getDriveMeta({ projectId: 'p1' })).toEqual({
+      lastWrittenAt: null,
+      lastChangedAt: null,
+    });
+    service.upsertDraft({ projectId: 'p1', definition: draft });
+    const meta = service.getDriveMeta({ projectId: 'p1' });
+    expect(meta.lastChangedAt).toBe('2026-06-16T00:00:00.000Z');
+    expect(meta.lastWrittenAt).toBeNull();
+  });
+
+  it('markDriveWritten fija lastWrittenAt sin tocar lastChangedAt', () => {
+    const { service } = makeService({});
+    service.upsertDraft({ projectId: 'p1', definition: draft });
+    service.markDriveWritten({ projectId: 'p1' });
+    const meta = service.getDriveMeta({ projectId: 'p1' });
+    expect(meta.lastWrittenAt).toBe('2026-06-16T00:00:00.000Z');
+    expect(meta.lastChangedAt).toBe('2026-06-16T00:00:00.000Z');
+  });
+
+  it('applyDriveState reemplaza las definiciones e iguala timestamps', () => {
+    const { service } = makeService({});
+    service.upsertDraft({ projectId: 'p1', definition: draft });
+    service.applyDriveState(
+      { projectId: 'p1' },
+      {
+        objects: [
+          {
+            id: 'obj-imported',
+            name: 'imported',
+            labels: { singular: 'Importado', plural: 'Importados' },
+            primaryDisplayProperty: 'name',
+            requiredProperties: ['name'],
+            properties: [{ name: 'name', label: 'Nombre', type: 'string', fieldType: 'text' }],
+            status: 'draft',
+            createdAt: '2026-06-16T00:00:00.000Z',
+            updatedAt: '2026-06-16T00:00:00.000Z',
+          },
+        ],
+      },
+    );
+    const defs = service.listDefinitions({ projectId: 'p1' });
+    expect(defs).toHaveLength(1);
+    expect(defs[0]?.id).toBe('obj-imported');
+    const meta = service.getDriveMeta({ projectId: 'p1' });
+    expect(meta.lastWrittenAt).toBe('2026-06-16T00:00:00.000Z');
+    expect(meta.lastChangedAt).toBe('2026-06-16T00:00:00.000Z');
+  });
 });

@@ -1,11 +1,7 @@
 {
   "appName": "RevOps Assistant",
   "language": {
-    "label": "Idioma",
-    "es": "Castellano",
-    "ca": "Catalán",
-    "eu": "Euskera",
-    "en": "Inglés"
+    "label": "Idioma"
   },
   "welcome": {
     "title": "RevOps Assistant",
@@ -152,7 +148,10 @@
       "saved": "Credenciales guardadas.",
       "cleared": "Credenciales borradas; se usará el .env si existe.",
       "error": "No se pudieron guardar las credenciales.",
-      "source": { "app": "App", "env": ".env" }
+      "source": {
+        "app": "App",
+        "env": ".env"
+      }
     },
     "folderPicker": {
       "title": "Seleccionar carpeta de trabajo",
@@ -168,6 +167,30 @@
       "empty": "Esta carpeta no tiene subcarpetas.",
       "selectThis": "Seleccionar esta carpeta",
       "cancel": "Cancelar"
+    }
+  },
+  "drive": {
+    "doc": {
+      "update": "Actualizar archivo en Drive",
+      "updating": "Actualizando…",
+      "load": "Cargar desde Drive",
+      "loading": "Cargando…",
+      "updateSuccess": "Archivo actualizado en Drive.",
+      "updateError": "No se pudo actualizar: {{error}}",
+      "loadSuccess": "Estado cargado desde Drive.",
+      "loadError": "No se pudo cargar: {{error}}",
+      "noFolder": "Selecciona una carpeta de Google Drive para usar esta función.",
+      "loadConfirmTitle": "Cargar desde Drive",
+      "loadConfirmBody": "Esto reemplazará el estado local con el contenido del archivo de Drive. ¿Continuar?",
+      "cancel": "Cancelar"
+    },
+    "dirtyGuard": {
+      "title": "Cambios sin guardar en Drive",
+      "body": "Tienes cambios que no se han actualizado en el archivo de Drive. ¿Quieres actualizarlo antes de salir?",
+      "dontAsk": "No volver a preguntar en este proyecto",
+      "cancel": "Cancelar",
+      "leave": "Salir sin actualizar",
+      "updateAndLeave": "Actualizar y salir"
     }
   },
   "update": {

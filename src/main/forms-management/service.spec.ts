@@ -163,4 +163,43 @@ describe('FormService', () => {
     service.discardChange({ projectId: 'p1', changeId: change.id });
     expect(service.listPendingChanges('p1')).toHaveLength(0);
   });
+
+  it('getDriveMeta refleja lastChangedAt tras una mutación y lastWrittenAt tras escribir', () => {
+    const { service } = makeService();
+    expect(service.getDriveMeta({ projectId: 'p1' })).toEqual({
+      lastWrittenAt: null,
+      lastChangedAt: null,
+    });
+    service.createDefinition({
+      projectId: 'p1',
+      definition: { name: 'X', originIds: [], objectType: 'contacts', fields: [] },
+    });
+    expect(service.getDriveMeta({ projectId: 'p1' })).toEqual({
+      lastWrittenAt: null,
+      lastChangedAt: '2026-06-16T00:00:00Z',
+    });
+    service.markDriveWritten({ projectId: 'p1' });
+    expect(service.getDriveMeta({ projectId: 'p1' })).toEqual({
+      lastWrittenAt: '2026-06-16T00:00:00Z',
+      lastChangedAt: '2026-06-16T00:00:00Z',
+    });
+  });
+
+  it('applyDriveState reemplaza forms y links e iguala los timestamps', () => {
+    const { service } = makeService();
+    service.applyDriveState(
+      { projectId: 'p1' },
+      {
+        forms: [form('f1', ['email'])],
+        links: [
+          { id: 'l1', formId: 'f1', originIds: ['o1'], objectType: 'contacts', createdAt: '' },
+        ],
+      },
+    );
+    expect(service.listForms({ projectId: 'p1' })).toHaveLength(1);
+    expect(service.listLinks({ projectId: 'p1' })).toHaveLength(1);
+    const meta = service.getDriveMeta({ projectId: 'p1' });
+    expect(meta.lastWrittenAt).toBe('2026-06-16T00:00:00Z');
+    expect(meta.lastChangedAt).toBe(meta.lastWrittenAt);
+  });
 });

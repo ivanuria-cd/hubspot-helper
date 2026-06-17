@@ -14,11 +14,11 @@ Todos los SPECs están en `specs/`. Estado actual:
 | [SPEC-0001](specs/SPEC-0001-fundacion-del-proyecto.md) | Fundación del Proyecto | IMPLEMENTADO |
 | [SPEC-0002](specs/SPEC-0002-app-shell.md) | App Shell | IMPLEMENTADO |
 | [SPEC-0003](specs/SPEC-0003-conector-hubspot.md) | Conector HubSpot | IMPLEMENTADO |
-| [SPEC-0004](specs/SPEC-0004-conector-google-drive.md) | Conector Google Drive | IMPLEMENTADO (credenciales por UI §13 + selector propio sin Picker §14) |
+| [SPEC-0004](specs/SPEC-0004-conector-google-drive.md) | Conector Google Drive | IMPLEMENTADO (credenciales por UI §13 + selector propio sin Picker §14; patrón común de documentos Drive §15, typecheck/test pendientes en máquina) |
 | [SPEC-0005](specs/SPEC-0005-capa-mcp-api.md) | Capa MCP / API | IMPLEMENTADO |
-| [SPEC-0006](specs/SPEC-0006-gestion-de-propiedades.md) | Gestión de Propiedades | IMPLEMENTADO (rediseño §16 en BORRADOR) |
-| [SPEC-0007](specs/SPEC-0007-objetos-custom-hubspot.md) | Objetos Custom de HubSpot | IMPLEMENTADO |
-| [SPEC-0008](specs/SPEC-0008-gestion-de-formularios.md) | Gestión de Formularios | IMPLEMENTADO (typecheck/e2e + PR pendientes de ejecutar en máquina) |
+| [SPEC-0006](specs/SPEC-0006-gestion-de-propiedades.md) | Gestión de Propiedades | IMPLEMENTADO (rediseño §16 en BORRADOR; patrón común Drive §21, typecheck/test pendientes en máquina) |
+| [SPEC-0007](specs/SPEC-0007-objetos-custom-hubspot.md) | Objetos Custom de HubSpot | IMPLEMENTADO (documento Drive §15, typecheck/test pendientes en máquina) |
+| [SPEC-0008](specs/SPEC-0008-gestion-de-formularios.md) | Gestión de Formularios | IMPLEMENTADO (typecheck/e2e + PR pendientes de ejecutar en máquina; patrón común Drive §15) |
 
 Leer el SPEC correspondiente antes de implementar o modificar cualquier característica.
 

@@ -109,6 +109,56 @@ describe('PropertyService (entradas)', () => {
     expect(applied?.appliedToProduction).toBe(false);
   });
 
+  it('getDriveMeta refleja cambios y markDriveWritten limpia el dirty', () => {
+    const store = createMemoryPropertyStore();
+    const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));
+
+    expect(service.getDriveMeta({ projectId: 'p1' })).toEqual({
+      lastWrittenAt: null,
+      lastChangedAt: null,
+    });
+
+    service.createOrigin({ projectId: 'p1', origin: { name: 'SF', type: 'migration' } });
+    const afterChange = service.getDriveMeta({ projectId: 'p1' });
+    expect(afterChange.lastChangedAt).toBe('2026-06-11T00:00:00.000Z');
+    expect(afterChange.lastWrittenAt).toBeNull();
+
+    service.markDriveWritten({ projectId: 'p1' });
+    const afterWrite = service.getDriveMeta({ projectId: 'p1' });
+    expect(afterWrite.lastWrittenAt).toBe('2026-06-11T00:00:00.000Z');
+  });
+
+  it('applyDriveState reemplaza estado y deja lastWritten === lastChanged', () => {
+    const store = createMemoryPropertyStore();
+    const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));
+
+    service.applyDriveState(
+      { projectId: 'p1' },
+      {
+        origins: [
+          { id: 'o1', name: 'SF', type: 'migration', objects: [], createdAt: '2026-01-01T00:00:00.000Z' },
+        ],
+        entries: [
+          {
+            id: 'e1',
+            objectType: 'contacts',
+            name: 'Tier',
+            hubspotProperty: { mode: 'existing', hubspotName: 'custom_tier' },
+            sources: [],
+            hubspotStatus: 'exists',
+            pendingChanges: [],
+          },
+        ],
+      },
+    );
+
+    expect(service.listOrigins({ projectId: 'p1' })).toHaveLength(1);
+    expect(service.listEntries({ projectId: 'p1' })).toHaveLength(1);
+    const meta = service.getDriveMeta({ projectId: 'p1' });
+    expect(meta.lastWrittenAt).toBe('2026-06-11T00:00:00.000Z');
+    expect(meta.lastChangedAt).toBe(meta.lastWrittenAt);
+  });
+
   it('CRUD de origenes y exportacion JSON v2', () => {
     const store = createMemoryPropertyStore();
     const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));

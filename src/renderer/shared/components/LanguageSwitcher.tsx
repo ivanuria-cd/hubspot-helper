@@ -1,7 +1,11 @@
 import { MenuItem, TextField } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { cdPalette } from '@renderer/theme';
-import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@shared/i18n/languages';
+import {
+  LANGUAGE_AUTONYMS,
+  SUPPORTED_LANGUAGES,
+  type SupportedLanguage,
+} from '@shared/i18n/languages';
 
 interface LanguageSwitcherProps {
   /** Estiliza el selector con colores claros para fondos oscuros (hero de bienvenida). */
@@ -45,7 +49,7 @@ export function LanguageSwitcher({ onDark = false }: LanguageSwitcherProps): JSX
     >
       {SUPPORTED_LANGUAGES.map((language) => (
         <MenuItem key={language} value={language}>
-          {t(`language.${language}`)}
+          {LANGUAGE_AUTONYMS[language]}
         </MenuItem>
       ))}
     </TextField>
