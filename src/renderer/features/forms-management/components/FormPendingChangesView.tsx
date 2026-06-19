@@ -2,6 +2,7 @@ import { Box, Button, Chip, List, ListItem, Stack, Typography } from '@mui/mater
 import { useTranslation } from 'react-i18next';
 import type { FormChange } from '@shared/types/forms';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
+import { useConfirm } from '@shared/components/feedback';
 
 export interface FormPendingChangesViewProps {
   changes: FormChange[];
@@ -17,6 +18,16 @@ export function FormPendingChangesView({
   onDiscard,
 }: FormPendingChangesViewProps): JSX.Element {
   const { t } = useTranslation('common');
+  const askConfirm = useConfirm();
+
+  const handleDiscard = async (changeId: string): Promise<void> => {
+    const ok = await askConfirm({
+      tone: 'danger',
+      title: t('forms.discardTitle'),
+      body: t('forms.discardBody'),
+    });
+    if (ok) onDiscard(changeId);
+  };
 
   if (changes.length === 0) {
     return <Typography color="text.primary">{t('forms.changes.empty')}</Typography>;
@@ -67,7 +78,7 @@ export function FormPendingChangesView({
               >
                 {t('forms.changes.applyProduction')}
               </Button>
-              <Button size="small" color="error" disabled={busy} onClick={() => onDiscard(change.id)}>
+              <Button size="small" color="error" disabled={busy} onClick={() => void handleDiscard(change.id)}>
                 {t('forms.changes.discard')}
               </Button>
             </Stack>

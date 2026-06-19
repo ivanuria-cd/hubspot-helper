@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Alert,
   Box,
   Button,
   Chip,
@@ -13,6 +12,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
+import { useSnackbar } from '@shared/components/feedback';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
 import { useHubSpotConnector } from '../hooks/useHubSpotConnector';
 
@@ -20,6 +20,7 @@ const ENVIRONMENTS: HubSpotEnvironment[] = ['production', 'sandbox'];
 
 export function HubSpotConnectorScreen(): JSX.Element | null {
   const { t } = useTranslation('common');
+  const { notify } = useSnackbar();
   const activeProject = useShellStore((state) => state.activeProject);
   const projectId = activeProject?.id ?? '';
   const { status, loading, saving, saveToken, revoke, selectEnvironment } =
@@ -27,9 +28,6 @@ export function HubSpotConnectorScreen(): JSX.Element | null {
 
   const [environment, setEnvironment] = useState<HubSpotEnvironment>('production');
   const [token, setToken] = useState('');
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
-    null,
-  );
 
   if (!activeProject) return null;
 
@@ -37,13 +35,12 @@ export function HubSpotConnectorScreen(): JSX.Element | null {
   const isActive = status?.activeEnvironment === environment;
 
   const handleSave = async (): Promise<void> => {
-    setFeedback(null);
     const result = await saveToken(environment, token.trim());
     if (result.success) {
       setToken('');
-      setFeedback({ type: 'success', message: t('hubspot.saveSuccess', { portal: result.portalName ?? '' }) });
+      notify({ message: t('hubspot.saveSuccess', { portal: result.portalName ?? '' }), severity: 'success' });
     } else {
-      setFeedback({ type: 'error', message: t('hubspot.saveError', { error: result.error ?? '' }) });
+      notify({ message: t('hubspot.saveError', { error: result.error ?? '' }), severity: 'error' });
     }
   };
 
@@ -57,7 +54,6 @@ export function HubSpotConnectorScreen(): JSX.Element | null {
         value={environment}
         onChange={(_event, value: HubSpotEnvironment) => {
           setEnvironment(value);
-          setFeedback(null);
         }}
         aria-label={t('hubspot.environmentTabs')}
         sx={{ mb: 3 }}
@@ -94,7 +90,6 @@ export function HubSpotConnectorScreen(): JSX.Element | null {
           </Stack>
         </Box>
 
-        {feedback ? <Alert severity={feedback.type}>{feedback.message}</Alert> : null}
 
         <Divider />
 

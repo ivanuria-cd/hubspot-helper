@@ -329,7 +329,6 @@ Dropdown con un ítem por origen. Al seleccionar, descarga `{nombre-origen}_{fec
 ### Funcionales
 - `properties-flow.spec.ts` — flujo completo: sincronizar con HS (mock) → ver propiedad divergente → aplicar cambio en sandbox → estado actualizado
 - `origin-crud.spec.ts` — crear, editar y eliminar un origen; verificar que el cambio se refleja en el Sheets (mock Drive)
-- `export-json.spec.ts` — exportar JSON de un origen; verificar estructura y valores con fixtures
 
 ---
 
@@ -868,3 +867,28 @@ de corrección.
   `properties_pending_changes` justo antes de cada `properties_apply_change`**.
 - **Pendiente en máquina:** `npm run typecheck` y `npm run test:unit` (clon al sandbox corrupto; originales
   verificados sanos).
+
+---
+
+## 23. Confirmación de borrados y feedback de sincronización (IMPLEMENTADO, 2026-06-19)
+
+Origen: Informe UX 2026-06-19, hallazgos #2 y #1. Borrar propiedad (`EntryPanel.tsx`) y borrar origen (`OriginsModal.tsx` L127-129) se ejecutan a un clic; la aplicación de cambios a sandbox/producción no confirma resultado con un toast.
+
+Adopción de SPEC-0002 §11 (ConfirmDialog):
+- Borrar entrada de propiedad → `confirm({ tone:'danger', ... })`.
+- Borrar origen de datos → `confirm({ tone:'danger', ... })`.
+
+Adopción de SPEC-0002 §10 (Snackbar):
+- Tras `properties_apply_change` / aplicar a sandbox/producción: `notify` con resumen (éxito) o error.
+
+Claves i18n nuevas: `properties.deleteEntryTitle/Body`, `properties.deleteOriginTitle/Body`, `properties.applied`, `properties.applyError` (cuatro locales).
+
+Implementado 2026-06-19: `EntryPanel`/`OriginsModal` usan `useConfirm` para borrar entrada/origen; el toast de resultado se emite en `handleApply` de `PropertyManagementScreen`.
+
+---
+
+## 24. Eliminación del e2e `export-json` (2026-06-19)
+
+Se elimina `tests/functional/export-json.spec.ts`. Estaba en `test.fixme` permanente: el export abre el diálogo nativo «guardar como» del SO (comportamiento deseado, §19.x) que Playwright no puede cerrar, por lo que nunca era ejecutable de forma fiable. La generación del JSON sigue cubierta por los unitarios de `origin-export` (`origin-export.spec.ts`). No se pierde cobertura real.
+
+> 2026-06-19 (higiene, SPEC-0002 §16): eliminado el fichero muerto `PropertiesTable.tsx`.

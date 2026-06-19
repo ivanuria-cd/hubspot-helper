@@ -10,6 +10,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import { SIDE_PANEL_WIDTH } from '@shared/components/layout-constants';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 import type { FormCoverageReport, FormOriginLink, HubSpotForm } from '@shared/types/forms';
@@ -42,7 +43,7 @@ export function FormPanel({
 
   return (
     <Drawer anchor="right" open={Boolean(form)} onClose={onClose}>
-      <Box sx={{ width: 460, p: 3 }} role="region" aria-label={t('forms.panel.title')}>
+      <Box sx={{ width: SIDE_PANEL_WIDTH, p: 3 }} role="region" aria-label={t('forms.panel.title')}>
         {form ? (
           <Stack spacing={2}>
             <Stack direction="row" alignItems="center">

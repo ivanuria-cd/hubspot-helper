@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   Box,
   Button,
@@ -11,6 +10,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import type { CustomObjectDefinition } from '@shared/types/custom-objects';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
+import { useConfirm } from '@shared/components/feedback';
+import { SIDE_PANEL_WIDTH } from '@shared/components/layout-constants';
 import { ObjectStatusBadge } from './ObjectStatusBadge';
 
 interface ObjectPanelProps {
@@ -33,11 +34,29 @@ export function ObjectPanel({
   onDelete,
 }: ObjectPanelProps): JSX.Element {
   const { t } = useTranslation('common');
-  const [confirmArchive, setConfirmArchive] = useState(false);
+  const askConfirm = useConfirm();
+
+  const handleArchive = async (def: CustomObjectDefinition): Promise<void> => {
+    const ok = await askConfirm({
+      tone: 'danger',
+      title: t('customObjects.archiveConfirmTitle'),
+      body: t('customObjects.archiveConfirmBody'),
+    });
+    if (ok) onArchive(def);
+  };
+
+  const handleDelete = async (objectId: string): Promise<void> => {
+    const ok = await askConfirm({
+      tone: 'danger',
+      title: t('customObjects.deleteDraftTitle'),
+      body: t('customObjects.deleteDraftBody'),
+    });
+    if (ok) await onDelete(objectId);
+  };
 
   return (
     <Drawer anchor="right" open={Boolean(definition)} onClose={onClose}>
-      <Box sx={{ width: 420, p: 3 }} role="region" aria-label={t('customObjects.panel.title')}>
+      <Box sx={{ width: SIDE_PANEL_WIDTH, p: 3 }} role="region" aria-label={t('customObjects.panel.title')}>
         {definition ? (
           <Stack spacing={2}>
             <Stack direction="row" alignItems="center" spacing={1}>
@@ -109,34 +128,20 @@ export function ObjectPanel({
               <Button variant="outlined" onClick={() => onEdit(definition)}>
                 {t('customObjects.panel.edit')}
               </Button>
-              {confirmArchive ? (
-                <Button
-                  color="error"
-                  variant="contained"
-                  disabled={busy}
-                  onClick={() => {
-                    onArchive(definition);
-                    setConfirmArchive(false);
-                  }}
-                >
-                  {t('customObjects.panel.confirmArchive')}
-                </Button>
-              ) : (
-                <Button color="error" variant="outlined" onClick={() => setConfirmArchive(true)}>
-                  {t('customObjects.panel.archive')}
-                </Button>
-              )}
+              <Button
+                color="error"
+                variant="outlined"
+                disabled={busy}
+                onClick={() => void handleArchive(definition)}
+              >
+                {t('customObjects.panel.archive')}
+              </Button>
               <Box sx={{ flexGrow: 1 }} />
-              <Button color="inherit" onClick={() => void onDelete(definition.id)}>
+              <Button color="inherit" onClick={() => void handleDelete(definition.id)}>
                 {t('customObjects.panel.deleteDraft')}
               </Button>
               <Button onClick={onClose}>{t('customObjects.panel.close')}</Button>
             </Stack>
-            {confirmArchive ? (
-              <Typography variant="body2" color="error">
-                {t('customObjects.panel.archiveWarning')}
-              </Typography>
-            ) : null}
           </Stack>
         ) : null}
       </Box>

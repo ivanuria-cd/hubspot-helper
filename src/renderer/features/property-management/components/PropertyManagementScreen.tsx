@@ -17,6 +17,8 @@ import SyncIcon from '@mui/icons-material/Sync';
 import EditIcon from '@mui/icons-material/Edit';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
+import { useSnackbar } from '@shared/components/feedback';
+import { EmptyState } from '@shared/components/EmptyState';
 import { useDriveDoc } from '@shared/hooks/useDriveDoc';
 import { DriveDocActions } from '@shared/components/DriveDocActions';
 import { DriveDirtyGuard } from '@shared/components/DriveDirtyGuard';
@@ -39,6 +41,7 @@ function destName(entry: PropertyEntry): string {
 
 export function PropertyManagementScreen(): JSX.Element | null {
   const { t } = useTranslation('common');
+  const { notify } = useSnackbar();
   const activeProject = useShellStore((state) => state.activeProject);
   const projectId = activeProject?.id ?? '';
 
@@ -92,6 +95,12 @@ export function PropertyManagementScreen(): JSX.Element | null {
     setBusy(true);
     try {
       await applyChange(projectId, changeId, environment);
+      notify({ message: t('properties.applyToastDone'), severity: 'success' });
+    } catch (error) {
+      notify({
+        message: t('properties.applyToastError', { error: error instanceof Error ? error.message : '' }),
+        severity: 'error',
+      });
     } finally {
       setBusy(false);
     }
@@ -192,7 +201,7 @@ export function PropertyManagementScreen(): JSX.Element | null {
           {loading ? (
             <Typography color="text.primary">{t('properties.loading')}</Typography>
           ) : objectEntries.length === 0 ? (
-            <Typography color="text.primary">{t('properties.empty')}</Typography>
+            <EmptyState message={t('properties.empty')} />
           ) : (
             <List aria-label={t('properties.title')} disablePadding>
               {objectEntries.map((entry) => (

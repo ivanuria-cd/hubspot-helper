@@ -235,3 +235,17 @@ Impacto documentado en este SPEC:
 - §6 / §7 / §11 — referencias a `verify.ts` y a su test actualizadas al endpoint `account-info`.
 
 Código afectado (ya funcional, no modificado en esta iteración): `verify.ts`, `index.ts`, `shared/types/hubspot.ts`, `HubSpotConnectorScreen.tsx`. Tests y tutoriales alineados en esta iteración (`verify.spec.ts`, `index.spec.ts`, `conectar-hubspot.md`, `crear-private-app.md`) y eliminada la clave i18n `hubspot.scopes` (sin uso) en los cuatro locales.
+
+---
+
+## 13. Adopción de feedback global (IMPLEMENTADO, 2026-06-19)
+
+Origen: Informe UX 2026-06-19, hallazgo #1. El feedback de guardado de token es inline y se pierde al cambiar de pestaña de entorno (`HubSpotConnectorScreen.tsx` L56-61); un guardado correcto solo limpia el input.
+
+Adopción de SPEC-0002 §10 (Snackbar):
+- `handleSave` (éxito/error): emitir `notify({ message: t('hubspot.tokenSaved'|'hubspot.tokenError'), severity })` en lugar del estado `feedback` efímero.
+- El estado de conexión persistente (chip "Conectado/No configurado") y los `Alert` de error de carga se mantienen.
+
+Nota: la confirmación al cambiar de entorno producción↔sandbox (Informe #5, impacto medio) queda **diferida**; no entra en esta iteración de alto impacto.
+
+Claves i18n nuevas: `hubspot.tokenSaved`, `hubspot.tokenError` (cuatro locales).

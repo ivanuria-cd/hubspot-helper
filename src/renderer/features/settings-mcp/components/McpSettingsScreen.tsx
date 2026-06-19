@@ -19,6 +19,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { useTranslation } from 'react-i18next';
+import { useConfirm, useSnackbar } from '@shared/components/feedback';
 import { useMcpSettings } from '../hooks/useMcpSettings';
 
 function buildConfigSnippet(port: number, token: string): string {
@@ -45,18 +46,29 @@ function buildConfigSnippet(port: number, token: string): string {
 
 export function McpSettingsScreen(): JSX.Element {
   const { t } = useTranslation('common');
+  const { notify } = useSnackbar();
+  const confirm = useConfirm();
   const { status, token, tools, loading, busy, error, toggle, regenerateToken } = useMcpSettings();
   const [showToken, setShowToken] = useState(false);
-  const [copied, setCopied] = useState<'token' | 'config' | null>(null);
 
   const port = status?.port ?? 0;
   const running = status?.running ?? false;
   const snippet = useMemo(() => buildConfigSnippet(port, token), [port, token]);
 
-  const copy = async (value: string, what: 'token' | 'config'): Promise<void> => {
+  const copy = async (value: string): Promise<void> => {
     await navigator.clipboard.writeText(value);
-    setCopied(what);
-    window.setTimeout(() => setCopied(null), 2000);
+    notify({ message: t('mcp.copied'), severity: 'success' });
+  };
+
+  const handleRegenerate = async (): Promise<void> => {
+    const ok = await confirm({
+      tone: 'danger',
+      title: t('mcp.regenerateTitle'),
+      body: t('mcp.regenerateBody'),
+    });
+    if (!ok) return;
+    await regenerateToken();
+    notify({ message: t('mcp.tokenRegenerated'), severity: 'success' });
   };
 
   return (
@@ -106,21 +118,13 @@ export function McpSettingsScreen(): JSX.Element {
             >
               {showToken ? <VisibilityOffIcon /> : <VisibilityIcon />}
             </IconButton>
-            <IconButton
-              onClick={() => void copy(token, 'token')}
-              aria-label={t('mcp.copyToken')}
-            >
+            <IconButton onClick={() => void copy(token)} aria-label={t('mcp.copyToken')}>
               <ContentCopyIcon />
             </IconButton>
           </Stack>
-          <Button sx={{ mt: 1 }} onClick={() => void regenerateToken()} disabled={busy}>
+          <Button sx={{ mt: 1 }} onClick={() => void handleRegenerate()} disabled={busy}>
             {t('mcp.regenerate')}
           </Button>
-          {copied === 'token' ? (
-            <Typography color="text.primary" sx={{ mt: 1 }}>
-              {t('mcp.copied')}
-            </Typography>
-          ) : null}
         </Box>
 
         <Divider />
@@ -154,7 +158,7 @@ export function McpSettingsScreen(): JSX.Element {
             <Button
               size="small"
               startIcon={<ContentCopyIcon />}
-              onClick={() => void copy(snippet, 'config')}
+              onClick={() => void copy(snippet)}
             >
               {t('mcp.copyConfig')}
             </Button>
@@ -167,11 +171,6 @@ export function McpSettingsScreen(): JSX.Element {
             InputProps={{ readOnly: true, sx: { fontFamily: 'monospace', fontSize: 13 } }}
             inputProps={{ 'aria-label': t('mcp.snippetTitle') }}
           />
-          {copied === 'config' ? (
-            <Typography color="text.primary" sx={{ mt: 1 }}>
-              {t('mcp.copied')}
-            </Typography>
-          ) : null}
         </Box>
       </Stack>
     </Box>

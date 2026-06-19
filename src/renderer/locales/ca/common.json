@@ -48,7 +48,9 @@
       "mcp": "API / MCP",
       "propiedades": "Propietats",
       "objetos-custom": "Objectes personalitzats",
-      "formularios": "Formularis"
+      "formularios": "Formularis",
+      "dashboard": "Tauler",
+      "crm": "CRM"
     }
   },
   "topbar": {
@@ -88,7 +90,10 @@
     "toolsTitle": "Tools disponibles ({{count}})",
     "noTools": "Encara no hi ha tools registrades",
     "snippetTitle": "Configuració per a Claude Desktop",
-    "copyConfig": "Copia la configuració"
+    "copyConfig": "Copia la configuració",
+    "regenerateTitle": "Regenerar el testimoni",
+    "regenerateBody": "En regenerar el testimoni s'invalidarà l'actual i es tancarà tota sessió MCP activa. Vols continuar?",
+    "tokenRegenerated": "Testimoni regenerat."
   },
   "hubspot": {
     "title": "Connectors / HubSpot",
@@ -107,7 +112,8 @@
     "apiVersion": "Versió de l'API en ús: {{version}}",
     "loading": "Comprovant la connexió…",
     "saveSuccess": "Connectat correctament a {{portal}}.",
-    "saveError": "No s'ha pogut connectar: {{error}}"
+    "saveError": "No s'ha pogut connectar: {{error}}",
+    "tokenSaved": "Connexió desada."
   },
   "gdrive": {
     "title": "Connectors / Google Drive",
@@ -168,7 +174,8 @@
       "empty": "Aquesta carpeta no té subcarpetes.",
       "selectThis": "Selecciona aquesta carpeta",
       "cancel": "Cancel·la"
-    }
+    },
+    "syncDone": "Sincronització completada."
   },
   "drive": {
     "doc": {
@@ -314,7 +321,13 @@
       "notes": "Notes",
       "cancel": "Cancel·la",
       "save": "Desa"
-    }
+    },
+    "deleteEntryTitle": "Elimina la propietat",
+    "deleteEntryBody": "S'eliminarà l'entrada de propietat del mapa local. Aquesta acció no es pot desfer. Vols continuar?",
+    "deleteOriginTitle": "Elimina l'origen",
+    "deleteOriginBody": "S'eliminarà l'origen de dades i els seus mapatges. Aquesta acció no es pot desfer. Vols continuar?",
+    "applyToastDone": "Canvi aplicat a HubSpot.",
+    "applyToastError": "No s'ha pogut aplicar el canvi: {{error}}"
   },
   "customObjects": {
     "title": "CRM / Objectes personalitzats",
@@ -385,7 +398,13 @@
       "associations": "Associacions",
       "cancel": "Cancel·la",
       "save": "Desa"
-    }
+    },
+    "archiveConfirmTitle": "Arxiva l'objecte",
+    "archiveConfirmBody": "Arxivar requereix esborrar abans els registres i propietats de l'objecte a HubSpot. Vols continuar?",
+    "deleteDraftTitle": "Elimina l'esborrany",
+    "deleteDraftBody": "S'eliminarà l'esborrany de l'objecte. Aquesta acció no es pot desfer. Vols continuar?",
+    "syncToastDone": "Sincronització completada.",
+    "syncToastError": "No s'ha pogut sincronitzar: {{error}}"
   },
   "forms": {
     "title": "CRM / Formularis",
@@ -461,6 +480,61 @@
       "productionDone": "producció ✓",
       "productionPending": "producció ✕",
       "empty": "No hi ha canvis pendents."
-    }
+    },
+    "discardTitle": "Descarta el canvi",
+    "discardBody": "Es descartarà el canvi pendent del formulari. Vols continuar?",
+    "syncToastDone": "Sincronització completada.",
+    "syncToastError": "No s'ha pogut sincronitzar: {{error}}"
+  },
+  "snackbar": {
+    "close": "Tanca"
+  },
+  "confirm": {
+    "accept": "Accepta",
+    "cancel": "Cancel·la"
+  },
+  "dashboard": {
+    "title": "Tauler",
+    "connectorsTitle": "Connectors",
+    "pendingTitle": "Canvis pendents",
+    "configure": "Configura",
+    "review": "Revisa",
+    "upToDate": "Al dia",
+    "connected": "Connectat",
+    "notConfigured": "Sense configurar",
+    "hubspot": "HubSpot",
+    "drive": "Google Drive",
+    "mcp": "API / MCP",
+    "mcpActive": "Actiu",
+    "mcpInactive": "Inactiu",
+    "mcpTools": "{{count}} tools · port {{port}}",
+    "driveFolder": "Carpeta: {{name}}",
+    "driveNoFolder": "Sense carpeta",
+    "envActive": "Entorn actiu: {{environment}}",
+    "properties": "Propietats",
+    "objects": "Objectes personalitzats",
+    "forms": "Formularis",
+    "pendingCount": "{{count}} pendent(s)",
+    "onboardingTitle": "Primers passos",
+    "onboardingIntro": "Configura els connectors per començar a treballar.",
+    "stepHubspot": "Connecta HubSpot",
+    "stepDrive": "Connecta Google Drive",
+    "stepMcp": "Activa el servidor MCP",
+    "loading": "Carregant l'estat…",
+    "error": "No s'ha pogut carregar l'estat del projecte."
+  },
+  "crm": {
+    "title": "CRM",
+    "properties": "Propietats",
+    "objects": "Objectes personalitzats",
+    "forms": "Formularis",
+    "totalItems": "{{count}} en total",
+    "pending": "{{count}} pendent(s)",
+    "upToDate": "Al dia",
+    "open": "Obre",
+    "notConnected": "Connecta HubSpot per veure les teves dades de CRM.",
+    "configure": "Configura HubSpot",
+    "loading": "Carregant el CRM…",
+    "error": "No s'ha pogut carregar l'estat del CRM."
   }
 }

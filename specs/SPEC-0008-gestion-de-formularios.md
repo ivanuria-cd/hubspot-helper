@@ -297,9 +297,6 @@ Todas las capacidades del SPEC se exponen como tools MCP (SPEC-0005). Las de esc
 - `sheets-model.spec.ts` — el builder produce las hojas con encabezados y una fila por formulario/asociación/cobertura; refleja erratas sin corregirlas (SPEC-0000).
 
 ### Funcionales (Playwright)
-- `forms-flow.spec.ts` — sincronizar (mock) → ver formulario con campos faltantes → «Añadir campos» → cambio pendiente → aplicar en sandbox → cobertura actualizada.
-- `new-form.spec.ts` — asistente «+ Formulario»: elegir objeto y origen, preselección de campos, generar `create_form`.
-- `link-origin.spec.ts` — asociar un formulario `captured` a un origen y ver el informe de cobertura.
 
 > Los tests unitarios, una vez aprobados, no se modifican sin un SPEC de modificación (SPEC-0000 §8). Mocks solo para dependencias externas (IPC, HubSpot, Drive).
 
@@ -508,3 +505,27 @@ Hallazgos de la batería de pruebas del MCP `revops` sobre el proyecto «Testing
 - **Pendiente en máquina:** `npm run typecheck` y `npm run test:unit` (el clon al sandbox estaba corrupto;
   los originales se verificaron sanos).
 
+
+---
+
+## 17. Confirmación de descarte y feedback (IMPLEMENTADO, 2026-06-19)
+
+Origen: Informe UX 2026-06-19, hallazgos #2 y #1. En `FormPendingChangesView.tsx` se pueden descartar cambios pendientes sin confirmación; la sincronización no confirma resultado con toast.
+
+Adopción de SPEC-0002 §11 (ConfirmDialog):
+- Descartar cambio pendiente (`forms_discard_change`) → `confirm({ tone:'danger', ... })`.
+
+Adopción de SPEC-0002 §10 (Snackbar):
+- Tras sincronizar formularios: `notify` con resumen (éxito/error).
+
+Claves i18n nuevas: `forms.discardTitle/Body`, `forms.synced`, `forms.syncError` (cuatro locales).
+
+Implementado 2026-06-19: `FormPendingChangesView` usa `useConfirm` para descartar; el toast de resultado se emite en `handleApply` (apply-change) de `FormsManagementScreen`. El resumen de `syncHs` sigue mostrándose inline.
+
+---
+
+## 18. Eliminación de e2e dependientes de portal (2026-06-19)
+
+Se eliminan `tests/functional/forms-flow.spec.ts`, `new-form.spec.ts` y `link-origin.spec.ts`. Estaban en `test.fixme` permanente porque requieren un portal HubSpot conectado o un fixture de la Marketing Forms API para tener formularios/propiedades reales que sincronizar; no son ejecutables de forma desatendida. La lógica subyacente queda cubierta por los unitarios de main (`coverage.spec.ts`, `pending-changes.spec.ts`, `forms.spec.ts`). Si en el futuro se añade un fixture de la API, se reintroducirán como e2e reales con su iteración correspondiente.
+
+> 2026-06-19 (a11y, SPEC-0002 §16): los checkboxes de fila del asistente reciben `aria-label`.

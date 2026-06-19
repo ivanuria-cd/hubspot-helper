@@ -48,7 +48,9 @@
       "mcp": "API / MCP",
       "propiedades": "Propiedades",
       "objetos-custom": "Objetos custom",
-      "formularios": "Formularios"
+      "formularios": "Formularios",
+      "dashboard": "Dashboard",
+      "crm": "CRM"
     }
   },
   "topbar": {
@@ -88,7 +90,10 @@
     "toolsTitle": "Tools disponibles ({{count}})",
     "noTools": "Aún no hay tools registradas",
     "snippetTitle": "Configuración para Claude Desktop",
-    "copyConfig": "Copiar configuración"
+    "copyConfig": "Copiar configuración",
+    "regenerateTitle": "Regenerar token",
+    "regenerateBody": "Al regenerar el token se invalidará el actual y se cerrará toda sesión MCP activa. ¿Continuar?",
+    "tokenRegenerated": "Token regenerado."
   },
   "hubspot": {
     "title": "Conectores / HubSpot",
@@ -107,7 +112,8 @@
     "apiVersion": "Versión API en uso: {{version}}",
     "loading": "Comprobando conexión…",
     "saveSuccess": "Conectado correctamente a {{portal}}.",
-    "saveError": "No se pudo conectar: {{error}}"
+    "saveError": "No se pudo conectar: {{error}}",
+    "tokenSaved": "Conexión guardada."
   },
   "gdrive": {
     "title": "Conectores / Google Drive",
@@ -168,7 +174,8 @@
       "empty": "Esta carpeta no tiene subcarpetas.",
       "selectThis": "Seleccionar esta carpeta",
       "cancel": "Cancelar"
-    }
+    },
+    "syncDone": "Sincronización completada."
   },
   "drive": {
     "doc": {
@@ -391,7 +398,13 @@
       "radio": "Opción única",
       "checkbox": "Casillas múltiples",
       "booleancheckbox": "Sí/No"
-    }
+    },
+    "deleteEntryTitle": "Eliminar propiedad",
+    "deleteEntryBody": "Se eliminará la entrada de propiedad del mapa local. Esta acción no se puede deshacer. ¿Continuar?",
+    "deleteOriginTitle": "Eliminar origen",
+    "deleteOriginBody": "Se eliminará el origen de datos y sus mapeos. Esta acción no se puede deshacer. ¿Continuar?",
+    "applyToastDone": "Cambio aplicado en HubSpot.",
+    "applyToastError": "No se pudo aplicar el cambio: {{error}}"
   },
   "customObjects": {
     "title": "CRM / Objetos custom",
@@ -462,7 +475,13 @@
       "associations": "Asociaciones",
       "cancel": "Cancelar",
       "save": "Guardar"
-    }
+    },
+    "archiveConfirmTitle": "Archivar objeto",
+    "archiveConfirmBody": "Archivar requiere borrar antes los registros y propiedades del objeto en HubSpot. ¿Continuar?",
+    "deleteDraftTitle": "Eliminar borrador",
+    "deleteDraftBody": "Se eliminará el borrador del objeto. Esta acción no se puede deshacer. ¿Continuar?",
+    "syncToastDone": "Sincronización completada.",
+    "syncToastError": "No se pudo sincronizar: {{error}}"
   },
   "forms": {
     "title": "CRM / Formularios",
@@ -538,7 +557,62 @@
       "productionDone": "producción ✓",
       "productionPending": "producción ✕",
       "empty": "No hay cambios pendientes."
-    }
+    },
+    "discardTitle": "Descartar cambio",
+    "discardBody": "Se descartará el cambio pendiente del formulario. ¿Continuar?",
+    "syncToastDone": "Sincronización completada.",
+    "syncToastError": "No se pudo sincronizar: {{error}}"
+  },
+  "snackbar": {
+    "close": "Cerrar"
+  },
+  "confirm": {
+    "accept": "Aceptar",
+    "cancel": "Cancelar"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "connectorsTitle": "Conectores",
+    "pendingTitle": "Cambios pendientes",
+    "configure": "Configurar",
+    "review": "Revisar",
+    "upToDate": "Al día",
+    "connected": "Conectado",
+    "notConfigured": "No configurado",
+    "hubspot": "HubSpot",
+    "drive": "Google Drive",
+    "mcp": "API / MCP",
+    "mcpActive": "Activo",
+    "mcpInactive": "Inactivo",
+    "mcpTools": "{{count}} tools · puerto {{port}}",
+    "driveFolder": "Carpeta: {{name}}",
+    "driveNoFolder": "Sin carpeta",
+    "envActive": "Entorno activo: {{environment}}",
+    "properties": "Propiedades",
+    "objects": "Objetos custom",
+    "forms": "Formularios",
+    "pendingCount": "{{count}} pendiente(s)",
+    "onboardingTitle": "Primeros pasos",
+    "onboardingIntro": "Configura los conectores para empezar a trabajar.",
+    "stepHubspot": "Conectar HubSpot",
+    "stepDrive": "Conectar Google Drive",
+    "stepMcp": "Activar el servidor MCP",
+    "loading": "Cargando estado…",
+    "error": "No se pudo cargar el estado del proyecto."
+  },
+  "crm": {
+    "title": "CRM",
+    "properties": "Propiedades",
+    "objects": "Objetos custom",
+    "forms": "Formularios",
+    "totalItems": "{{count}} en total",
+    "pending": "{{count}} pendiente(s)",
+    "upToDate": "Al día",
+    "open": "Abrir",
+    "notConnected": "Conecta HubSpot para ver tus datos de CRM.",
+    "configure": "Configurar HubSpot",
+    "loading": "Cargando CRM…",
+    "error": "No se pudo cargar el estado del CRM."
   },
   "_fallbackProbe": "valor por defecto (es)"
 }

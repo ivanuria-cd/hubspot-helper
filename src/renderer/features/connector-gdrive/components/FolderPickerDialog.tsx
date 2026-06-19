@@ -161,7 +161,7 @@ export function FolderPickerDialog({
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
+                <SearchIcon fontSize="small" aria-hidden />
               </InputAdornment>
             ),
             endAdornment: searchActive ? (

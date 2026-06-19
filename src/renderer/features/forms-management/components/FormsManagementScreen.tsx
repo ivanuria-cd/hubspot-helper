@@ -3,6 +3,8 @@ import { Alert, Box, Button, MenuItem, Stack, TextField, Typography } from '@mui
 import SyncIcon from '@mui/icons-material/Sync';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
+import { useSnackbar } from '@shared/components/feedback';
+import { EmptyState } from '@shared/components/EmptyState';
 import { useDriveDoc } from '@shared/hooks/useDriveDoc';
 import { DriveDocActions } from '@shared/components/DriveDocActions';
 import { DriveDirtyGuard } from '@shared/components/DriveDirtyGuard';
@@ -19,6 +21,7 @@ import { coverageState } from './CoverageBadge';
 
 export function FormsManagementScreen(): JSX.Element | null {
   const { t } = useTranslation('common');
+  const { notify } = useSnackbar();
   const activeProject = useShellStore((state) => state.activeProject);
   const projectId = activeProject?.id ?? '';
 
@@ -95,6 +98,12 @@ export function FormsManagementScreen(): JSX.Element | null {
     setBusy(true);
     try {
       await applyChange(projectId, changeId, environment);
+      notify({ message: t('forms.syncToastDone'), severity: 'success' });
+    } catch (error) {
+      notify({
+        message: t('forms.syncToastError', { error: error instanceof Error ? error.message : '' }),
+        severity: 'error',
+      });
     } finally {
       setBusy(false);
     }
@@ -198,7 +207,7 @@ export function FormsManagementScreen(): JSX.Element | null {
           {loading ? (
             <Typography color="text.primary">{t('forms.loading')}</Typography>
           ) : forms.length === 0 ? (
-            <Typography color="text.primary">{t('forms.empty')}</Typography>
+            <EmptyState message={t('forms.empty')} />
           ) : filtered.length === 0 ? (
             <Typography color="text.primary">{t('forms.noResults')}</Typography>
           ) : (

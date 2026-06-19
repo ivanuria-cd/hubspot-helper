@@ -1,12 +1,13 @@
 import { createMemoryRouter, Navigate, type RouteObject } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
 import { WelcomeRoute } from './components/welcome/WelcomeRoute';
-import { SectionPlaceholder } from './components/sections/SectionPlaceholder';
 import { ConfigSection } from './components/sections/ConfigSection';
 import { HubSpotConnectorScreen } from '@renderer/features/connector-hubspot';
 import { GoogleDriveConnectorScreen } from '@renderer/features/connector-gdrive';
 import { McpSettingsScreen } from '@renderer/features/settings-mcp';
 import { HelpSection } from '@renderer/features/help';
+import { DashboardScreen } from '@renderer/features/dashboard';
+import { CrmOverviewScreen } from '@renderer/features/crm-overview';
 import { PropertyManagementScreen } from '@renderer/features/property-management';
 import { CustomObjectsScreen } from '@renderer/features/custom-objects';
 import { FormsManagementScreen } from '@renderer/features/forms-management';
@@ -17,13 +18,11 @@ export const routes: RouteObject[] = [
     path: '/project/:projectId',
     element: <MainLayout />,
     children: [
-      { index: true, element: <SectionPlaceholder titleKey="sidebar.dashboard" /> },
-      { path: 'crm', element: <SectionPlaceholder titleKey="sidebar.crm" /> },
+      { index: true, element: <DashboardScreen /> },
+      { path: 'crm', element: <CrmOverviewScreen /> },
       { path: 'crm/properties', element: <PropertyManagementScreen /> },
       { path: 'crm/objects', element: <CustomObjectsScreen /> },
       { path: 'crm/forms', element: <FormsManagementScreen /> },
-      { path: 'crm/maps', element: <SectionPlaceholder titleKey="sidebar.maps" /> },
-      { path: 'reporting', element: <SectionPlaceholder titleKey="sidebar.reporting" /> },
       { path: 'config', element: <ConfigSection /> },
       { path: 'config/connectors/hubspot', element: <HubSpotConnectorScreen /> },
       { path: 'config/connectors/google-drive', element: <GoogleDriveConnectorScreen /> },

@@ -17,6 +17,7 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useTranslation } from 'react-i18next';
 import type { DataOrigin, OriginType } from '@shared/types/properties';
+import { useConfirm } from '@shared/components/feedback';
 
 const ORIGIN_TYPES: OriginType[] = ['integration', 'migration', 'user', 'workflow'];
 
@@ -94,6 +95,7 @@ export function OriginsModal({
   onDelete,
 }: OriginsModalProps): JSX.Element {
   const { t } = useTranslation('common');
+  const askConfirm = useConfirm();
   const [name, setName] = useState('');
   const [type, setType] = useState<OriginType>('integration');
   const [description, setDescription] = useState('');
@@ -104,6 +106,15 @@ export function OriginsModal({
     setName('');
     setDescription('');
     setType('integration');
+  };
+
+  const handleDelete = async (originId: string): Promise<void> => {
+    const ok = await askConfirm({
+      tone: 'danger',
+      title: t('properties.deleteOriginTitle'),
+      body: t('properties.deleteOriginBody'),
+    });
+    if (ok) await onDelete(originId);
   };
 
   return (
@@ -124,7 +135,7 @@ export function OriginsModal({
                       {origin.description ? ` — ${origin.description}` : ''}
                     </Typography>
                   </Box>
-                  <IconButton aria-label={t('properties.originsModal.delete')} onClick={() => onDelete(origin.id)}>
+                  <IconButton aria-label={t('properties.originsModal.delete')} onClick={() => void handleDelete(origin.id)}>
                     <DeleteIcon />
                   </IconButton>
                 </Stack>

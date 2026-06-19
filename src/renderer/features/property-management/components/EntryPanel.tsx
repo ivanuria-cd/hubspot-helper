@@ -22,6 +22,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import { useTranslation } from 'react-i18next';
 import type { DataOrigin, HsPropertyChange, PropertyEntry } from '@shared/types/properties';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
+import { useConfirm } from '@shared/components/feedback';
+import { SIDE_PANEL_WIDTH } from '@shared/components/layout-constants';
 import { StatusBadge } from './StatusBadge';
 
 interface EntryPanelProps {
@@ -42,8 +44,18 @@ function destName(entry: PropertyEntry): string {
 
 export function EntryPanel({ entry, origins, busy, onClose, onEdit, onDelete, onApply }: EntryPanelProps): JSX.Element {
   const { t } = useTranslation('common');
+  const askConfirm = useConfirm();
   const originName = new Map(origins.map((o) => [o.id, o.name]));
   const [confirm, setConfirm] = useState<HsPropertyChange | null>(null);
+
+  const handleDelete = async (entryId: string): Promise<void> => {
+    const ok = await askConfirm({
+      tone: 'danger',
+      title: t('properties.deleteEntryTitle'),
+      body: t('properties.deleteEntryBody'),
+    });
+    if (ok) onDelete(entryId);
+  };
 
   const apply = async (environment: HubSpotEnvironment): Promise<void> => {
     if (!confirm) return;
@@ -53,7 +65,7 @@ export function EntryPanel({ entry, origins, busy, onClose, onEdit, onDelete, on
 
   return (
     <Drawer anchor="right" open={Boolean(entry)} onClose={onClose}>
-      <Box sx={{ width: 420, p: 3 }} role="region" aria-label={t('properties.panel.definition')}>
+      <Box sx={{ width: SIDE_PANEL_WIDTH, p: 3 }} role="region" aria-label={t('properties.panel.definition')}>
         {entry ? (
           <>
             <Stack direction="row" alignItems="center" spacing={1}>
@@ -64,7 +76,7 @@ export function EntryPanel({ entry, origins, busy, onClose, onEdit, onDelete, on
               <IconButton aria-label={t('properties.wizard.editTitle')} onClick={() => onEdit(entry)}>
                 <EditIcon />
               </IconButton>
-              <IconButton aria-label={t('properties.panel.delete')} onClick={() => onDelete(entry.id)}>
+              <IconButton aria-label={t('properties.panel.delete')} onClick={() => void handleDelete(entry.id)}>
                 <DeleteIcon />
               </IconButton>
               <IconButton aria-label={t('properties.panel.close')} onClick={onClose}>

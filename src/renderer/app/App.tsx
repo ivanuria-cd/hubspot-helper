@@ -6,6 +6,7 @@ import { cdTheme } from '@renderer/theme';
 import { i18nInstance } from '@renderer/i18n';
 import { createAppRouter } from '@renderer/app/router';
 import { useShellStore } from '@renderer/app/store/shell-store';
+import { ConfirmProvider, SnackbarProvider } from '@shared/components/feedback';
 
 /**
  * Root del renderer. Monta los providers globales (tema MUI + i18n + router),
@@ -30,7 +31,11 @@ export default function App(): JSX.Element {
     <I18nextProvider i18n={i18nInstance}>
       <ThemeProvider theme={cdTheme}>
         <CssBaseline />
-        <RouterProvider router={router} />
+        <SnackbarProvider>
+          <ConfirmProvider>
+            <RouterProvider router={router} />
+          </ConfirmProvider>
+        </SnackbarProvider>
       </ThemeProvider>
     </I18nextProvider>
   );

@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Alert, Box, Button, Chip, Stack, TextField, Typography } from '@mui/material';
+import { Box, Button, Chip, Stack, TextField, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import type { GoogleCredentialsStatus, GoogleCredentialSource } from '@shared/types/gdrive';
+import { useSnackbar } from '@shared/components/feedback';
 
 interface Props {
   credentials: GoogleCredentialsStatus | null;
@@ -25,9 +26,9 @@ function SourceChip({ source }: { source: GoogleCredentialSource }): JSX.Element
 
 export function GoogleCredentialsCard({ credentials, working, onSave, onClear }: Props): JSX.Element {
   const { t } = useTranslation('common');
+  const { notify } = useSnackbar();
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');
-  const [feedback, setFeedback] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
   const handleSave = async (): Promise<void> => {
     const input: { clientId?: string; clientSecret?: string } = {};
@@ -38,9 +39,9 @@ export function GoogleCredentialsCard({ credentials, working, onSave, onClear }:
     if (result.success) {
       setClientId('');
       setClientSecret('');
-      setFeedback({ kind: 'ok', text: t('gdrive.credentials.saved') });
+      notify({ message: t('gdrive.credentials.saved'), severity: 'success' });
     } else {
-      setFeedback({ kind: 'error', text: result.error ?? t('gdrive.credentials.error') });
+      notify({ message: result.error ?? t('gdrive.credentials.error'), severity: 'error' });
     }
   };
 
@@ -48,7 +49,7 @@ export function GoogleCredentialsCard({ credentials, working, onSave, onClear }:
     await onClear();
     setClientId('');
     setClientSecret('');
-    setFeedback({ kind: 'ok', text: t('gdrive.credentials.cleared') });
+    notify({ message: t('gdrive.credentials.cleared'), severity: 'success' });
   };
 
   const idPlaceholder = credentials?.clientId.set
@@ -84,7 +85,6 @@ export function GoogleCredentialsCard({ credentials, working, onSave, onClear }:
           helperText={t('gdrive.credentials.help')}
           fullWidth
         />
-        {feedback ? <Alert severity={feedback.kind === 'ok' ? 'success' : 'error'}>{feedback.text}</Alert> : null}
         <Stack direction="row" spacing={2} justifyContent="flex-end">
           <Button color="inherit" onClick={() => void handleClear()} disabled={working}>
             {t('gdrive.credentials.clear')}

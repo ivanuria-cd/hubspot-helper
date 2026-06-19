@@ -48,7 +48,9 @@
       "mcp": "API / MCP",
       "propiedades": "Properties",
       "objetos-custom": "Custom objects",
-      "formularios": "Forms"
+      "formularios": "Forms",
+      "dashboard": "Dashboard",
+      "crm": "CRM"
     }
   },
   "topbar": {
@@ -88,7 +90,10 @@
     "toolsTitle": "Available tools ({{count}})",
     "noTools": "No tools registered yet",
     "snippetTitle": "Configuration for Claude Desktop",
-    "copyConfig": "Copy configuration"
+    "copyConfig": "Copy configuration",
+    "regenerateTitle": "Regenerate token",
+    "regenerateBody": "Regenerating the token invalidates the current one and ends every active MCP session. Continue?",
+    "tokenRegenerated": "Token regenerated."
   },
   "hubspot": {
     "title": "Connectors / HubSpot",
@@ -107,7 +112,8 @@
     "apiVersion": "API version in use: {{version}}",
     "loading": "Checking connection…",
     "saveSuccess": "Successfully connected to {{portal}}.",
-    "saveError": "Could not connect: {{error}}"
+    "saveError": "Could not connect: {{error}}",
+    "tokenSaved": "Connection saved."
   },
   "gdrive": {
     "title": "Connectors / Google Drive",
@@ -168,7 +174,8 @@
       "empty": "This folder has no subfolders.",
       "selectThis": "Select this folder",
       "cancel": "Cancel"
-    }
+    },
+    "syncDone": "Synchronization complete."
   },
   "drive": {
     "doc": {
@@ -314,7 +321,13 @@
       "notes": "Notes",
       "cancel": "Cancel",
       "save": "Save"
-    }
+    },
+    "deleteEntryTitle": "Delete property",
+    "deleteEntryBody": "This removes the property entry from the local map. This action cannot be undone. Continue?",
+    "deleteOriginTitle": "Delete origin",
+    "deleteOriginBody": "This removes the data origin and its mappings. This action cannot be undone. Continue?",
+    "applyToastDone": "Change applied in HubSpot.",
+    "applyToastError": "Could not apply the change: {{error}}"
   },
   "customObjects": {
     "title": "CRM / Custom objects",
@@ -385,7 +398,13 @@
       "associations": "Associations",
       "cancel": "Cancel",
       "save": "Save"
-    }
+    },
+    "archiveConfirmTitle": "Archive object",
+    "archiveConfirmBody": "Archiving requires first deleting the object's records and properties in HubSpot. Continue?",
+    "deleteDraftTitle": "Delete draft",
+    "deleteDraftBody": "This deletes the object draft. This action cannot be undone. Continue?",
+    "syncToastDone": "Synchronization complete.",
+    "syncToastError": "Could not synchronize: {{error}}"
   },
   "forms": {
     "title": "CRM / Forms",
@@ -461,6 +480,61 @@
       "productionDone": "production ✓",
       "productionPending": "production ✕",
       "empty": "No pending changes."
-    }
+    },
+    "discardTitle": "Discard change",
+    "discardBody": "This discards the form's pending change. Continue?",
+    "syncToastDone": "Synchronization complete.",
+    "syncToastError": "Could not synchronize: {{error}}"
+  },
+  "snackbar": {
+    "close": "Close"
+  },
+  "confirm": {
+    "accept": "Confirm",
+    "cancel": "Cancel"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "connectorsTitle": "Connectors",
+    "pendingTitle": "Pending changes",
+    "configure": "Configure",
+    "review": "Review",
+    "upToDate": "Up to date",
+    "connected": "Connected",
+    "notConfigured": "Not configured",
+    "hubspot": "HubSpot",
+    "drive": "Google Drive",
+    "mcp": "API / MCP",
+    "mcpActive": "Active",
+    "mcpInactive": "Inactive",
+    "mcpTools": "{{count}} tools · port {{port}}",
+    "driveFolder": "Folder: {{name}}",
+    "driveNoFolder": "No folder",
+    "envActive": "Active environment: {{environment}}",
+    "properties": "Properties",
+    "objects": "Custom objects",
+    "forms": "Forms",
+    "pendingCount": "{{count}} pending",
+    "onboardingTitle": "Getting started",
+    "onboardingIntro": "Set up the connectors to start working.",
+    "stepHubspot": "Connect HubSpot",
+    "stepDrive": "Connect Google Drive",
+    "stepMcp": "Enable the MCP server",
+    "loading": "Loading status…",
+    "error": "Could not load the project status."
+  },
+  "crm": {
+    "title": "CRM",
+    "properties": "Properties",
+    "objects": "Custom objects",
+    "forms": "Forms",
+    "totalItems": "{{count}} total",
+    "pending": "{{count}} pending",
+    "upToDate": "Up to date",
+    "open": "Open",
+    "notConnected": "Connect HubSpot to see your CRM data.",
+    "configure": "Configure HubSpot",
+    "loading": "Loading CRM…",
+    "error": "Could not load the CRM status."
   }
 }

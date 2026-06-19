@@ -53,6 +53,7 @@ export function Sidebar(): JSX.Element {
         aria-current={active ? 'page' : undefined}
         sx={{
           justifyContent: collapsed ? 'center' : 'flex-start',
+          pl: collapsed ? undefined : item.child ? 4 : undefined,
           '&.Mui-selected': { borderRight: `3px solid ${cdPalette.accent}` },
         }}
       >

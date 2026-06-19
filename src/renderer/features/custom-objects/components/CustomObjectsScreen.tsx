@@ -12,6 +12,8 @@ import {
 import SyncIcon from '@mui/icons-material/Sync';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
+import { useSnackbar } from '@shared/components/feedback';
+import { EmptyState } from '@shared/components/EmptyState';
 import { useObjectsStore } from '@renderer/features/property-management/store/objects-store';
 import { useDriveDoc } from '@shared/hooks/useDriveDoc';
 import { DriveDocActions } from '@shared/components/DriveDocActions';
@@ -26,6 +28,7 @@ import { PendingObjectChangesView } from './PendingObjectChangesView';
 
 export function CustomObjectsScreen(): JSX.Element | null {
   const { t } = useTranslation('common');
+  const { notify } = useSnackbar();
   const activeProject = useShellStore((state) => state.activeProject);
   const projectId = activeProject?.id ?? '';
 
@@ -84,6 +87,12 @@ export function CustomObjectsScreen(): JSX.Element | null {
       setSelected((prev) =>
         prev ? useCustomObjectsStore.getState().definitions.find((d) => d.id === prev.id) ?? null : null,
       );
+      notify({ message: t('customObjects.syncToastDone'), severity: 'success' });
+    } catch (error) {
+      notify({
+        message: t('customObjects.syncToastError', { error: error instanceof Error ? error.message : '' }),
+        severity: 'error',
+      });
     } finally {
       setBusy(false);
     }
@@ -151,7 +160,7 @@ export function CustomObjectsScreen(): JSX.Element | null {
           {loading ? (
             <Typography color="text.primary">{t('customObjects.loading')}</Typography>
           ) : (definitions ?? []).length === 0 ? (
-            <Typography color="text.primary">{t('customObjects.empty')}</Typography>
+            <EmptyState message={t('customObjects.empty')} />
           ) : (
             <List aria-label={t('customObjects.title')} disablePadding>
               {(definitions ?? []).map((def) => (

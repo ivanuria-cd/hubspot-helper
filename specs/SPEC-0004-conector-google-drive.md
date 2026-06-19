@@ -670,3 +670,19 @@ para humanos. Por ello **no** se implementa `readSpreadsheet`.
 - Interpretar ediciones manuales del usuario fuera del esquema (la carga reimporta el documento generado
   por la app; las celdas editadas a mano que no encajen en el esquema se ignoran).
 - Sincronización automática o en segundo plano.
+
+---
+
+## 16. Adopción de feedback global (IMPLEMENTADO, 2026-06-19)
+
+Origen: Informe UX 2026-06-19, hallazgo #1. El feedback de "credenciales guardadas" solo limpia el input sin confirmar (`GoogleCredentialsCard.tsx`); el resultado de sincronización y los conflictos no se confirman con un toast.
+
+Adopción de SPEC-0002 §10 (Snackbar):
+- Guardado de credenciales (éxito/error) → `notify(...)`.
+- Resultado de sincronización (archivos subidos/bajados) y aviso de conflictos → `notify(...)` (los conflictos pueden seguir mostrando además su `Alert` de detalle).
+
+No hay acciones destructivas en este conector que requieran `ConfirmDialog` en esta iteración (la selección de carpeta no es destructiva).
+
+Claves i18n nuevas: `gdrive.credentialsSaved`, `gdrive.credentialsError`, `gdrive.syncDone` (cuatro locales).
+
+> 2026-06-19 (a11y, SPEC-0002 §16): `SearchIcon` decorativo del selector de carpeta marcado `aria-hidden`.

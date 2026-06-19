@@ -48,7 +48,9 @@
       "mcp": "API / MCP",
       "propiedades": "Propietateak",
       "objetos-custom": "Objektu pertsonalizatuak",
-      "formularios": "Inprimakiak"
+      "formularios": "Inprimakiak",
+      "dashboard": "Aginte-panela",
+      "crm": "CRM"
     }
   },
   "topbar": {
@@ -88,7 +90,10 @@
     "toolsTitle": "Tool erabilgarriak ({{count}})",
     "noTools": "Oraindik ez dago toolik erregistratuta",
     "snippetTitle": "Claude Desktop-erako konfigurazioa",
-    "copyConfig": "Kopiatu konfigurazioa"
+    "copyConfig": "Kopiatu konfigurazioa",
+    "regenerateTitle": "Tokena birsortu",
+    "regenerateBody": "Tokena birsortzean, oraingoa baliogabetu egingo da eta MCP saio aktibo guztiak itxiko dira. Jarraitu nahi duzu?",
+    "tokenRegenerated": "Tokena birsortu da."
   },
   "hubspot": {
     "title": "Konektoreak / HubSpot",
@@ -107,7 +112,8 @@
     "apiVersion": "Erabilitako API bertsioa: {{version}}",
     "loading": "Konexioa egiaztatzen…",
     "saveSuccess": "{{portal}} atarira behar bezala konektatuta.",
-    "saveError": "Ezin izan da konektatu: {{error}}"
+    "saveError": "Ezin izan da konektatu: {{error}}",
+    "tokenSaved": "Konexioa gordeta."
   },
   "gdrive": {
     "title": "Konektoreak / Google Drive",
@@ -168,7 +174,8 @@
       "empty": "Karpeta honek ez du azpikarpetarik.",
       "selectThis": "Hautatu karpeta hau",
       "cancel": "Utzi"
-    }
+    },
+    "syncDone": "Sinkronizazioa osatu da."
   },
   "drive": {
     "doc": {
@@ -314,7 +321,13 @@
       "notes": "Oharrak",
       "cancel": "Utzi",
       "save": "Gorde"
-    }
+    },
+    "deleteEntryTitle": "Ezabatu propietatea",
+    "deleteEntryBody": "Propietatearen sarrera tokiko mapatik ezabatuko da. Ekintza hau ezin da desegin. Jarraitu nahi duzu?",
+    "deleteOriginTitle": "Ezabatu jatorria",
+    "deleteOriginBody": "Datu-jatorria eta haren mapatzeak ezabatuko dira. Ekintza hau ezin da desegin. Jarraitu nahi duzu?",
+    "applyToastDone": "Aldaketa HubSpot-en aplikatu da.",
+    "applyToastError": "Ezin izan da aldaketa aplikatu: {{error}}"
   },
   "customObjects": {
     "title": "CRM / Objektu pertsonalizatuak",
@@ -385,7 +398,13 @@
       "associations": "Elkarteak",
       "cancel": "Utzi",
       "save": "Gorde"
-    }
+    },
+    "archiveConfirmTitle": "Artxibatu objektua",
+    "archiveConfirmBody": "Artxibatzeko, lehenik objektuaren erregistroak eta propietateak ezabatu behar dira HubSpot-en. Jarraitu nahi duzu?",
+    "deleteDraftTitle": "Ezabatu zirriborroa",
+    "deleteDraftBody": "Objektuaren zirriborroa ezabatuko da. Ekintza hau ezin da desegin. Jarraitu nahi duzu?",
+    "syncToastDone": "Sinkronizazioa osatu da.",
+    "syncToastError": "Ezin izan da sinkronizatu: {{error}}"
   },
   "forms": {
     "title": "CRM / Inprimakiak",
@@ -461,6 +480,61 @@
       "productionDone": "produkzioa ✓",
       "productionPending": "produkzioa ✕",
       "empty": "Ez dago aldaketa zain."
-    }
+    },
+    "discardTitle": "Baztertu aldaketa",
+    "discardBody": "Formularioaren aldaketa pendientea baztertuko da. Jarraitu nahi duzu?",
+    "syncToastDone": "Sinkronizazioa osatu da.",
+    "syncToastError": "Ezin izan da sinkronizatu: {{error}}"
+  },
+  "snackbar": {
+    "close": "Itxi"
+  },
+  "confirm": {
+    "accept": "Onartu",
+    "cancel": "Utzi"
+  },
+  "dashboard": {
+    "title": "Aginte-panela",
+    "connectorsTitle": "Konektoreak",
+    "pendingTitle": "Aldaketa pendienteak",
+    "configure": "Konfiguratu",
+    "review": "Berrikusi",
+    "upToDate": "Egunean",
+    "connected": "Konektatuta",
+    "notConfigured": "Konfiguratu gabe",
+    "hubspot": "HubSpot",
+    "drive": "Google Drive",
+    "mcp": "API / MCP",
+    "mcpActive": "Aktibo",
+    "mcpInactive": "Inaktibo",
+    "mcpTools": "{{count}} tools · {{port}} ataka",
+    "driveFolder": "Karpeta: {{name}}",
+    "driveNoFolder": "Karpetarik gabe",
+    "envActive": "Ingurune aktiboa: {{environment}}",
+    "properties": "Propietateak",
+    "objects": "Objektu pertsonalizatuak",
+    "forms": "Formularioak",
+    "pendingCount": "{{count}} pendiente",
+    "onboardingTitle": "Lehen urratsak",
+    "onboardingIntro": "Konfiguratu konektoreak lanean hasteko.",
+    "stepHubspot": "Konektatu HubSpot",
+    "stepDrive": "Konektatu Google Drive",
+    "stepMcp": "Aktibatu MCP zerbitzaria",
+    "loading": "Egoera kargatzen…",
+    "error": "Ezin izan da proiektuaren egoera kargatu."
+  },
+  "crm": {
+    "title": "CRM",
+    "properties": "Propietateak",
+    "objects": "Objektu pertsonalizatuak",
+    "forms": "Formularioak",
+    "totalItems": "{{count}} guztira",
+    "pending": "{{count}} pendiente",
+    "upToDate": "Egunean",
+    "open": "Ireki",
+    "notConnected": "Konektatu HubSpot zure CRM datuak ikusteko.",
+    "configure": "Konfiguratu HubSpot",
+    "loading": "CRM kargatzen…",
+    "error": "Ezin izan da CRMaren egoera kargatu."
   }
 }

@@ -197,6 +197,7 @@ export function NewFormWizard({
                       <Checkbox
                         checked={row.selected}
                         onChange={(event) => updateRow(index, { selected: event.target.checked })}
+                        inputProps={{ 'aria-label': row.hubspotName }}
                       />
                     </TableCell>
                     <TableCell>{row.hubspotName}</TableCell>
@@ -213,12 +214,14 @@ export function NewFormWizard({
                       <Checkbox
                         checked={row.required}
                         onChange={(event) => updateRow(index, { required: event.target.checked })}
+                        inputProps={{ 'aria-label': `${t('forms.wizard.required')} — ${row.hubspotName}` }}
                       />
                     </TableCell>
                     <TableCell>
                       <Checkbox
                         checked={row.hidden}
                         onChange={(event) => updateRow(index, { hidden: event.target.checked })}
+                        inputProps={{ 'aria-label': `${t('forms.wizard.hidden')} — ${row.hubspotName}` }}
                       />
                     </TableCell>
                   </TableRow>

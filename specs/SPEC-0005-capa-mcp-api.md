@@ -234,3 +234,18 @@ usada por la UI (sin cambiar el comportamiento de la app): `forms_discard_change
 `custom_objects_sync` para completar el ciclo de creación de objetos custom vía MCP. **Pendiente:** borrado de
 grupos de propiedades (escritura destructiva en HubSpot, no expuesta hoy en la UI; diferido). Verificación
 `typecheck`/`test:unit` pendiente de ejecutar en máquina.
+
+---
+
+## 12. Confirmación y feedback de la pantalla MCP (IMPLEMENTADO, 2026-06-19)
+
+Origen: Informe UX 2026-06-19, hallazgos #1 y #2. En `McpSettingsScreen.tsx`: "Copiado" desaparece a los 2 s (feedback efímero) y **regenerar el token** (L116) se ejecuta a un clic, invalidando toda sesión activa, sin confirmación.
+
+Adopción de SPEC-0002 §11 (ConfirmDialog):
+- Antes de regenerar el token: `await confirm({ tone:'danger', title: t('mcp.regenerateTitle'), body: t('mcp.regenerateBody') })`.
+
+Adopción de SPEC-0002 §10 (Snackbar):
+- "Token copiado", "Config copiada", "Token regenerado" → `notify({ severity:'success' })`, sustituyendo el texto inline de 2 s.
+- Error de toggle del servidor → `notify({ severity:'error' })` (puede mantenerse el `Alert` persistente).
+
+Claves i18n nuevas: `mcp.regenerateTitle`, `mcp.regenerateBody`, `mcp.tokenCopied`, `mcp.configCopied`, `mcp.tokenRegenerated` (cuatro locales).

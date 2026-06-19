@@ -14,12 +14,14 @@ import {
 import FolderIcon from '@mui/icons-material/Folder';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
+import { useSnackbar } from '@shared/components/feedback';
 import { useGoogleDriveConnector } from '../hooks/useGoogleDriveConnector';
 import { GoogleCredentialsCard } from './GoogleCredentialsCard';
 import { FolderPickerDialog } from './FolderPickerDialog';
 
 export function GoogleDriveConnectorScreen(): JSX.Element | null {
   const { t } = useTranslation('common');
+  const { notify } = useSnackbar();
   const activeProject = useShellStore((state) => state.activeProject);
   const projectId = activeProject?.id ?? '';
   const {
@@ -38,6 +40,15 @@ export function GoogleDriveConnectorScreen(): JSX.Element | null {
     sync,
     disconnect,
   } = useGoogleDriveConnector(projectId);
+
+  const handleSync = async (): Promise<void> => {
+    try {
+      await sync();
+      notify({ message: t('gdrive.syncDone'), severity: 'success' });
+    } catch (error) {
+      notify({ message: t('gdrive.authError', { error: error instanceof Error ? error.message : '' }), severity: 'error' });
+    }
+  };
   const [pickerOpen, setPickerOpen] = useState(false);
 
   if (!activeProject) return null;
@@ -124,7 +135,7 @@ export function GoogleDriveConnectorScreen(): JSX.Element | null {
                     ? t('gdrive.lastSync', { date: new Date(status.lastSyncAt).toLocaleString() })
                     : t('gdrive.neverSynced')}
                 </Typography>
-                <Button variant="outlined" onClick={() => void sync()} disabled={working}>
+                <Button variant="outlined" onClick={() => void handleSync()} disabled={working}>
                   {working ? t('gdrive.syncing') : t('gdrive.sync')}
                 </Button>
               </Stack>
