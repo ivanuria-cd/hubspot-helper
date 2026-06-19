@@ -10,9 +10,9 @@ const FIELD_TYPE_MAP: Record<string, string> = {
   number: 'number',
   select: 'dropdown',
   radio: 'radio',
-  checkbox: 'checkbox',
-  booleancheckbox: 'booleancheckbox',
-  date: 'date',
+  checkbox: 'multiple_checkboxes',
+  booleancheckbox: 'single_checkbox',
+  date: 'datepicker',
   phonenumber: 'phone',
 };
 

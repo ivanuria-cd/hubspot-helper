@@ -8,9 +8,9 @@ describe('field-map: propiedad → campo de formulario', () => {
     ['number', 'number'],
     ['select', 'dropdown'],
     ['radio', 'radio'],
-    ['checkbox', 'checkbox'],
-    ['booleancheckbox', 'booleancheckbox'],
-    ['date', 'date'],
+    ['checkbox', 'multiple_checkboxes'],
+    ['booleancheckbox', 'single_checkbox'],
+    ['date', 'datepicker'],
     ['phonenumber', 'phone'],
   ])('mapea %s → %s sin fallback', (input, expected) => {
     const result = mapPropertyFieldTypeToForm(input);

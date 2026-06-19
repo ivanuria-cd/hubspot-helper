@@ -153,9 +153,9 @@ interface NewFormDefinition {
 | `number`                             | `number`                  |
 | `select`                             | `dropdown`                |
 | `radio`                              | `radio`                   |
-| `checkbox`                           | `checkbox`                |
-| `booleancheckbox`                    | `booleancheckbox`         |
-| `date`                               | `date`                    |
+| `checkbox`                           | `multiple_checkboxes`     |
+| `booleancheckbox`                    | `single_checkbox`         |
+| `date`                               | `datepicker`              |
 | `phonenumber`                        | `phone`                   |
 | (propiedad `email` de contacto)      | `email`                   |
 
@@ -529,3 +529,19 @@ Implementado 2026-06-19: `FormPendingChangesView` usa `useConfirm` para descarta
 Se eliminan `tests/functional/forms-flow.spec.ts`, `new-form.spec.ts` y `link-origin.spec.ts`. Estaban en `test.fixme` permanente porque requieren un portal HubSpot conectado o un fixture de la Marketing Forms API para tener formularios/propiedades reales que sincronizar; no son ejecutables de forma desatendida. La lógica subyacente queda cubierta por los unitarios de main (`coverage.spec.ts`, `pending-changes.spec.ts`, `forms.spec.ts`). Si en el futuro se añade un fixture de la API, se reintroducirán como e2e reales con su iteración correspondiente.
 
 > 2026-06-19 (a11y, SPEC-0002 §16): los checkboxes de fila del asistente reciben `aria-label`.
+
+---
+
+## 19. Fix mapeo de tipos de campo a Marketing Forms API v3 (2026-06-19)
+
+Origen: al aplicar el cambio pendiente «Crear formulario "Aficiones"» HubSpot devolvía `Could not resolve type id 'checkbox' as a subtype of FieldBase`. El mapa propiedad→formulario (§3) enviaba tres `fieldType` que **no existen** en la Marketing Forms API v3. Tipos válidos: `datepicker, dropdown, email, file, mobile_phone, multi_line_text, multiple_checkboxes, number, payment_link_radio, phone, radio, single_checkbox, single_line_text`.
+
+Correcciones:
+
+| Propiedad HubSpot | Antes (inválido) | Ahora |
+|-------------------|------------------|-------|
+| `checkbox`        | `checkbox`       | `multiple_checkboxes` |
+| `booleancheckbox` | `booleancheckbox`| `single_checkbox` |
+| `date`            | `date`           | `datepicker` |
+
+Ficheros tocados: tabla §3; `src/main/forms-management/field-map.ts`; su espejo `src/renderer/features/forms-management/components/NewFormWizard.tsx`; y el test `src/main/forms-management/field-map.spec.ts` (expectativas actualizadas). Pendiente en máquina: `npm run typecheck` y `npm run test:unit`.
