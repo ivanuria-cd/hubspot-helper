@@ -96,6 +96,7 @@ import type {
   FormLinkUpsertInput,
   FormsListInput,
   FormsSyncInput,
+  FormUpdateDefinitionInput,
 } from '@shared/types/forms';
 
 let mainWindow: BrowserWindow | null = null;
@@ -366,6 +367,9 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   ipcMain.handle(IpcChannels.formsGet, (_event, input: FormGetInput) => forms.getForm(input));
   ipcMain.handle(IpcChannels.formsCreateDefinition, (_event, input: FormCreateDefinitionInput) =>
     forms.createDefinition(input),
+  );
+  ipcMain.handle(IpcChannels.formsUpdateDefinition, (_event, input: FormUpdateDefinitionInput) =>
+    forms.updateDefinition(input),
   );
   ipcMain.handle(IpcChannels.formsCoverage, (_event, input: FormCoverageInput) =>
     forms.coverage(input),

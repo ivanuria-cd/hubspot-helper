@@ -104,6 +104,8 @@ export function toHubSpotForm(raw: RawForm): HubSpotForm {
     updatedAt: raw.updatedAt ?? '',
     objectTypes,
     fieldNames,
+    // Snapshot íntegro para que la edición (§21) no pierda lo que la app no modela.
+    raw,
   };
 }
 

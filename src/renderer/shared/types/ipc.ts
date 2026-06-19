@@ -94,6 +94,7 @@ import type {
   FormsSyncInput,
   FormsSyncResult,
   FormsWriteSheetsResult,
+  FormUpdateDefinitionInput,
   HubSpotForm,
 } from '@shared/types/forms';
 
@@ -165,6 +166,7 @@ export const IpcChannels = {
   formsSyncHubspot: 'forms:sync-hubspot',
   formsGet: 'forms:get',
   formsCreateDefinition: 'forms:create-definition',
+  formsUpdateDefinition: 'forms:update-definition',
   formsCoverage: 'forms:coverage',
   formsAddMissingFields: 'forms:add-missing-fields',
   formsApplyChange: 'forms:apply-change',
@@ -254,6 +256,7 @@ export interface RevOpsApi {
   formsSyncHubspot(input: FormsSyncInput): Promise<FormsSyncResult>;
   formsGet(input: FormGetInput): Promise<HubSpotForm>;
   formsCreateDefinition(input: FormCreateDefinitionInput): Promise<FormChange>;
+  formsUpdateDefinition(input: FormUpdateDefinitionInput): Promise<FormChange>;
   formsCoverage(input: FormCoverageInput): Promise<FormCoverageReport[]>;
   formsAddMissingFields(input: FormAddMissingFieldsInput): Promise<FormChange>;
   formsApplyChange(input: FormApplyChangeInput): Promise<FormApplyChangeResult>;

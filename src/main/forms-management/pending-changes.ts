@@ -6,6 +6,8 @@
 import type {
   FieldCoverageItem,
   FormChange,
+  FormEditsInput,
+  FormFieldEditInput,
   HubSpotForm,
   NewFormDefinition,
   NewFormFieldDefinition,
@@ -41,6 +43,11 @@ export const DEFAULT_FORM_DISPLAY_OPTIONS = {
   cssClass: '',
 } as const;
 
+interface EmailFieldValidation {
+  blockedEmailDomains: string[];
+  useDefaultBlockList: boolean;
+}
+
 interface FieldPayload {
   objectTypeId: string;
   name: string;
@@ -48,10 +55,17 @@ interface FieldPayload {
   required: boolean;
   hidden: boolean;
   fieldType: string;
+  validation?: EmailFieldValidation;
 }
 
+/** Marketing Forms API v3 exige `validation` en los campos `email` (SPEC-0008 §20). */
+const DEFAULT_EMAIL_VALIDATION: EmailFieldValidation = {
+  blockedEmailDomains: [],
+  useDefaultBlockList: false,
+};
+
 function toFieldPayload(objectType: string, field: NewFormFieldDefinition): FieldPayload {
-  return {
+  const payload: FieldPayload = {
     objectTypeId: objectTypeToId(objectType),
     name: field.hubspotName,
     label: field.label,
@@ -59,6 +73,8 @@ function toFieldPayload(objectType: string, field: NewFormFieldDefinition): Fiel
     hidden: field.hidden,
     fieldType: field.fieldType,
   };
+  if (field.fieldType === 'email') payload.validation = { ...DEFAULT_EMAIL_VALIDATION };
+  return payload;
 }
 
 /** Convierte un item de cobertura faltante en campo de formulario (visible y no obligatorio). */
@@ -180,6 +196,7 @@ export function buildAddFieldsChange(
       required: field.required,
       hidden: field.hidden,
       fieldType: field.fieldType,
+      ...(field.fieldType === 'email' ? { validation: { ...DEFAULT_EMAIL_VALIDATION } } : {}),
     })),
   }));
   const newGroup = {
@@ -193,6 +210,102 @@ export function buildAddFieldsChange(
     operation: 'add_fields',
     summary: `Añadir ${missing.length} campo(s) que faltan al formulario «${form.name}»`,
     payload: { fieldGroups: [...existingGroups, newGroup] },
+    appliedToSandbox: false,
+    appliedToProduction: false,
+    createdAt: deps.now(),
+  };
+}
+
+/** Claves de solo-lectura que HubSpot no acepta en el cuerpo de un PATCH. */
+const READONLY_FORM_KEYS = ['id', 'updatedAt', 'createdAt', 'archivedAt'] as const;
+
+function editFieldToPayload(field: FormFieldEditInput, defaultObjectTypeId: string): FieldPayload {
+  const fieldType = field.fieldType ?? '';
+  const payload: FieldPayload = {
+    objectTypeId: field.objectTypeId ?? defaultObjectTypeId,
+    name: (field.hubspotName ?? field.name ?? '').trim(),
+    label: field.label ?? field.hubspotName ?? field.name ?? '',
+    required: field.required ?? false,
+    hidden: field.hidden ?? false,
+    fieldType,
+  };
+  if (fieldType === 'email') payload.validation = { ...DEFAULT_EMAIL_VALIDATION };
+  return payload;
+}
+
+/**
+ * Cambio pendiente `update_form`: PATCH `/marketing/v3/forms/{id}` con el estado completo
+ * deseado (HubSpot reemplaza en bloque). Parte del snapshot `raw` del formulario para conservar
+ * configuración/estilos/consentimiento/lógica que la app no modela, y superpone las ediciones.
+ * Los campos `email` conservan `validation` (§20).
+ */
+export function buildUpdateFormChange(
+  form: HubSpotForm,
+  edits: FormEditsInput,
+  deps: ChangeFactoryDeps,
+): FormChange {
+  const base: Record<string, unknown> =
+    form.raw && typeof form.raw === 'object' ? { ...(form.raw as Record<string, unknown>) } : {};
+  for (const key of READONLY_FORM_KEYS) delete base[key];
+
+  const defaultObjectTypeId =
+    form.fieldGroups[0]?.fields[0]?.objectTypeId ??
+    objectTypeToId(form.objectTypes[0] ?? 'contacts');
+
+  // fieldGroups: si las ediciones tocan campos, se reconstruye; si no, se conserva el del raw
+  // (o, en su defecto, se reconstruye desde el espejo conocido del formulario).
+  let fieldGroups: unknown = base.fieldGroups;
+  if (edits.fields) {
+    fieldGroups = [
+      {
+        groupType: 'default_group',
+        richTextType: 'text',
+        fields: edits.fields.map((f) => editFieldToPayload(f, defaultObjectTypeId)),
+      },
+    ];
+  } else if (edits.fieldGroups) {
+    fieldGroups = edits.fieldGroups.map((group) => ({
+      groupType: 'default_group',
+      richTextType: 'text',
+      ...(group.richText !== undefined ? { richText: group.richText } : {}),
+      fields: (group.fields ?? []).map((f) => editFieldToPayload(f, defaultObjectTypeId)),
+    }));
+  } else if (!fieldGroups) {
+    fieldGroups = [
+      {
+        groupType: 'default_group',
+        richTextType: 'text',
+        fields: form.fieldGroups
+          .flatMap((group) => group.fields)
+          .map((f) => editFieldToPayload(f, defaultObjectTypeId)),
+      },
+    ];
+  }
+
+  const baseConfig = (base.configuration as Record<string, unknown>) ?? {};
+  const baseDisplay = (base.displayOptions as Record<string, unknown>) ?? {};
+  const configuration = { ...baseConfig, ...(edits.configuration ?? {}) };
+  const displayOptions = { ...baseDisplay, ...(edits.displayOptions ?? {}) };
+  const legalConsentOptions =
+    edits.legalConsentOptions ?? base.legalConsentOptions ?? { type: 'none' };
+
+  const name = (edits.name ?? form.name ?? '').trim();
+  const payload = {
+    ...base,
+    name,
+    formType: base.formType ?? form.formType ?? 'hubspot',
+    fieldGroups,
+    configuration,
+    displayOptions,
+    legalConsentOptions,
+  };
+
+  return {
+    id: deps.newId(),
+    formId: form.id,
+    operation: 'update_form',
+    summary: `Editar formulario «${name || form.name}»`,
+    payload,
     appliedToSandbox: false,
     appliedToProduction: false,
     createdAt: deps.now(),

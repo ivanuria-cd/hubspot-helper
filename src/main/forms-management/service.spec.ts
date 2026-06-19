@@ -3,7 +3,11 @@ import { createFormService } from './service';
 import { createMemoryFormsStore } from './store';
 import type { FormsApi } from '../connectors/hubspot/forms';
 import type { HubSpotForm } from '@shared/types/forms';
-import type { PropertyEntry } from '@shared/types/properties';
+import type { DataOrigin, PropertyEntry } from '@shared/types/properties';
+
+const origins: DataOrigin[] = [
+  { id: 'o1', name: 'Origen 1', type: 'integration', createdAt: '2026-06-16T00:00:00Z' },
+];
 
 function form(id: string, names: string[]): HubSpotForm {
   return {
@@ -64,6 +68,7 @@ function makeService(apiOverrides: Partial<FormsApi> = {}, seedForms: HubSpotFor
     store,
     formsApiFor: () => api,
     entriesFor: () => entries,
+    originsFor: () => origins,
     newId: () => `id-${++counter}`,
     now: () => '2026-06-16T00:00:00Z',
   });
@@ -152,6 +157,64 @@ describe('FormService', () => {
     expect(result.success).toBe(false);
     expect(result.error).toBe('Falta el scope forms');
     expect(service.listPendingChanges('p1')[0]?.appliedToProduction).toBe(false);
+  });
+
+  it('createDefinition rechaza originId inexistente (§22)', () => {
+    const { service } = makeService();
+    expect(() =>
+      service.createDefinition({
+        projectId: 'p1',
+        definition: { name: 'X', originIds: ['no-existe'], objectType: 'contacts', fields: [] },
+      }),
+    ).toThrow(/no-existe/);
+    expect(service.listPendingChanges('p1')).toHaveLength(0);
+  });
+
+  it('updateDefinition genera update_form conservando raw y con validation en email (§21)', () => {
+    const base = form('f1', ['email']);
+    base.raw = {
+      id: 'f1',
+      name: 'Form f1',
+      formType: 'hubspot',
+      configuration: { language: 'es', recaptchaEnabled: true },
+      displayOptions: { submitButtonText: 'Enviar', theme: 'default_style' },
+      legalConsentOptions: { type: 'none' },
+      fieldGroups: base.fieldGroups,
+    };
+    const { service } = makeService({}, [base]);
+    const change = service.updateDefinition({
+      projectId: 'p1',
+      formId: 'f1',
+      edits: {
+        name: 'Form renombrado',
+        fields: [
+          { name: 'email', label: 'Correo', fieldType: 'email', required: true, hidden: false },
+        ],
+        displayOptions: { submitButtonText: 'Suscribirme' },
+      },
+    });
+    expect(change.operation).toBe('update_form');
+    expect(change.formId).toBe('f1');
+    const payload = change.payload as {
+      name: string;
+      configuration: { recaptchaEnabled?: boolean };
+      displayOptions: { submitButtonText?: string; theme?: string };
+      fieldGroups: Array<{
+        fields: Array<{ name: string; validation?: { useDefaultBlockList: boolean } }>;
+      }>;
+    };
+    expect(payload.name).toBe('Form renombrado');
+    // se conserva lo que no se editó del raw
+    expect(payload.configuration.recaptchaEnabled).toBe(true);
+    expect(payload.displayOptions.theme).toBe('default_style');
+    // se sobreescribe lo editado
+    expect(payload.displayOptions.submitButtonText).toBe('Suscribirme');
+    // el email lleva validation (§20)
+    expect(payload.fieldGroups[0]?.fields[0]?.validation).toEqual({
+      blockedEmailDomains: [],
+      useDefaultBlockList: false,
+    });
+    expect(service.listPendingChanges('p1')).toHaveLength(1);
   });
 
   it('discardChange elimina el cambio pendiente', () => {

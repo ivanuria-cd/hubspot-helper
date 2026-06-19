@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type {
   FormChange,
   FormCoverageReport,
+  FormEditsInput,
   FormOriginLink,
   FormsSyncResult,
   HubSpotForm,
@@ -22,6 +23,7 @@ interface FormsState {
   sync: (projectId: string, includeLegacyV2?: boolean) => Promise<void>;
   loadCoverage: (projectId: string, formId: string) => Promise<void>;
   createDefinition: (projectId: string, definition: NewFormDefinition) => Promise<void>;
+  updateDefinition: (projectId: string, formId: string, edits: FormEditsInput) => Promise<void>;
   addMissingFields: (projectId: string, formId: string, originId: string) => Promise<void>;
   applyChange: (
     projectId: string,
@@ -78,6 +80,10 @@ export const useFormsStore = create<FormsState>((set, get) => ({
   },
   createDefinition: async (projectId, definition) => {
     await window.api.formsCreateDefinition({ projectId, definition });
+    await get().load(projectId);
+  },
+  updateDefinition: async (projectId, formId, edits) => {
+    await window.api.formsUpdateDefinition({ projectId, formId, edits });
     await get().load(projectId);
   },
   addMissingFields: async (projectId, formId, originId) => {

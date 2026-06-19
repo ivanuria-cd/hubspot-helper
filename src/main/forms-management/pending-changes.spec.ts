@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   buildAddFieldsChange,
   buildCreateFormChange,
+  buildUpdateFormChange,
   isCompleted,
   markApplied,
   normalizeFormDefinition,
@@ -32,13 +33,27 @@ describe('pending-changes (formularios)', () => {
     expect(change.formId).toBeUndefined();
     const payload = change.payload as {
       formType: string;
-      fieldGroups: Array<{ fields: Array<{ objectTypeId: string; name: string }> }>;
+      fieldGroups: Array<{
+        fields: Array<{
+          objectTypeId: string;
+          name: string;
+          fieldType: string;
+          validation?: { blockedEmailDomains: string[]; useDefaultBlockList: boolean };
+        }>;
+      }>;
       legalConsentOptions: { type: string };
     };
     expect(payload.formType).toBe('hubspot');
     expect(payload.legalConsentOptions.type).toBe('none');
     expect(payload.fieldGroups[0]?.fields.map((f) => f.name)).toEqual(['email', 'firstname']);
     expect(payload.fieldGroups[0]?.fields[0]?.objectTypeId).toBe('0-1');
+    // El campo email lleva validation (requerido por Marketing Forms API v3, §20)
+    expect(payload.fieldGroups[0]?.fields[0]?.validation).toEqual({
+      blockedEmailDomains: [],
+      useDefaultBlockList: false,
+    });
+    // Los campos no-email no llevan validation
+    expect(payload.fieldGroups[0]?.fields[1]?.validation).toBeUndefined();
   });
 
   it('add_fields genera un PATCH que añade solo los campos que faltan', () => {
@@ -74,13 +89,25 @@ describe('pending-changes (formularios)', () => {
     expect(change.formId).toBe('f1');
 
     const payload = change.payload as {
-      fieldGroups: Array<{ fields: Array<{ name: string }> }>;
+      fieldGroups: Array<{
+        fields: Array<{
+          name: string;
+          fieldType: string;
+          validation?: { blockedEmailDomains: string[]; useDefaultBlockList: boolean };
+        }>;
+      }>;
     };
-    const allNames = payload.fieldGroups.flatMap((g) => g.fields.map((f) => f.name));
+    const allFields = payload.fieldGroups.flatMap((g) => g.fields);
+    const allNames = allFields.map((f) => f.name);
     // El email existente se preserva y se añaden solo los que faltan
     expect(allNames).toContain('email');
     const added = allNames.filter((n) => n !== 'email');
     expect(added.sort()).toEqual(['firstname', 'phone']);
+    // El email reenviado conserva su validation (§20)
+    expect(allFields.find((f) => f.name === 'email')?.validation).toEqual({
+      blockedEmailDomains: [],
+      useDefaultBlockList: false,
+    });
   });
 
   it('normalizeFormDefinition acepta la forma HubSpot (fieldGroups) y conserva el name del campo', () => {
@@ -118,6 +145,48 @@ describe('pending-changes (formularios)', () => {
       normalizeFormDefinition({ name: 'X', fields: [{ label: 'Sin name', fieldType: 'email' }] }),
     ).toThrow();
     expect(() => normalizeFormDefinition({ fields: [] })).toThrow(/name/);
+  });
+
+  it('buildUpdateFormChange sin raw reconstruye fieldGroups desde el espejo del formulario', () => {
+    const form: HubSpotForm = {
+      id: 'f1',
+      name: 'Demo',
+      formType: 'hubspot',
+      archived: false,
+      updatedAt: '',
+      objectTypes: ['contacts'],
+      fieldNames: ['email'],
+      fieldGroups: [
+        {
+          fields: [
+            {
+              objectTypeId: '0-1',
+              name: 'email',
+              label: 'Email',
+              fieldType: 'email',
+              required: true,
+              hidden: false,
+            },
+          ],
+        },
+      ],
+    };
+    const change = buildUpdateFormChange(form, { name: 'Demo 2' }, deps);
+    expect(change.operation).toBe('update_form');
+    expect(change.formId).toBe('f1');
+    const payload = change.payload as {
+      name: string;
+      legalConsentOptions: { type: string };
+      fieldGroups: Array<{ fields: Array<{ name: string; validation?: unknown }> }>;
+    };
+    expect(payload.name).toBe('Demo 2');
+    expect(payload.legalConsentOptions.type).toBe('none');
+    // sin raw, reconstruye los campos conocidos e inyecta validation en el email
+    expect(payload.fieldGroups[0]?.fields[0]?.name).toBe('email');
+    expect(payload.fieldGroups[0]?.fields[0]?.validation).toEqual({
+      blockedEmailDomains: [],
+      useDefaultBlockList: false,
+    });
   });
 
   it('markApplied marca el entorno y isCompleted exige producción', () => {

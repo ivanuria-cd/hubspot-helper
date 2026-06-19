@@ -545,3 +545,85 @@ Correcciones:
 | `date`            | `date`           | `datepicker` |
 
 Ficheros tocados: tabla §3; `src/main/forms-management/field-map.ts`; su espejo `src/renderer/features/forms-management/components/NewFormWizard.tsx`; y el test `src/main/forms-management/field-map.spec.ts` (expectativas actualizadas). Pendiente en máquina: `npm run typecheck` y `npm run test:unit`.
+
+---
+
+## 20. Fix `validation` requerido en campos email (2026-06-19)
+
+Origen: tras corregir §19, al aplicar «Crear formulario "Aficiones"» HubSpot devolvía `Some required fields were not set: [validation]`, apuntando al campo `email`. La Marketing Forms API v3 exige un objeto `validation` en los campos `fieldType: "email"` (confirmado en la doc oficial *Create a form*, `POST /marketing/v3/forms`):
+
+```json
+"validation": { "blockedEmailDomains": [], "useDefaultBlockList": false }
+```
+
+`toFieldPayload` (en `pending-changes.ts`) construía el campo solo con `objectTypeId/name/label/required/hidden/fieldType` y nunca emitía `validation`; además `normalizeFormDefinition` descarta propiedades no contempladas, por lo que un `validation` pasado por MCP se perdía. Defecto: **todo** formulario con campo email creado por la app era rechazado.
+
+Corrección: `toFieldPayload` inyecta `validation` con los valores por defecto (`DEFAULT_EMAIL_VALIDATION`) cuando `fieldType === 'email'`. Mismo tratamiento en `buildAddFieldsChange` al reenviar los grupos existentes (un email previo conserva su `validation`).
+
+Ficheros tocados: `src/main/forms-management/pending-changes.ts`; test `src/main/forms-management/pending-changes.spec.ts` (asserts de `validation` en create_form y add_fields). Pendiente en máquina: `npm run typecheck` y `npm run test:unit`. **Requiere reconstruir/reiniciar la app** para que el servidor MCP en ejecución tome el cambio antes de regenerar «Aficiones».
+
+---
+
+## 21. Edición de formularios — operación `update_form` (IMPLEMENTADO, 2026-06-19)
+
+Amplía el alcance de SPEC-0008 (antes excluía editar). Permite **edición completa** de un formulario `hubspot` ya sincronizado, vía PATCH `/marketing/v3/forms/{id}`. La PATCH de HubSpot **reemplaza** `fieldGroups`, `configuration`, `displayOptions` y `legalConsentOptions` en bloque, por lo que el cambio guarda el **estado completo deseado** del formulario (no un diff).
+
+### 21.1 Alcance (respuesta del usuario: «Todo»)
+
+1. **Campos:** editar `label`, `required`, `hidden`, `fieldType`, `placeholder`, `defaultValue`, `description`; **añadir**, **quitar** y **reordenar** campos (no solo añadir los que faltan, como `add_fields`).
+2. **Grupos:** conservar/editar `fieldGroups` (incl. `richText` de cada grupo).
+3. **Nombre** del formulario.
+4. **Configuración y display:** `configuration` (p. ej. `submitButtonText`, `language`, flags) y `displayOptions` (`theme`, `cssClass`, `style`).
+5. **Estilos / lógica / consentimiento:** `displayOptions.style`/`cssClass`, `dependentFields` por campo (lógica condicional) y `legalConsentOptions` (`none`/`legitimate_interest`/`explicit_consent_to_process`/`implicit_consent_to_process`).
+
+### 21.2 Modelo de cambio
+
+- Nueva `operation: 'update_form'` en `FormChange`, con `formId` y `payload` = formulario completo (mismo esquema que `create_form` salvo que es un PATCH). Conserva la regla §20: los campos `email` llevan `validation`.
+- `buildUpdateFormChange(form, edits, deps)`: parte del `HubSpotForm` sincronizado (vía `forms_get`), aplica las ediciones y serializa el payload completo. El builder de campos (`toFieldPayload`) se amplía para arrastrar `placeholder`/`defaultValue`/`description`/`dependentFields`/`options`/`validation` cuando existan.
+- `applyChange` ya soporta la rama no-create (PATCH vía `api.patchForm`); `update_form` entra por ahí. No crea links nuevos (los del formulario se mantienen).
+
+### 21.3 UI
+
+Pantalla/asistente de edición precargado desde `forms_get`: lista de campos editable (label/required/hidden/orden, alta/baja), nombre, configuración/display, estilos, consentimiento. Genera un cambio `update_form` que pasa por el flujo de cambios pendientes (Aplicar Sandbox/Producción, igual que el resto). Reutiliza Snackbar/ConfirmDialog (SPEC-0002 §10/§11).
+
+### 21.4 MCP
+
+Nueva tool `forms_update_definition` (`formId` + `edits`/definición completa) que prepara el cambio `update_form`. Documentar el schema. No aplica nada en HubSpot (igual que el resto de tools de escritura).
+
+### 21.5 Fuera de alcance
+
+Borrado de formularios (sigue fuera); gestión de submissions; clonado.
+
+### 21.6 Implementación (2026-06-19)
+
+- **Tipos** (`shared/types/forms.ts`): `FormChangeOperation += 'update_form'`; `HubSpotForm.raw?` (snapshot íntegro); `FormFieldEditInput`, `FormEditsInput`, `FormUpdateDefinitionInput`.
+- **Conector** (`connectors/hubspot/forms.ts`): `toHubSpotForm` conserva `raw`.
+- **Builder** (`pending-changes.ts`): `buildUpdateFormChange(form, edits, deps)` parte de `form.raw` (sin él, reconstruye desde el espejo), reemplaza `fieldGroups` si las ediciones tocan campos, fusiona `configuration`/`displayOptions`, sustituye `legalConsentOptions`, elimina claves de solo-lectura (`id/updatedAt/createdAt/archivedAt`) e inyecta `validation` en campos `email` (§20).
+- **Servicio** (`service.ts`): `updateDefinition` (crea el cambio `update_form`); `applyChange` ya hacía PATCH para no-create.
+- **MCP** (`mcp-tools.ts`): tool `forms_update_definition` (`formId` + `edits`).
+- **IPC/preload/store**: canal `forms:update-definition`, método `formsUpdateDefinition`, acción `updateDefinition` del store.
+- **UI**: `EditFormWizard.tsx` (precargado del formulario): editar/añadir/quitar/reordenar campos (label/required/hidden/tipo), nombre, texto del botón de envío y tipo de consentimiento; botón «Editar» en `FormPanel` (solo `formType==='hubspot'`). Estilos CSS finos y lógica condicional (`dependentFields`) **se conservan vía `raw`** y son editables vía MCP (`edits.displayOptions`/`legalConsentOptions`/`fieldGroups`), sin editor gráfico dedicado en esta iteración.
+- **Tests**: `service.spec.ts` (update_form conserva raw + validation email) y `pending-changes.spec.ts` (caso sin raw). i18n en es/ca/eu/en (`forms.editWizard.*`, `forms.panel.edit`).
+
+Pendiente en máquina: `npm run typecheck`, `npm run test:unit`, e2e y PR. **Requiere reconstruir/reiniciar la app** para que el MCP tome los cambios.
+
+---
+
+## 22. Asociar origen al crear vía MCP — explícito + validado (IMPLEMENTADO, 2026-06-19)
+
+Hoy `applyChange` ya crea el link form↔origen a partir de `change.createContext.originIds`, que sale de `definition.originIds` en `buildCreateFormChange` → **la capacidad existe**, pero el schema de `forms_create_definition` solo declara `definition: object` (indescubrible) y no valida que el origen exista (mismo hueco que tenía `entries_upsert`, ya corregido en SPEC-0006 §22.4).
+
+### 22.1 Cambios
+
+- **Schema explícito:** documentar en el `inputSchema` de `forms_create_definition` los campos admitidos dentro de `definition`, incluyendo `originIds: string[]` y `objectType: string` (además de `name`, `formType`, `fields`/`fieldGroups`).
+- **Validación:** antes de construir el cambio, `service.createDefinition` valida que cada `originId` exista en los orígenes del proyecto (SPEC-0006). Si alguno no existe → error que liste los `originId` desconocidos (no se crea el cambio). Para ello el servicio de formularios recibe un accesor `originsFor(projectId)` cableado a `properties.listOrigins` en `index.ts` (espejo de `entriesFor`).
+- **Sin cambio de comportamiento** para la UI: el asistente ya pasa `originIds`; solo se añade la validación (que también la protege).
+
+### 22.2 Implementación (2026-06-19)
+
+- `mcp-tools.ts`: `forms_create_definition` documenta en su schema `name`/`formType`/`objectType`/`originIds`/`fields`/`fieldGroups`.
+- `service.ts`: `assertOriginsExist` valida los `originIds` en `createDefinition` (error que lista los desconocidos, sin crear el cambio); nueva dep `originsFor`.
+- `forms-management/index.ts`: `originsFor` cableado a `propertyStore.get(projectId).origins`.
+- Tests: `service.spec.ts` (rechazo de originId inexistente; harness con fixture de orígenes).
+
+El link form↔origen lo sigue creando `applyChange` desde `createContext.originIds`. Pendiente en máquina: `npm run typecheck`, `npm run test:unit`, PR. Requiere reconstruir/reiniciar la app para el MCP.

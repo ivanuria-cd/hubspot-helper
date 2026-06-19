@@ -444,7 +444,28 @@
       "coverage": "Cobertura per origen",
       "noCoverage": "Associa un origen per veure la cobertura.",
       "coverageSummary": "{{present}}/{{expected}} presents",
-      "addMissing": "Afegeix els camps que falten ({{count}})"
+      "addMissing": "Afegeix els camps que falten ({{count}})",
+      "edit": "Edita"
+    },
+    "editWizard": {
+      "title": "Edita el formulari «{{name}}»",
+      "name": "Nom del formulari",
+      "fields": "Camps",
+      "fieldName": "Nom intern",
+      "label": "Etiqueta",
+      "fieldType": "Tipus de camp",
+      "required": "Obligatori",
+      "hidden": "Ocult",
+      "actions": "Accions",
+      "moveUp": "Puja",
+      "moveDown": "Baixa",
+      "remove": "Treu",
+      "addField": "Afegeix camp",
+      "config": "Configuració",
+      "submitButton": "Text del botó d'enviament",
+      "consent": "Consentiment legal",
+      "cancel": "Cancel·la",
+      "save": "Desa els canvis"
     },
     "linkModal": {
       "title": "Associa a origen",

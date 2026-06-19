@@ -21,20 +21,27 @@ import type {
   FormsOperationResult,
   FormsSyncInput,
   FormsSyncResult,
+  FormUpdateDefinitionInput,
   HubSpotForm,
 } from '@shared/types/forms';
-import type { PropertyEntry } from '@shared/types/properties';
+import type { DataOrigin, PropertyEntry } from '@shared/types/properties';
 import type { DriveDocMeta } from '@shared/types/gdrive';
 import type { FormsApi } from '../connectors/hubspot/forms';
 import type { FormsStore } from './store';
 import type { FormsDriveState } from './drive-state';
 import { buildCoverageReport, missingItems } from './coverage';
-import { buildAddFieldsChange, buildCreateFormChange, markApplied } from './pending-changes';
+import {
+  buildAddFieldsChange,
+  buildCreateFormChange,
+  buildUpdateFormChange,
+  markApplied,
+} from './pending-changes';
 
 export interface FormServiceDeps {
   store: FormsStore;
   formsApiFor: (projectId: string) => FormsApi;
   entriesFor: (projectId: string) => PropertyEntry[];
+  originsFor: (projectId: string) => DataOrigin[];
   newId: () => string;
   now: () => string;
 }
@@ -149,9 +156,31 @@ export function createFormService(deps: FormServiceDeps) {
     return reports;
   }
 
+  /** Valida que cada originId exista en los orígenes del proyecto (SPEC-0006, §22). */
+  function assertOriginsExist(projectId: string, originIds: string[] | undefined): void {
+    if (!originIds || originIds.length === 0) return;
+    const known = new Set(deps.originsFor(projectId).map((origin) => origin.id));
+    const unknown = originIds.filter((id) => !known.has(id));
+    if (unknown.length > 0) {
+      throw new Error(`Origen(es) inexistente(s): ${unknown.join(', ')}`);
+    }
+  }
+
   function createDefinition(input: FormCreateDefinitionInput): FormChange {
+    assertOriginsExist(input.projectId, input.definition?.originIds);
     const state = deps.store.get(input.projectId);
     const change = buildCreateFormChange(input.definition, changeFactory());
+    deps.store.set(input.projectId, { ...state, changes: [...state.changes, change] });
+    markChanged(input.projectId);
+    return change;
+  }
+
+  /** Prepara un cambio `update_form` a partir del formulario actual y las ediciones (§21). */
+  function updateDefinition(input: FormUpdateDefinitionInput): FormChange {
+    const state = deps.store.get(input.projectId);
+    const form = state.forms.find((f) => f.id === input.formId);
+    if (!form) throw new Error('Formulario no encontrado');
+    const change = buildUpdateFormChange(form, input.edits ?? {}, changeFactory());
     deps.store.set(input.projectId, { ...state, changes: [...state.changes, change] });
     markChanged(input.projectId);
     return change;
@@ -259,6 +288,7 @@ export function createFormService(deps: FormServiceDeps) {
     deleteLink,
     coverage,
     createDefinition,
+    updateDefinition,
     addMissingFields,
     listPendingChanges,
     applyChange,

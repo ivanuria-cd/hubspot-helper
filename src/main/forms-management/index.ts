@@ -16,6 +16,7 @@ export function createElectronFormService(deps: ElectronFormServiceDeps): FormSe
     store: new ElectronFormsStore(),
     formsApiFor: (projectId) => createFormsApi({ request, projectId }),
     entriesFor: (projectId) => propertyStore.get(projectId).entries,
+    originsFor: (projectId) => propertyStore.get(projectId).origins,
     newId: () => randomUUID(),
     now: () => new Date().toISOString(),
   });

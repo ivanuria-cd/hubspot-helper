@@ -82,6 +82,7 @@ const api: RevOpsApi = {
   formsSyncHubspot: (input) => ipcRenderer.invoke(IpcChannels.formsSyncHubspot, input),
   formsGet: (input) => ipcRenderer.invoke(IpcChannels.formsGet, input),
   formsCreateDefinition: (input) => ipcRenderer.invoke(IpcChannels.formsCreateDefinition, input),
+  formsUpdateDefinition: (input) => ipcRenderer.invoke(IpcChannels.formsUpdateDefinition, input),
   formsCoverage: (input) => ipcRenderer.invoke(IpcChannels.formsCoverage, input),
   formsAddMissingFields: (input) => ipcRenderer.invoke(IpcChannels.formsAddMissingFields, input),
   formsApplyChange: (input) => ipcRenderer.invoke(IpcChannels.formsApplyChange, input),

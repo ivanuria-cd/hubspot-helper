@@ -444,7 +444,28 @@
       "coverage": "Estaldura jatorriz",
       "noCoverage": "Lotu jatorri bat estaldura ikusteko.",
       "coverageSummary": "{{present}}/{{expected}} present",
-      "addMissing": "Gehitu falta diren eremuak ({{count}})"
+      "addMissing": "Gehitu falta diren eremuak ({{count}})",
+      "edit": "Editatu"
+    },
+    "editWizard": {
+      "title": "Editatu «{{name}}» inprimakia",
+      "name": "Inprimakiaren izena",
+      "fields": "Eremuak",
+      "fieldName": "Barne-izena",
+      "label": "Etiketa",
+      "fieldType": "Eremu mota",
+      "required": "Beharrezkoa",
+      "hidden": "Ezkutua",
+      "actions": "Ekintzak",
+      "moveUp": "Igo",
+      "moveDown": "Jaitsi",
+      "remove": "Kendu",
+      "addField": "Gehitu eremua",
+      "config": "Konfigurazioa",
+      "submitButton": "Bidaltzeko botoiaren testua",
+      "consent": "Lege-baimena",
+      "cancel": "Utzi",
+      "save": "Gorde aldaketak"
     },
     "linkModal": {
       "title": "Lotu jatorrira",

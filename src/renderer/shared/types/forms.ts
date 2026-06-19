@@ -33,6 +33,10 @@ export interface HubSpotForm {
   // Derivados por la app:
   objectTypes: string[]; // objetos (SPEC-0006) presentes en los campos
   fieldNames: string[]; // nombres de propiedad presentes
+  // Snapshot completo del formulario tal como lo devuelve HubSpot. Se usa como base de la
+  // edición (update_form, §21) para no perder configuración/estilos/consentimiento/lógica
+  // que la app no modela. Opcional: estados antiguos en Drive pueden no tenerlo.
+  raw?: unknown;
 }
 
 /** Asociación formulario ↔ orígenes (estado local del proyecto). */
@@ -64,7 +68,7 @@ export interface FormCoverageReport {
   items: FieldCoverageItem[];
 }
 
-export type FormChangeOperation = 'create_form' | 'add_fields' | 'update_field';
+export type FormChangeOperation = 'create_form' | 'add_fields' | 'update_field' | 'update_form';
 
 /** Cambio pendiente sobre un formulario (análogo a HsPropertyChange de SPEC-0006). */
 export interface FormChange {
@@ -95,6 +99,40 @@ export interface NewFormDefinition {
   originIds: string[];
   objectType: string;
   fields: NewFormFieldDefinition[];
+}
+
+// ── Edición de formularios (update_form, SPEC-0008 §21) ─────────────────────
+
+/** Campo en forma laxa para editar: admite `name` o `hubspotName`. */
+export interface FormFieldEditInput {
+  objectTypeId?: string;
+  name?: string;
+  hubspotName?: string;
+  label?: string;
+  fieldType?: string;
+  required?: boolean;
+  hidden?: boolean;
+}
+
+/**
+ * Ediciones a aplicar sobre un formulario existente. Todo es opcional: lo que no se
+ * especifica se conserva del snapshot `raw` del formulario (no se pierde nada).
+ * `fields` (o `fieldGroups`) reemplaza la lista de campos; `configuration`/`displayOptions`/
+ * `legalConsentOptions` se fusionan (superficial) sobre los del formulario.
+ */
+export interface FormEditsInput {
+  name?: string;
+  fields?: FormFieldEditInput[];
+  fieldGroups?: Array<{ fields?: FormFieldEditInput[]; richText?: string }>;
+  configuration?: Record<string, unknown>;
+  displayOptions?: Record<string, unknown>;
+  legalConsentOptions?: Record<string, unknown>;
+}
+
+export interface FormUpdateDefinitionInput {
+  projectId: string;
+  formId: string;
+  edits: FormEditsInput;
 }
 
 // ── Contratos IPC (entradas / salidas) ──────────────────────────────────────

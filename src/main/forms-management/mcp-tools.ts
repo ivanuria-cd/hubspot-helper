@@ -5,7 +5,7 @@
  */
 import type { McpRegistry } from '../mcp/registry';
 import type { FormService } from './service';
-import type { NewFormDefinition } from '@shared/types/forms';
+import type { FormEditsInput, NewFormDefinition } from '@shared/types/forms';
 
 const SCOPES = ['forms'];
 
@@ -95,10 +95,28 @@ export function registerFormTools(registry: McpRegistry, service: FormService): 
 
   registry.register({
     name: 'forms_create_definition',
-    description: 'Prepara un cambio pendiente para crear un formulario (solo campos).',
+    description:
+      'Prepara un cambio pendiente para crear un formulario. Acepta `originIds` (validados contra los orígenes del proyecto, SPEC-0006) para asociar el formulario al aplicarse, y `objectType`.',
     inputSchema: {
       type: 'object',
-      properties: { definition: { type: 'object' } },
+      properties: {
+        definition: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            formType: { type: 'string' },
+            objectType: { type: 'string', description: 'p. ej. contacts, companies' },
+            originIds: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Orígenes (SPEC-0006) a asociar al crear; deben existir.',
+            },
+            fields: { type: 'array', items: { type: 'object' } },
+            fieldGroups: { type: 'array', items: { type: 'object' } },
+          },
+          required: ['name'],
+        },
+      },
       required: ['definition'],
     },
     featureKey: feature,
@@ -106,6 +124,38 @@ export function registerFormTools(registry: McpRegistry, service: FormService): 
     handler: (input, ctx) => {
       const { definition } = (input ?? {}) as { definition: NewFormDefinition };
       return Promise.resolve(service.createDefinition({ projectId: ctx.projectId, definition }));
+    },
+  });
+
+  registry.register({
+    name: 'forms_update_definition',
+    description:
+      'Prepara un cambio pendiente `update_form` (PATCH) para editar un formulario existente. `edits` admite name, fields/fieldGroups, configuration, displayOptions y legalConsentOptions; lo no especificado se conserva del formulario.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        formId: { type: 'string' },
+        edits: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            fields: { type: 'array', items: { type: 'object' } },
+            fieldGroups: { type: 'array', items: { type: 'object' } },
+            configuration: { type: 'object' },
+            displayOptions: { type: 'object' },
+            legalConsentOptions: { type: 'object' },
+          },
+        },
+      },
+      required: ['formId', 'edits'],
+    },
+    featureKey: feature,
+    requiredScopes: SCOPES,
+    handler: (input, ctx) => {
+      const { formId, edits } = (input ?? {}) as { formId: string; edits: FormEditsInput };
+      return Promise.resolve(
+        service.updateDefinition({ projectId: ctx.projectId, formId, edits }),
+      );
     },
   });
 

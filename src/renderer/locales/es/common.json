@@ -521,7 +521,28 @@
       "coverage": "Cobertura por origen",
       "noCoverage": "Asocia un origen para ver la cobertura.",
       "coverageSummary": "{{present}}/{{expected}} presentes",
-      "addMissing": "Añadir campos que faltan ({{count}})"
+      "addMissing": "Añadir campos que faltan ({{count}})",
+      "edit": "Editar"
+    },
+    "editWizard": {
+      "title": "Editar formulario «{{name}}»",
+      "name": "Nombre del formulario",
+      "fields": "Campos",
+      "fieldName": "Nombre interno",
+      "label": "Etiqueta",
+      "fieldType": "Tipo de campo",
+      "required": "Obligatorio",
+      "hidden": "Oculto",
+      "actions": "Acciones",
+      "moveUp": "Subir",
+      "moveDown": "Bajar",
+      "remove": "Quitar",
+      "addField": "Añadir campo",
+      "config": "Configuración",
+      "submitButton": "Texto del botón de envío",
+      "consent": "Consentimiento legal",
+      "cancel": "Cancelar",
+      "save": "Guardar cambios"
     },
     "linkModal": {
       "title": "Asociar a origen",

@@ -15,6 +15,7 @@ import { useFormsRefsStore } from '../store/forms-refs-store';
 import { FormsTable } from './FormsTable';
 import { FormPanel } from './FormPanel';
 import { NewFormWizard } from './NewFormWizard';
+import { EditFormWizard } from './EditFormWizard';
 import { LinkOriginModal } from './LinkOriginModal';
 import { FormPendingChangesView } from './FormPendingChangesView';
 import { coverageState } from './CoverageBadge';
@@ -38,6 +39,7 @@ export function FormsManagementScreen(): JSX.Element | null {
     sync,
     loadCoverage,
     createDefinition,
+    updateDefinition,
     addMissingFields,
     applyChange,
     discardChange,
@@ -48,6 +50,7 @@ export function FormsManagementScreen(): JSX.Element | null {
   const [view, setView] = useState<'list' | 'changes'>('list');
   const [selected, setSelected] = useState<HubSpotForm | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -231,6 +234,17 @@ export function FormsManagementScreen(): JSX.Element | null {
         onClose={() => setSelected(null)}
         onAddMissing={(originId) => void handleAddMissing(originId)}
         onLinkOrigin={() => setLinkOpen(true)}
+        onEdit={() => setEditOpen(true)}
+      />
+
+      <EditFormWizard
+        open={editOpen}
+        form={selected}
+        onClose={() => setEditOpen(false)}
+        onSubmit={(edits) => {
+          if (selected) void updateDefinition(projectId, selected.id, edits);
+          setView('changes');
+        }}
       />
 
       <NewFormWizard

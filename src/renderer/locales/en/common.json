@@ -444,7 +444,28 @@
       "coverage": "Coverage by origin",
       "noCoverage": "Link an origin to see coverage.",
       "coverageSummary": "{{present}}/{{expected}} present",
-      "addMissing": "Add missing fields ({{count}})"
+      "addMissing": "Add missing fields ({{count}})",
+      "edit": "Edit"
+    },
+    "editWizard": {
+      "title": "Edit form \"{{name}}\"",
+      "name": "Form name",
+      "fields": "Fields",
+      "fieldName": "Internal name",
+      "label": "Label",
+      "fieldType": "Field type",
+      "required": "Required",
+      "hidden": "Hidden",
+      "actions": "Actions",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "remove": "Remove",
+      "addField": "Add field",
+      "config": "Configuration",
+      "submitButton": "Submit button text",
+      "consent": "Legal consent",
+      "cancel": "Cancel",
+      "save": "Save changes"
     },
     "linkModal": {
       "title": "Link to origin",

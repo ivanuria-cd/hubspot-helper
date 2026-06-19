@@ -25,6 +25,7 @@ export interface FormPanelProps {
   onClose: () => void;
   onAddMissing: (originId: string) => void;
   onLinkOrigin: () => void;
+  onEdit: () => void;
 }
 
 export function FormPanel({
@@ -36,6 +37,7 @@ export function FormPanel({
   onClose,
   onAddMissing,
   onLinkOrigin,
+  onEdit,
 }: FormPanelProps): JSX.Element {
   const { t } = useTranslation('common');
   const originName = (id: string): string => origins.find((o) => o.id === id)?.name ?? id;
@@ -50,6 +52,11 @@ export function FormPanel({
               <Typography variant="h6" sx={{ flexGrow: 1 }}>
                 {form.name}
               </Typography>
+              {form.formType === 'hubspot' ? (
+                <Button size="small" onClick={onEdit} disabled={busy}>
+                  {t('forms.panel.edit')}
+                </Button>
+              ) : null}
               <IconButton aria-label={t('forms.panel.close')} onClick={onClose}>
                 <CloseIcon />
               </IconButton>
