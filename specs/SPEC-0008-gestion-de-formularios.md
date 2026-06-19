@@ -457,3 +457,54 @@ unifican la UI y se añade la carga desde Drive.
 - `FormsManagementScreen.tsx`: usa `DriveDocActions` + `DriveDirtyGuard` (retira el botón propio de
   volcado); i18n migrado a `drive.doc.*` / `drive.dirtyGuard.*`.
 
+## 16. Defectos detectados en la batería de pruebas del MCP (BORRADOR, 2026-06-18)
+
+Hallazgos de la batería de pruebas del MCP `revops` sobre el proyecto «Testing» (informe completo en
+`INFORME-pruebas-mcp-2026-06-18.md`). Afectan a las tools de formularios de §6. Pendientes de corrección.
+
+### 16.1 `forms_create_definition` — contrato de payload frágil y pérdida del `name` del campo
+
+- La tool **solo** acepta los campos en un array `fields` a nivel raíz de la `definition`. Si se le pasa la
+  estructura `fieldGroups` (que es **la misma forma que devuelve `forms_pending_changes`**), falla con
+  `MCP error -32603: Cannot read properties of undefined (reading 'map')`. El contrato de lectura no es
+  reutilizable para escritura.
+- Al persistir, **descarta la propiedad `name` de cada campo**: el campo queda con `label`/`fieldType` pero
+  sin `name`, generando un formulario con campos sin propiedad HubSpot asociada (definición inválida).
+- **Corrección requerida:** aceptar tanto `fields` como `fieldGroups` (normalizando internamente),
+  **conservar el `name`** de cada campo y validar que todo campo tiene `name` no vacío antes de crear el
+  cambio pendiente.
+
+### 16.2 Inconsistencia en la resolución de `formId` entre tools del mismo dominio
+
+- `forms_link_origin` y `forms_coverage` aceptan el `id` de un formulario en estado **local/pendiente**
+  (no sincronizado).
+- `forms_get` y `forms_add_missing_fields` solo resuelven formularios **ya sincronizados** en HubSpot:
+  devuelven `404` y `«Formulario no encontrado»` respectivamente ante un id local/pendiente.
+- **Corrección requerida:** unificar el criterio de resolución de `formId` en todas las tools de
+  formularios (o documentar explícitamente qué estado admite cada una).
+
+### 16.3 Falta `forms_discard_change`
+
+- Existe `forms_pending_changes` pero **no** hay tool para descartar un cambio pendiente de formulario, a
+  diferencia de propiedades (`properties_discard_change`) y objetos custom (`custom_objects_discard_change`).
+  Un cambio pendiente de formulario creado por error no puede deshacerse vía MCP.
+- **Corrección requerida:** añadir `forms_discard_change(changeId)` por paridad con los otros dominios.
+
+### 16.4 Implementación (2026-06-18)
+
+- **16.1 — RESUELTO.** Nueva función pura `normalizeFormDefinition` en `pending-changes.ts`: acepta tanto
+  `fields` (forma canónica de la app) como `fieldGroups` (forma HubSpot), conserva el `name` del campo
+  (`name` o `hubspotName`) y valida que exista `name`/`fieldType`. `buildCreateFormChange` normaliza la
+  entrada antes de construir el payload. La forma canónica que envía la UI pasa intacta → **la app funciona
+  igual**. Tests añadidos en `pending-changes.spec.ts` (fieldGroups, conservación de `name`, validación).
+  Nota: no se exige `fields` no vacío (la UI ya creaba definiciones sin campos; se preserva ese
+  comportamiento).
+- **16.3 — RESUELTO.** Registrada la tool `forms_discard_change` en `mcp-tools.ts` (delega en el ya
+  existente `service.discardChange`, el mismo que usa la UI por IPC).
+- **16.2 — DOCUMENTADO (sin cambio de código).** La diferencia es por diseño: `forms_get`/`forms_add_missing_fields`
+  operan sobre formularios **sincronizados** (estado de verdad en HubSpot), mientras `forms_link_origin`/
+  `forms_coverage` operan sobre estado local. Unificar la resolución alteraría el comportamiento de la UI, así
+  que se deja documentado en lugar de modificarlo.
+- **Pendiente en máquina:** `npm run typecheck` y `npm run test:unit` (el clon al sandbox estaba corrupto;
+  los originales se verificaron sanos).
+

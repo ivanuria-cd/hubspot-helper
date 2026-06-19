@@ -121,4 +121,32 @@ export function registerCustomObjectTools(
       );
     },
   });
+
+  registry.register({
+    name: 'custom_objects_sync',
+    description:
+      'Reconcilia los borradores y objetos contra HubSpot (entorno activo); genera los cambios pendientes (create / update_schema). No escribe en HubSpot.',
+    inputSchema: { type: 'object', properties: {} },
+    featureKey: feature,
+    requiredScopes: READ_SCOPES,
+    handler: (_input, ctx) => service.syncHubspot({ projectId: ctx.projectId }),
+  });
+
+  registry.register({
+    name: 'custom_objects_delete_draft',
+    description: 'Elimina un borrador de objeto custom del estado local (no afecta a HubSpot).',
+    inputSchema: {
+      type: 'object',
+      properties: { objectId: { type: 'string' } },
+      required: ['objectId'],
+    },
+    featureKey: feature,
+    requiredScopes: WRITE_SCOPES,
+    handler: (input, ctx) => {
+      const { objectId } = (input ?? {}) as { objectId?: string };
+      return Promise.resolve(
+        service.deleteDraft({ projectId: ctx.projectId, objectId: objectId ?? '' }),
+      );
+    },
+  });
 }

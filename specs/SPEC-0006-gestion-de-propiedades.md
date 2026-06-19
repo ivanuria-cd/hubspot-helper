@@ -820,3 +820,51 @@ común y añade la carga desde Drive.
 - `ipc.ts`/`preload`/`RevOpsApi` (canal `properties:load-sheets`).
 - `PropertyManagementScreen.tsx`: usa `DriveDocActions` + `DriveDirtyGuard` (retira el botón propio de
   volcado); i18n migrado a `drive.doc.*` / `drive.dirtyGuard.*`.
+
+## 22. Defectos detectados en la batería de pruebas del MCP (BORRADOR, 2026-06-18)
+
+Hallazgos de la batería de pruebas del MCP `revops` sobre el proyecto «Testing» (informe completo en
+`INFORME-pruebas-mcp-2026-06-18.md`). Afectan a las tools de propiedades, entradas y orígenes. Pendientes
+de corrección.
+
+### 22.1 `entries_upsert` no valida `originId`
+
+- La tool acepta y persiste una entrada cuyo `sources[].originId` apunta a un origen **inexistente**, sin
+  error ni aviso (verificado al pasar, por errata, un id no registrado).
+- **Corrección requerida:** validar que cada `originId` referenciado existe en los orígenes del proyecto y
+  devolver error claro en caso contrario.
+
+### 22.2 Los cambios pendientes los genera `properties_sync`, con `changeId` efímeros
+
+- Crear una entrada con propiedad nueva (`mode: "new"`) **no** genera por sí mismo un cambio pendiente; el
+  cambio aparece solo tras ejecutar `properties_sync` (que detecta la propiedad como `missing`).
+- Además, **`properties_sync` regenera el `changeId` en cada ejecución** (son efímeros): un `changeId`
+  leído antes de un `sync` puede dejar de ser válido. Los consumidores deben **releer `properties_pending_changes`
+  inmediatamente antes de cada `properties_apply_change`**.
+- **Corrección/documentación requerida:** estabilizar los `changeId` entre sincronizaciones o documentar
+  explícitamente este comportamiento en el contrato de la tool. `properties_apply_change` (sandbox) y
+  `properties_discard_change` quedaron verificados OK (apply idempotente).
+
+### 22.3 Falta borrado de orígenes y de grupos vía MCP
+
+- `origins_*` solo expone `list`/`upsert` (no hay borrado de orígenes) y `groups_*` solo `list`/`create`
+  (no hay borrado de grupos). Un origen o grupo de prueba creado vía MCP queda como **residuo no eliminable
+  programáticamente** (el grupo, además, es una escritura real en HubSpot).
+- **Corrección requerida:** añadir borrado de orígenes (estado local) y evaluar borrado/archivado de grupos.
+
+### 22.4 Implementación (2026-06-18)
+
+- **22.1 — RESUELTO.** `service.upsertEntry` valida que cada `source.originId` exista entre los orígenes del
+  proyecto y lanza `Origen no encontrado: <id>` en caso contrario. La UI siempre envía orígenes válidos →
+  **la app funciona igual**. Test añadido en `service.spec.ts` (rechazo de id inexistente + alta con id
+  válido).
+- **22.3 (orígenes) — RESUELTO.** Registrada la tool `origins_delete` (delega en el ya existente
+  `service.deleteOrigin`, el mismo que usa la UI; retira el origen y lo limpia de las `sources`).
+- **22.3 (grupos) — DIFERIDO.** El borrado de grupos es una escritura destructiva en HubSpot que la UI
+  tampoco expone hoy; se difiere para no introducir comportamiento divergente.
+- **22.2 — DOCUMENTADO (sin cambio de código).** Los `changeId` los regenera `reconcileEntries` en cada
+  `properties_sync` (mismo patrón en objetos custom). Estabilizarlos alteraría la generación de cambios y los
+  tests de reconciliación; se mantiene el comportamiento y se documenta el contrato: **releer
+  `properties_pending_changes` justo antes de cada `properties_apply_change`**.
+- **Pendiente en máquina:** `npm run typecheck` y `npm run test:unit` (clon al sandbox corrupto; originales
+  verificados sanos).

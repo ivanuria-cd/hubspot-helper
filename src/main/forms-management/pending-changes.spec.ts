@@ -4,6 +4,7 @@ import {
   buildCreateFormChange,
   isCompleted,
   markApplied,
+  normalizeFormDefinition,
 } from './pending-changes';
 import type { FieldCoverageItem, HubSpotForm, NewFormDefinition } from '@shared/types/forms';
 
@@ -80,6 +81,43 @@ describe('pending-changes (formularios)', () => {
     expect(allNames).toContain('email');
     const added = allNames.filter((n) => n !== 'email');
     expect(added.sort()).toEqual(['firstname', 'phone']);
+  });
+
+  it('normalizeFormDefinition acepta la forma HubSpot (fieldGroups) y conserva el name del campo', () => {
+    const def = normalizeFormDefinition({
+      name: 'Aficiones',
+      fieldGroups: [
+        {
+          fields: [
+            { objectTypeId: '0-1', name: 'email', label: 'Email', fieldType: 'email' },
+            { objectTypeId: '0-1', name: 'firstname', label: 'Nombre', fieldType: 'single_line_text' },
+          ],
+        },
+      ],
+    });
+    expect(def.objectType).toBe('contacts');
+    expect(def.fields.map((f) => f.hubspotName)).toEqual(['email', 'firstname']);
+  });
+
+  it('buildCreateFormChange con fieldGroups no rompe y conserva los name en el payload', () => {
+    const change = buildCreateFormChange(
+      {
+        name: 'Aficiones',
+        fieldGroups: [{ fields: [{ objectTypeId: '0-1', name: 'email', fieldType: 'email' }] }],
+      },
+      deps,
+    );
+    const payload = change.payload as {
+      fieldGroups: Array<{ fields: Array<{ name: string }> }>;
+    };
+    expect(payload.fieldGroups[0]?.fields[0]?.name).toBe('email');
+  });
+
+  it('normalizeFormDefinition exige name de campo y name de formulario', () => {
+    expect(() =>
+      normalizeFormDefinition({ name: 'X', fields: [{ label: 'Sin name', fieldType: 'email' }] }),
+    ).toThrow();
+    expect(() => normalizeFormDefinition({ fields: [] })).toThrow(/name/);
   });
 
   it('markApplied marca el entorno y isCompleted exige producción', () => {

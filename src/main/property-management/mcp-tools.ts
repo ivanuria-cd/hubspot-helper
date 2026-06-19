@@ -138,6 +138,25 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
   });
 
   registry.register({
+    name: 'origins_delete',
+    description:
+      'Elimina un origen de datos del proyecto (estado local) y lo retira de los orígenes de las entradas.',
+    inputSchema: {
+      type: 'object',
+      properties: { originId: { type: 'string' } },
+      required: ['originId'],
+    },
+    featureKey: feature,
+    requiredScopes: WRITE_SCOPES,
+    handler: (input, ctx) => {
+      const { originId } = (input ?? {}) as { originId?: string };
+      return Promise.resolve(
+        service.deleteOrigin({ projectId: ctx.projectId, originId: originId ?? '' }),
+      );
+    },
+  });
+
+  registry.register({
     name: 'groups_list',
     description: 'Lista los grupos de propiedades de un objeto de HubSpot.',
     inputSchema: {

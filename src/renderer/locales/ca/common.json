@@ -41,6 +41,7 @@
   "help": {
     "empty": "Encara no hi ha tutorials disponibles.",
     "listLabel": "Llista de tutorials",
+    "fallbackNotice": "Aquest tutorial encara no està disponible en {{language}}; es mostra en castellà.",
     "features": {
       "hubspot": "HubSpot",
       "google-drive": "Google Drive",

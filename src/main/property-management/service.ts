@@ -128,6 +128,12 @@ export function createPropertyService(deps: PropertyServiceDeps) {
   function upsertEntry(input: EntryUpsertInput): PropertyEntry {
     const state = deps.store.get(input.projectId);
     const incoming = input.entry;
+    const validOrigins = new Set(state.origins.map((o) => o.id));
+    for (const source of incoming.sources) {
+      if (source.originId && !validOrigins.has(source.originId)) {
+        throw new Error(`Origen no encontrado: ${source.originId}`);
+      }
+    }
     const existing = incoming.id ? state.entries.find((e) => e.id === incoming.id) : undefined;
     const entry: PropertyEntry = {
       id: existing?.id ?? deps.newId(),

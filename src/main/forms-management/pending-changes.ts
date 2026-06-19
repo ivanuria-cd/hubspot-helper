@@ -11,7 +11,7 @@ import type {
   NewFormFieldDefinition,
 } from '@shared/types/forms';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
-import { objectTypeToId } from '../connectors/hubspot/forms';
+import { objectTypeToId, objectTypeFromId } from '../connectors/hubspot/forms';
 
 export interface ChangeFactoryDeps {
   newId: () => string;
@@ -72,19 +72,75 @@ export function coverageItemToField(item: FieldCoverageItem): NewFormFieldDefini
   };
 }
 
+/** Campo de formulario en forma laxa: admite `hubspotName` (canónico) o `name` (forma HubSpot). */
+export interface RawFormFieldInput {
+  hubspotName?: string;
+  name?: string;
+  label?: string;
+  fieldType?: string;
+  required?: boolean;
+  hidden?: boolean;
+  objectTypeId?: string;
+}
+
+/**
+ * Definición de formulario en forma laxa. Admite tanto la forma canónica de la app (`fields`) como
+ * la forma que devuelve `forms_pending_changes`/HubSpot (`fieldGroups[].fields`).
+ */
+export interface RawFormDefinitionInput {
+  name?: string;
+  objectType?: string;
+  originIds?: string[];
+  fields?: RawFormFieldInput[];
+  fieldGroups?: Array<{ fields?: RawFormFieldInput[] }>;
+}
+
+/**
+ * Normaliza una definición laxa a `NewFormDefinition`. Acepta `fields` o `fieldGroups`, conserva el
+ * nombre del campo (`name` o `hubspotName`) y valida que exista. La forma canónica de la app pasa
+ * intacta, por lo que el comportamiento desde la UI no cambia.
+ */
+export function normalizeFormDefinition(raw: RawFormDefinitionInput): NewFormDefinition {
+  const name = (raw.name ?? '').trim();
+  if (!name) throw new Error('La definición del formulario requiere «name»');
+
+  const rawFields = raw.fields ?? (raw.fieldGroups ?? []).flatMap((group) => group?.fields ?? []);
+
+  const fields: NewFormFieldDefinition[] = rawFields.map((field, index) => {
+    const hubspotName = (field.hubspotName ?? field.name ?? '').trim();
+    if (!hubspotName) {
+      throw new Error(`El campo #${index + 1} no tiene «name»/«hubspotName»`);
+    }
+    if (!field.fieldType) throw new Error(`El campo «${hubspotName}» no tiene «fieldType»`);
+    return {
+      hubspotName,
+      label: field.label ?? hubspotName,
+      fieldType: field.fieldType,
+      required: field.required ?? false,
+      hidden: field.hidden ?? false,
+    };
+  });
+
+  const fromFieldId = rawFields.find((field) => field.objectTypeId)?.objectTypeId;
+  const objectType = raw.objectType ?? (fromFieldId ? objectTypeFromId(fromFieldId) : 'contacts');
+
+  return { name, originIds: raw.originIds ?? [], objectType, fields };
+}
+
 /** Cambio pendiente `create_form` con el POST a /marketing/v3/forms (formType: hubspot). */
 export function buildCreateFormChange(
-  definition: NewFormDefinition,
+  definition: RawFormDefinitionInput,
   deps: ChangeFactoryDeps,
 ): FormChange {
+  const normalized = normalizeFormDefinition(definition);
   const payload = {
-    name: definition.name,
+    name: normalized.name,
     formType: 'hubspot',
     fieldGroups: [
       {
         groupType: 'default_group',
         richTextType: 'text',
-        fields: definition.fields.map((field) => toFieldPayload(definition.objectType, field)),
+        fields: normalized.fields.map((field) => toFieldPayload(normalized.objectType, field)),
       },
     ],
     configuration: DEFAULT_FORM_CONFIGURATION,
@@ -94,12 +150,12 @@ export function buildCreateFormChange(
   return {
     id: deps.newId(),
     operation: 'create_form',
-    summary: `Crear formulario «${definition.name}» (${definition.fields.length} campos)`,
+    summary: `Crear formulario «${normalized.name}» (${normalized.fields.length} campos)`,
     payload,
     appliedToSandbox: false,
     appliedToProduction: false,
     createdAt: deps.now(),
-    createContext: { originIds: definition.originIds, objectType: definition.objectType },
+    createContext: { originIds: normalized.originIds, objectType: normalized.objectType },
   };
 }
 

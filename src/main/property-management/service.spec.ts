@@ -159,6 +159,38 @@ describe('PropertyService (entradas)', () => {
     expect(meta.lastChangedAt).toBe(meta.lastWrittenAt);
   });
 
+  it('upsertEntry rechaza un originId inexistente en sources', () => {
+    const store = createMemoryPropertyStore();
+    const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));
+    expect(() =>
+      service.upsertEntry({
+        projectId: 'p1',
+        entry: {
+          objectType: 'contacts',
+          name: 'X',
+          hubspotProperty: { mode: 'existing', hubspotName: 'custom_tier' },
+          sources: [{ id: 's1', originId: 'no-existe', sourceField: 'F', definition: { kind: 'text' } }],
+        },
+      }),
+    ).toThrow(/Origen no encontrado/);
+  });
+
+  it('upsertEntry acepta un source cuyo originId existe', () => {
+    const store = createMemoryPropertyStore();
+    const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));
+    const origin = service.createOrigin({ projectId: 'p1', origin: { name: 'SF', type: 'migration' } });
+    const entry = service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'contacts',
+        name: 'X',
+        hubspotProperty: { mode: 'existing', hubspotName: 'custom_tier' },
+        sources: [{ id: 's1', originId: origin.id, sourceField: 'F', definition: { kind: 'text' } }],
+      },
+    });
+    expect(entry.sources[0]?.originId).toBe(origin.id);
+  });
+
   it('CRUD de origenes y exportacion JSON v2', () => {
     const store = createMemoryPropertyStore();
     const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));

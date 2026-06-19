@@ -134,4 +134,22 @@ export function registerFormTools(registry: McpRegistry, service: FormService): 
     featureKey: feature,
     handler: (_input, ctx) => Promise.resolve(service.listPendingChanges(ctx.projectId)),
   });
+
+  registry.register({
+    name: 'forms_discard_change',
+    description: 'Descarta un cambio pendiente de formulario del proyecto.',
+    inputSchema: {
+      type: 'object',
+      properties: { changeId: { type: 'string' } },
+      required: ['changeId'],
+    },
+    featureKey: feature,
+    requiredScopes: SCOPES,
+    handler: (input, ctx) => {
+      const { changeId } = (input ?? {}) as { changeId?: string };
+      return Promise.resolve(
+        service.discardChange({ projectId: ctx.projectId, changeId: changeId ?? '' }),
+      );
+    },
+  });
 }

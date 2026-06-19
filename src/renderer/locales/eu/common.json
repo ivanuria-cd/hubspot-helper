@@ -41,6 +41,7 @@
   "help": {
     "empty": "Oraindik ez dago tutorialik eskuragarri.",
     "listLabel": "Tutorialen zerrenda",
+    "fallbackNotice": "Tutorial hau oraindik ez dago {{language}}-(e)z eskuragarri; gaztelaniaz erakusten da.",
     "features": {
       "hubspot": "HubSpot",
       "google-drive": "Google Drive",

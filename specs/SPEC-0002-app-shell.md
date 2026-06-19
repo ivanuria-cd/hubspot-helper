@@ -121,7 +121,8 @@ Conforme a SPEC-0000 §10, los tutoriales de usuario deben poder verse desde la 
 - La pantalla de Ayuda lista los tutoriales disponibles **agrupados por característica** (carpeta de `doc/tutoriales/<feature>/`) y renderiza el Markdown seleccionado dentro de la app.
 - Los ficheros `.md` se cargan en tiempo de build con `import.meta.glob('…/doc/tutoriales/**/*.md', { query: '?raw', eager: true })`, de modo que se empaquetan con el renderer; no requiere IPC ni acceso a disco en runtime.
 - El renderizado de Markdown lo realiza un componente propio `MarkdownView` (sin dependencias externas) que soporta encabezados, párrafos, listas, énfasis y código en línea.
-- Cada nueva característica solo añade sus `.md` en `doc/tutoriales/<feature>/`; aparecen automáticamente en Ayuda sin tocar el shell.
+- Cada nueva característica solo añade sus `.md` en `doc/tutoriales/<feature>/<locale>/`; aparecen automáticamente en Ayuda sin tocar el shell.
+- **Multidioma (SPEC-0009)**: el visor es consciente del idioma activo de i18next. Carga la variante del tutorial en el idioma activo y, si no existe, cae a la versión castellana mostrando un aviso (`help.fallbackNotice`). La selección de tutorial (`feature/slug`) se mantiene al cambiar de idioma; solo cambia el contenido renderizado. La lógica de resolución vive en `tutorials.ts` (`resolveContent`, `resolveTitle`).
 
 ---
 

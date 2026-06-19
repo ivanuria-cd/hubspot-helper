@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   Box,
   List,
   ListItemButton,
@@ -10,14 +11,24 @@ import {
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { tutorials, tutorialFeatures } from '../tutorials';
+import {
+  DEFAULT_LANGUAGE,
+  LANGUAGE_AUTONYMS,
+  isSupportedLanguage,
+  type SupportedLanguage,
+} from '@shared/i18n/languages';
+import { tutorials, tutorialFeatures, resolveContent, resolveTitle } from '../tutorials';
 import { MarkdownView } from './MarkdownView';
 
 export function HelpSection(): JSX.Element {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
+  const lang: SupportedLanguage = isSupportedLanguage(i18n.language)
+    ? i18n.language
+    : DEFAULT_LANGUAGE;
   const [selectedId, setSelectedId] = useState<string | null>(tutorials[0]?.id ?? null);
   const selected = tutorials.find((tutorial) => tutorial.id === selectedId) ?? null;
   const features = tutorialFeatures();
+  const resolved = selected ? resolveContent(selected, lang) : null;
 
   return (
     <Box>
@@ -43,7 +54,7 @@ export function HelpSection(): JSX.Element {
                       selected={tutorial.id === selectedId}
                       onClick={() => setSelectedId(tutorial.id)}
                     >
-                      <ListItemText primary={tutorial.title} />
+                      <ListItemText primary={resolveTitle(tutorial, lang)} />
                     </ListItemButton>
                   )),
               ])}
@@ -51,7 +62,16 @@ export function HelpSection(): JSX.Element {
           </Paper>
 
           <Paper variant="outlined" sx={{ flexGrow: 1, p: 3, minWidth: 0 }}>
-            {selected ? <MarkdownView content={selected.content} /> : null}
+            {resolved ? (
+              <>
+                {resolved.isFallback ? (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    {t('help.fallbackNotice', { language: LANGUAGE_AUTONYMS[lang] })}
+                  </Alert>
+                ) : null}
+                <MarkdownView content={resolved.content} />
+              </>
+            ) : null}
           </Paper>
         </Stack>
       )}

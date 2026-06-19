@@ -207,3 +207,30 @@ Se muestra automáticamente en la sección **Ayuda** (clave i18n `help.features.
 - [x] La UI muestra el snippet de configuración listo para copiar
 - [x] Todos los tests del SPEC en verde (17 tests: registry, auth, server, integración)
 - [ ] PR creada, revisada y mergeada en `main`
+
+## 11. CRUD incompleto del MCP — hallazgo transversal de pruebas (BORRADOR, 2026-06-18)
+
+Hallazgo transversal de la batería de pruebas del MCP `revops` sobre el proyecto «Testing» (informe completo
+en `INFORME-pruebas-mcp-2026-06-18.md`). No afecta al registry/auth/servidor de este SPEC, pero documenta un
+patrón a corregir en las tools de negocio que registra cada SPEC de característica.
+
+La superficie de tools del MCP carece de operaciones de **borrado/deshacer simétricas**. Hoy solo permiten
+deshacer: `entries_delete`, `properties_discard_change` y `custom_objects_discard_change`. **No** existe forma
+de eliminar/descartar vía MCP: orígenes (`origins_*` solo `list`/`upsert`), drafts de objetos custom,
+cambios pendientes de formularios (no hay `forms_discard_change`), vínculos `forms_link_origin`, ni grupos de
+propiedades (`groups_*` solo `list`/`create`). Esto deja **residuo de pruebas/uso no limpiable
+programáticamente**, y en el caso de grupos es además una escritura real en HubSpot.
+
+Detalle y correcciones por dominio: **SPEC-0006 §22** (orígenes y grupos), **SPEC-0007 §16** (drafts de
+objetos custom), **SPEC-0008 §16** (`forms_discard_change` y vínculos). Recomendación: definir un criterio
+común de simetría CRUD para toda tool MCP de escritura (toda operación de creación debe tener su
+contrapartida de borrado/descarte).
+
+### 11.1 Implementación (2026-06-18)
+
+Añadidas las contrapartidas de borrado/descarte que faltaban, todas delegando en lógica de servicio ya
+usada por la UI (sin cambiar el comportamiento de la app): `forms_discard_change` (SPEC-0008 §16.4),
+`origins_delete` (SPEC-0006 §22.4) y `custom_objects_delete_draft` (SPEC-0007 §16.4). Además se expone
+`custom_objects_sync` para completar el ciclo de creación de objetos custom vía MCP. **Pendiente:** borrado de
+grupos de propiedades (escritura destructiva en HubSpot, no expuesta hoy en la UI; diferido). Verificación
+`typecheck`/`test:unit` pendiente de ejecutar en máquina.

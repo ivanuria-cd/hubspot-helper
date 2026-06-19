@@ -402,3 +402,47 @@ SPEC-0006 §19. Las erratas de nombres/etiquetas se vuelcan verbatim (SPEC-0000)
 - `ipc.ts`/`preload`/`RevOpsApi` (dos canales nuevos).
 - `CustomObjectsScreen.tsx`: añade `DriveDocActions` + `DriveDirtyGuard`.
 - i18n: usa las claves compartidas `drive.doc.*` / `drive.dirtyGuard.*`.
+
+## 16. Defecto detectado en pruebas del MCP — la creación de objetos custom no es end-to-end (BORRADOR, 2026-06-18)
+
+Hallazgo de la batería de pruebas del MCP `revops` sobre el proyecto «Testing» (informe completo en
+`INFORME-pruebas-mcp-2026-06-18.md`). Afecta a las tools de §7. Pendiente de corrección.
+
+### 16.1 No existe la promoción draft → cambio aplicable
+
+- `custom_objects_upsert_draft` deja **siempre** el objeto en `status: "draft"` con `pendingChanges: []`, y
+  **ignora** el campo `status` que se le envíe (probado con `status: "ready"`).
+- No hay ninguna tool para promover ese draft a un cambio `create` aplicable.
+- `custom_objects_apply_change` exige un `changeId` real en la cola: invocado con el `id` del draft devuelve
+  `{"success":false,"error":"Cambio no encontrado"}`.
+- **Consecuencia:** **no se puede crear un objeto custom de extremo a extremo solo con el MCP.** El paso
+  draft → pending vive únicamente en la UI de la app. *Impacto alto* si se pretende crear objetos custom de
+  forma programática (p. ej. desde un cliente MCP).
+- **Corrección requerida:** exponer una operación que genere el cambio `create` a partir de un draft
+  (o que `apply_change` resuelva directamente un draft), de modo que el ciclo draft → apply sea completo
+  vía MCP.
+
+### 16.2 `custom_objects_apply_change` — verificado e idempotente
+
+- Probado aplicando el cambio existente del objeto `ratones` a **sandbox**: `success:true`. Es **idempotente**
+  cuando el objeto ya existe (no duplica ni altera el schema). Sin defecto.
+
+### 16.3 Falta borrado/descarte de drafts
+
+- No hay tool para eliminar un draft de objeto custom (`custom_objects_*` solo `list`/`get`/`upsert_draft`/
+  `pending_changes`/`apply_change`/`discard_change`, y `discard_change` requiere un `changeId`, no un draft).
+  Un draft creado para pruebas queda como residuo no eliminable vía MCP.
+- **Corrección requerida:** añadir borrado de drafts (o que `discard_change` acepte el id del draft).
+
+### 16.4 Implementación (2026-06-18)
+
+- **16.1 — RESUELTO.** El cambio `create` ya lo genera `reconcileDefinitions` dentro de `service.syncHubspot`
+  (igual que en propiedades/formularios); lo que faltaba era exponerlo. Registrada la tool
+  `custom_objects_sync` en `mcp-tools.ts`. Flujo end-to-end vía MCP: `custom_objects_upsert_draft` →
+  `custom_objects_sync` (genera el `create`) → `custom_objects_apply_change`. Usa el mismo
+  `service.syncHubspot` que la UI → **la app funciona igual**.
+- **16.3 — RESUELTO.** Registrada la tool `custom_objects_delete_draft` (delega en el ya existente
+  `service.deleteDraft`, el mismo que usa la UI).
+- **16.2** sin cambios (no era defecto: `apply_change` ya funcionaba e idempotente).
+- **Pendiente en máquina:** `npm run typecheck` y `npm run test:unit` (clon al sandbox corrupto; originales
+  verificados sanos).

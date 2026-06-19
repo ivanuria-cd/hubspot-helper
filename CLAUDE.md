@@ -15,10 +15,11 @@ Todos los SPECs están en `specs/`. Estado actual:
 | [SPEC-0002](specs/SPEC-0002-app-shell.md) | App Shell | IMPLEMENTADO |
 | [SPEC-0003](specs/SPEC-0003-conector-hubspot.md) | Conector HubSpot | IMPLEMENTADO |
 | [SPEC-0004](specs/SPEC-0004-conector-google-drive.md) | Conector Google Drive | IMPLEMENTADO (credenciales por UI §13 + selector propio sin Picker §14; patrón común de documentos Drive §15, typecheck/test pendientes en máquina) |
-| [SPEC-0005](specs/SPEC-0005-capa-mcp-api.md) | Capa MCP / API | IMPLEMENTADO |
-| [SPEC-0006](specs/SPEC-0006-gestion-de-propiedades.md) | Gestión de Propiedades | IMPLEMENTADO (rediseño §16 en BORRADOR; patrón común Drive §21, typecheck/test pendientes en máquina) |
-| [SPEC-0007](specs/SPEC-0007-objetos-custom-hubspot.md) | Objetos Custom de HubSpot | IMPLEMENTADO (documento Drive §15, typecheck/test pendientes en máquina) |
-| [SPEC-0008](specs/SPEC-0008-gestion-de-formularios.md) | Gestión de Formularios | IMPLEMENTADO (typecheck/e2e + PR pendientes de ejecutar en máquina; patrón común Drive §15) |
+| [SPEC-0005](specs/SPEC-0005-capa-mcp-api.md) | Capa MCP / API | IMPLEMENTADO (fix simetría CRUD MCP §11.1, 2026-06-18; borrado de grupos diferido; typecheck/test en máquina) |
+| [SPEC-0006](specs/SPEC-0006-gestion-de-propiedades.md) | Gestión de Propiedades | IMPLEMENTADO (rediseño §16; patrón común Drive §21; fix defectos MCP §22.4 —validación originId + origins_delete—, 2026-06-18; typecheck/test en máquina) |
+| [SPEC-0007](specs/SPEC-0007-objetos-custom-hubspot.md) | Objetos Custom de HubSpot | IMPLEMENTADO (documento Drive §15; fix creación end-to-end vía MCP §16.4 —custom_objects_sync + delete_draft—, 2026-06-18; typecheck/test en máquina) |
+| [SPEC-0008](specs/SPEC-0008-gestion-de-formularios.md) | Gestión de Formularios | IMPLEMENTADO (patrón común Drive §15; fix defectos MCP §16.4 —normalize create_definition + forms_discard_change—, 2026-06-18; typecheck/e2e + PR en máquina) |
+| [SPEC-0009](specs/SPEC-0009-tutoriales-multidioma.md) | Tutoriales Multidioma | VALIDADO — implementado (typecheck/test/e2e + PR pendientes en máquina) |
 
 Leer el SPEC correspondiente antes de implementar o modificar cualquier característica.
 
@@ -39,3 +40,4 @@ Límites estrictos para evitar solapamientos entre SPECs:
 | SPEC-0006 | Mapa de propiedades HubSpot: orígenes de datos, entradas por objeto (nombre + propiedad HubSpot destino + orígenes con definición genérica y mapeo de opciones), selección de objetos (estándar + custom existentes), cambios pendientes en HubSpot, exportación JSON, Google Sheets, tools MCP de propiedades | No crea objetos custom (eso es SPEC-0007); no gestiona registros/instancias; no toca workflows ni sequences |
 | SPEC-0007 | Creación y gestión de objetos custom de HubSpot (CRM Schemas API); catálogo de objetos para SPEC-0006 | No gestiona registros (instancias); no define las entradas de propiedades (eso es SPEC-0006) |
 | SPEC-0008 | Formularios HubSpot (Marketing Forms API v3): importar (legacy + nueva), crear formularios solo-campos, asociar a orígenes de SPEC-0006, revisar cobertura, añadir campos en bloque, cambios pendientes/sincronización, volcado a Sheets, tools MCP de formularios | No edita estilos/lógica/consentimiento ni borra formularios; no crea propiedades ni objetos (SPEC-0006/0007); no define orígenes; no gestiona submissions |
+| SPEC-0009 | Internacionalización de los tutoriales: convención `doc/tutoriales/<feature>/<locale>/<slug>.md`, traducción de los tutoriales a `ca`/`eu`/`en`, visor de Ayuda consciente del idioma con fallback a castellano (`resolveContent`/`resolveTitle`, `help.fallbackNotice`), script de paridad | No crea tutoriales nuevos ni características; no cambia la mecánica de carga/render del visor (SPEC-0002); no toca i18n de la UI fuera de `help.fallbackNotice` |
