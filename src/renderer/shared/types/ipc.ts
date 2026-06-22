@@ -84,6 +84,7 @@ import type {
   FormCoverageReport,
   FormCreateDefinitionInput,
   FormDiscardChangeInput,
+  FormEditPendingChangeInput,
   FormGetInput,
   FormLinkDeleteInput,
   FormLinksListInput,
@@ -96,6 +97,7 @@ import type {
   FormsWriteSheetsResult,
   FormUpdateDefinitionInput,
   HubSpotForm,
+  SubscriptionType,
 } from '@shared/types/forms';
 
 export const IpcChannels = {
@@ -167,6 +169,8 @@ export const IpcChannels = {
   formsGet: 'forms:get',
   formsCreateDefinition: 'forms:create-definition',
   formsUpdateDefinition: 'forms:update-definition',
+  formsEditPendingChange: 'forms:edit-pending-change',
+  formsSubscriptionTypes: 'forms:subscription-types',
   formsCoverage: 'forms:coverage',
   formsAddMissingFields: 'forms:add-missing-fields',
   formsApplyChange: 'forms:apply-change',
@@ -257,6 +261,8 @@ export interface RevOpsApi {
   formsGet(input: FormGetInput): Promise<HubSpotForm>;
   formsCreateDefinition(input: FormCreateDefinitionInput): Promise<FormChange>;
   formsUpdateDefinition(input: FormUpdateDefinitionInput): Promise<FormChange>;
+  formsEditPendingChange(input: FormEditPendingChangeInput): Promise<FormChange>;
+  formsListSubscriptionTypes(input: FormsListInput): Promise<SubscriptionType[]>;
   formsCoverage(input: FormCoverageInput): Promise<FormCoverageReport[]>;
   formsAddMissingFields(input: FormAddMissingFieldsInput): Promise<FormChange>;
   formsApplyChange(input: FormApplyChangeInput): Promise<FormApplyChangeResult>;

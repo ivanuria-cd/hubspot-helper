@@ -30,7 +30,8 @@ export function useDashboardStatus(projectId: string): DashboardStatus & { reloa
 
   const reload = useCallback(async () => {
     if (!projectId) return;
-    setState((s) => ({ ...s, loading: true, error: false }));
+    // Reset completo: no arrastrar datos del proyecto anterior durante la recarga (SPEC-0002 §17.2).
+    setState({ ...INITIAL, loading: true });
     try {
       const [hs, drive, mcp, entries, defs, formChanges] = await Promise.all([
         window.api.hubspotGetStatus(projectId),

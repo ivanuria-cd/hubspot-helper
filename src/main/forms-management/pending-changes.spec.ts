@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
+  applyEditsToFormPayload,
   buildAddFieldsChange,
   buildCreateFormChange,
   buildUpdateFormChange,
+  consentMissingRequired,
   isCompleted,
   markApplied,
+  mergeConsentTemplate,
   normalizeFormDefinition,
 } from './pending-changes';
 import type { FieldCoverageItem, HubSpotForm, NewFormDefinition } from '@shared/types/forms';
@@ -33,6 +36,9 @@ describe('pending-changes (formularios)', () => {
     expect(change.formId).toBeUndefined();
     const payload = change.payload as {
       formType: string;
+      archived: boolean;
+      createdAt: string;
+      updatedAt: string;
       fieldGroups: Array<{
         fields: Array<{
           objectTypeId: string;
@@ -44,6 +50,10 @@ describe('pending-changes (formularios)', () => {
       legalConsentOptions: { type: string };
     };
     expect(payload.formType).toBe('hubspot');
+    // Campos requeridos por HubSpot en el cuerpo (§25)
+    expect(payload.archived).toBe(false);
+    expect(payload.createdAt).toBe('2026-06-16T00:00:00Z');
+    expect(payload.updatedAt).toBe('2026-06-16T00:00:00Z');
     expect(payload.legalConsentOptions.type).toBe('none');
     expect(payload.fieldGroups[0]?.fields.map((f) => f.name)).toEqual(['email', 'firstname']);
     expect(payload.fieldGroups[0]?.fields[0]?.objectTypeId).toBe('0-1');
@@ -54,6 +64,25 @@ describe('pending-changes (formularios)', () => {
     });
     // Los campos no-email no llevan validation
     expect(payload.fieldGroups[0]?.fields[1]?.validation).toBeUndefined();
+  });
+
+  it('create_form reparte en grupos de ≤3 campos (§26)', () => {
+    const definition: NewFormDefinition = {
+      name: 'Muchos',
+      originIds: [],
+      objectType: 'contacts',
+      fields: ['a', 'b', 'c', 'd', 'e'].map((n) => ({
+        hubspotName: n,
+        label: n,
+        fieldType: 'single_line_text',
+        required: false,
+        hidden: false,
+      })),
+    };
+    const change = buildCreateFormChange(definition, deps);
+    const payload = change.payload as { fieldGroups: Array<{ fields: unknown[] }> };
+    expect(payload.fieldGroups).toHaveLength(2); // 5 campos → 3 + 2
+    expect(payload.fieldGroups.every((g) => g.fields.length <= 3)).toBe(true);
   });
 
   it('add_fields genera un PATCH que añade solo los campos que faltan', () => {
@@ -187,6 +216,41 @@ describe('pending-changes (formularios)', () => {
       blockedEmailDomains: [],
       useDefaultBlockList: false,
     });
+  });
+
+  it('applyEditsToFormPayload con isAddFields solo toca fieldGroups (no nombre)', () => {
+    const base = { name: 'Demo', fieldGroups: [{ fields: [] }], configuration: { language: 'es' } };
+    const result = applyEditsToFormPayload(
+      base,
+      { name: 'NO_DEBE_APLICAR', fields: [{ name: 'phone', fieldType: 'phone' }] },
+      { isAddFields: true },
+    );
+    expect(result.name).toBe('Demo'); // nombre intacto en add_fields
+    const payload = result as { fieldGroups: Array<{ fields: Array<{ name: string }> }> };
+    expect(payload.fieldGroups[0]?.fields[0]?.name).toBe('phone');
+  });
+
+  it('consentMissingRequired y mergeConsentTemplate (§24)', () => {
+    expect(consentMissingRequired({ type: 'none' })).toEqual([]);
+    expect(consentMissingRequired({ type: 'explicit_consent_to_process' })).toEqual([
+      'privacyText',
+      'communicationsCheckboxes',
+    ]);
+    const merged = mergeConsentTemplate(
+      { type: 'explicit_consent_to_process' },
+      {
+        type: 'explicit_consent_to_process',
+        privacyText: 'P',
+        communicationsCheckboxes: [{ subscriptionTypeId: 1, label: 'N', required: false }],
+      },
+    );
+    expect(consentMissingRequired(merged)).toEqual([]);
+    // no pisa lo ya puesto por el usuario
+    const kept = mergeConsentTemplate(
+      { type: 'explicit_consent_to_process', privacyText: 'MÍO', communicationsCheckboxes: [{ subscriptionTypeId: 2, label: 'X', required: true }] },
+      { type: 'explicit_consent_to_process', privacyText: 'OTRO' },
+    );
+    expect(kept.privacyText).toBe('MÍO');
   });
 
   it('markApplied marca el entorno y isCompleted exige producción', () => {

@@ -22,6 +22,7 @@ import FolderSharedIcon from '@mui/icons-material/FolderShared';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import { useTranslation } from 'react-i18next';
+import { BusyButton, LoadingState } from '@shared/components/feedback';
 import type { DriveFolder } from '@shared/types/gdrive';
 
 interface Props {
@@ -68,6 +69,7 @@ export function FolderPickerDialog({
         ]);
         return;
       }
+      setFolders([]); // No arrastrar las carpetas del nivel anterior durante la carga (§17.2).
       setLoading(true);
       try {
         setFolders(await listFolders(parentId));
@@ -103,6 +105,7 @@ export function FolderPickerDialog({
     const term = query.trim();
     if (!term) return;
     setSearchActive(true);
+    setFolders([]);
     setLoading(true);
     try {
       setFolders(await searchFolders(term));
@@ -195,7 +198,7 @@ export function FolderPickerDialog({
         )}
 
         {loading ? (
-          <Typography color="text.primary">{t('gdrive.folderPicker.loading')}</Typography>
+          <LoadingState variant="list" rows={4} label={t('gdrive.folderPicker.loading')} />
         ) : folders.length === 0 ? (
           <Typography color="text.primary">
             {searchActive ? t('gdrive.folderPicker.searchEmpty') : t('gdrive.folderPicker.empty')}
@@ -219,9 +222,9 @@ export function FolderPickerDialog({
         <Button color="inherit" onClick={onClose}>
           {t('gdrive.folderPicker.cancel')}
         </Button>
-        <Button variant="contained" onClick={() => void confirm()} disabled={working || !isSelectable}>
+        <BusyButton variant="contained" busy={working} onClick={() => void confirm()} disabled={!isSelectable}>
           {t('gdrive.folderPicker.selectThis')}
-        </Button>
+        </BusyButton>
       </DialogActions>
     </Dialog>
   );

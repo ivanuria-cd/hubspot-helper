@@ -249,3 +249,11 @@ Adopción de SPEC-0002 §10 (Snackbar):
 Nota: la confirmación al cambiar de entorno producción↔sandbox (Informe #5, impacto medio) queda **diferida**; no entra en esta iteración de alto impacto.
 
 Claves i18n nuevas: `hubspot.tokenSaved`, `hubspot.tokenError` (cuatro locales).
+
+## 14. Adopción del patrón de estados de carga (SPEC-0002 §17) (BORRADOR, 2026-06-22)
+
+`HubSpotConnectorScreen` adopta el patrón de SPEC-0002 §17: al montar (o cambiar de proyecto/entorno) pinta de
+inmediato un `LoadingState` (variante `form`) con `aria-busy` mientras resuelve el estado de conexión/validación;
+el botón «Guardar token» y la validación pasan a estado ocupado (deshabilitado + `CircularProgress`, sin perder
+nombre accesible). El estado previo se resetea al cambiar de entorno para no mostrar datos de otra pestaña.
+Pendiente de implementación junto al resto de superficies.

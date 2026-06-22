@@ -892,3 +892,190 @@ Implementado 2026-06-19: `EntryPanel`/`OriginsModal` usan `useConfirm` para borr
 Se elimina `tests/functional/export-json.spec.ts`. Estaba en `test.fixme` permanente: el export abre el diálogo nativo «guardar como» del SO (comportamiento deseado, §19.x) que Playwright no puede cerrar, por lo que nunca era ejecutable de forma fiable. La generación del JSON sigue cubierta por los unitarios de `origin-export` (`origin-export.spec.ts`). No se pierde cobertura real.
 
 > 2026-06-19 (higiene, SPEC-0002 §16): eliminado el fichero muerto `PropertiesTable.tsx`.
+
+---
+
+## 25. Ampliación de tipologías de propiedad (IMPLEMENTADO, 2026-06-22)
+
+### 25.1 Contexto
+
+El modelo solo capturaba `type` + `fieldType` + `options` + `groupName`. Contrastado contra la doc oficial
+(`developers.hubspot.com/docs/api-reference/latest/crm/properties/create-property`, versión `2026-03`),
+faltaban casuísticas que sí admite la API: formato de número (**moneda**, **porcentaje**, duración…),
+formato de texto (email, teléfono, dirección…), propiedades **calculadas**, **valor único**, **sensibilidad**
+del dato y opciones por referencia. El `fieldType` `calculation_equation` estaba listado en §15 pero no se
+ofrecía en ninguna parte de la UI.
+
+### 25.2 Catálogo oficial (verificado en `2026-03`)
+
+- **`type`:** `bool`, `enumeration`, `date`, `datetime`, `string`, `number`, `phone_number` (+ `object_coordinates`,
+  `json` internos, no creables).
+- **`fieldType`:** `booleancheckbox`, `calculation_equation`, `checkbox`, `date`, `file`, `html`, `number`,
+  `phonenumber`, `radio`, `select`, `text`, `textarea`.
+- **`numberDisplayHint`:** `unformatted`, `formatted`, `currency`, `percentage`, `duration`, `probability`.
+- **`textDisplayHint`:** `unformatted_single_line`, `multi_line`, `email`, `phone_number`, `domain_name`,
+  `ip_address`, `physical_address`, `postal_code`.
+- **`dataSensitivity`:** `non_sensitive`, `sensitive`, `highly_sensitive`.
+- Otros del cuerpo: `description`, `calculationFormula`, `hasUniqueValue` (inmutable tras crear),
+  `showCurrencySymbol`, `currencyPropertyName`, `externalOptions` + `referencedObjectType` (`OWNER`),
+  `displayOrder`, `hidden`, `formField`.
+
+**Moneda y porcentaje** no son `type` ni `fieldType`: son una propiedad `number` con
+`numberDisplayHint='currency'` (+ `showCurrencySymbol`/`currencyPropertyName`) o `'percentage'`.
+
+**Versión de API y `phone_number`:** la preferencia de versión (CLAUDE.md) es `2026-03` > `v4` > `v3` > `v2` > `v1`.
+La discrepancia de `phone_number` (admitido como `type` en `2026-03`, descrito como `string` + `fieldType: phonenumber`
+en la guía legacy) es un efecto del cambio de versión. El enum `HsPropertyType` ya es abierto (`(string & {})`),
+por lo que preserva `phone_number` verbatim sin colapsar. El conector sigue llamando a `/crm/v3/properties/...`;
+la migración del path a `/crm/properties/2026-03/...` queda anotada como evolución del conector (SPEC-0003) y no
+bloquea esta ampliación (los nuevos campos también los acepta v3).
+
+### 25.3 Modelo de datos
+
+`HubSpotPropertyDef` (en `shared/types/properties.ts`) gana campos **opcionales**: `description`,
+`numberDisplayHint`, `showCurrencySymbol`, `currencyPropertyName`, `textDisplayHint`, `calculationFormula`,
+`hasUniqueValue`, `dataSensitivity`, `externalOptions`, `referencedObjectType`, `displayOrder`, `hidden`,
+`formField`. Nuevos tipos `NumberDisplayHint`, `TextDisplayHint`, `DataSensitivity`. `ChangeOperation` gana
+`update_attributes`. `RemoteProperty` (conector) y `toRemoteProperty`/`toDef` transportan los mismos campos
+para que las propiedades existentes los expongan al editarlas y reconciliarlas.
+
+### 25.4 Reconciliación y cambios
+
+- **Creación (`createBody`)**: incluye `hasUniqueValue` y los atributos escalares definidos.
+- **Diff (`diffDefinition`)**: compara **solo los atributos que el usuario fijó explícitamente** (no `undefined`)
+  contra el remoto, para no generar divergencia falsa frente a los valores por defecto de HubSpot. Si difieren,
+  emite un cambio `update_attributes` con únicamente los campos cambiados (se aplica vía `PATCH`, igual que el
+  resto de `update_*`).
+
+### 25.5 Constantes compartidas (sincronización con SPEC-0007, §16.3)
+
+Se extrae `renderer/shared/constants/hubspotPropertyTypes.ts` con `HS_TYPES`, `FIELD_TYPES_BY_TYPE`
+(ahora con `calculation_equation` en los tipos que lo admiten), `fieldTypesFor`, `defaultFieldType` y los
+catálogos `NUMBER_DISPLAY_HINTS`/`TEXT_DISPLAY_HINTS`/`DATA_SENSITIVITIES`. `EntryWizard` (SPEC-0006) y
+`ObjectWizard` (SPEC-0007) lo importan, eliminando la duplicación y garantizando que el mapeo type→fieldType
+sea idéntico. Cualquier cambio al mapeo se hace ahora en un único sitio. Las claves i18n `properties.fieldTypes.*`
+ganan `calculation_equation` en los cuatro idiomas.
+
+### 25.6 Interfaz de usuario (EntryWizard)
+
+El editor de definición añade, de forma condicional al tipo/fieldType: `description` (siempre);
+`numberDisplayHint` para `number` (+ `showCurrencySymbol`/`currencyPropertyName` si es `currency`);
+`textDisplayHint` para `string` con `text`/`textarea`; `calculationFormula` para `calculation_equation`;
+`dataSensitivity` (siempre); `hasUniqueValue` (solo al crear). Nuevas claves i18n `properties.advanced.*`,
+`properties.numberHints.*`, `properties.textHints.*`, `properties.sensitivity.*` en es/ca/eu/en.
+
+### 25.7 Reordenación de la UI (IMPLEMENTADO, 2026-06-22)
+
+El editor de definición del `EntryWizard` se reorganiza para no crecer en un único formulario plano:
+
+- **Núcleo siempre visible:** nombre técnico, etiqueta, tipo, `fieldType`, opciones de enumeración y grupo.
+- **Sección colapsable «Opciones avanzadas»** (`Accordion`, clave i18n `properties.advanced.section`) que agrupa
+  los campos de §25: descripción, formato de número (+ moneda), formato de texto, fórmula de cálculo,
+  sensibilidad y valor único.
+- **Apertura automática:** la sección se abre al cargar una propiedad que ya use opciones avanzadas
+  (`hasAdvancedContent`) y al seleccionar `fieldType = calculation_equation` (para que la fórmula quede a la
+  vista). En el resto de casos arranca colapsada.
+
+Queda como posible mejora futura extraer un editor de definición reutilizable compartido con `ObjectWizard`
+(SPEC-0007); no es necesario para esta iteración.
+
+### 25.8 Opciones de enumeración en diálogo aparte (IMPLEMENTADO, 2026-06-22)
+
+Las enumeraciones con muchas opciones (p. ej. «Hobby», 100 valores) acaparaban el scroll del `EntryWizard`.
+Se extraen a un componente dedicado `OptionsDialog` (`renderer/features/property-management/components/`):
+
+- En el `EntryWizard`, las enumeraciones muestran solo un **resumen** «Opciones · N opciones» con un botón
+  **«Editar opciones»** que abre el diálogo. El editor inline (filas, pegado masivo) se retira de ahí.
+- `OptionsDialog` es **controlado** (`options` + `onChange`): lista con **scroll propio** (maxHeight), **búsqueda**
+  por etiqueta/valor, alta/edición/borrado y **pegado masivo** (separador configurable). Reindexa `displayOrder`.
+- El mapeo de opciones de origen→HubSpot del bloque de fuentes sigue leyendo `def.options` (sin cambios).
+- Claves i18n nuevas en es: `properties.wizard.editOptions`, `optionsCount`, `searchOption`, `noOptions`
+  (el resto del asistente de propiedades es es-only por estado del proyecto; ca/eu/en usan fallback).
+
+El **mapeo de opciones por origen** (opción de origen → opción HubSpot dentro de cada fuente `enum`) recibe el
+mismo tratamiento con `SourceOptionsDialog`: cada fuente `enum` muestra «Opciones · N opciones» + «Editar
+opciones» que abre un diálogo con scroll propio, búsqueda y pegado masivo de valores de origen (un valor por
+línea; el valor HubSpot se mapea con el desplegable del destino si la propiedad destino tiene opciones, o como
+texto libre si no). Estado por fuente abierta (`srcOptionsId`). Clave i18n nueva: `properties.wizard.pasteSourceHint`.
+
+**Render diferido (SPEC-0002 §17, 2026-06-22):** ambos diálogos abren **de inmediato** con un `LoadingState`
+y difieren el render de la lista (que con 100+ opciones es costoso y bloqueaba la apertura: se percibía
+«primero datos, luego modal»). Un flag `ready` (false al abrir → true en el siguiente tick vía `setTimeout 0`)
+monta la lista tras pintar el diálogo; además resetea búsqueda/pegado al abrir (sin fuga entre aperturas).
+
+### 25.8 MCP
+
+Sin nuevas tools. `entries_upsert` ya acepta el `entry` completo (schema genérico), por lo que la definición
+ampliada fluye sin cambios; `properties_pending_changes` incluye automáticamente los cambios `update_attributes`.
+Requiere **rebuild del MCP** para que el binario recoja los tipos nuevos.
+
+### 25.9 Impacto / ficheros
+
+- `shared/types/properties.ts` (campos + enums + `update_attributes`).
+- `shared/constants/hubspotPropertyTypes.ts` (nuevo, compartido).
+- `connectors/hubspot/properties.ts` (`RemoteProperty`/`RawProperty`/`toRemoteProperty`).
+- `property-management/service.ts` (`toDef`), `pending-changes.ts` (`createBody`/`diffDefinition`).
+- `features/property-management/components/EntryWizard.tsx` y `features/custom-objects/components/ObjectWizard.tsx`
+  (importan las constantes compartidas).
+- `locales/{es,ca,eu,en}/common.json` (claves nuevas).
+
+### 25.10 Tests
+
+- `pending-changes.spec.ts`: `createBody` incluye los atributos definidos; `diffDefinition` emite
+  `update_attributes` solo ante atributo fijado que difiere y **no** divergencia cuando el atributo local es
+  `undefined`.
+- Verificación de typecheck/test en la máquina del usuario (el clon al sandbox de los locales no-es venía
+  truncado; los originales están sanos —verificado por lectura directa— y `es` valida en verde).
+
+## 26. Hallazgos de la batería MCP de tipologías (BORRADOR, 2026-06-22)
+
+Batería end-to-end vía MCP sobre el proyecto «testing» (informe completo en
+`INFORME-pruebas-mcp-tipologias-2026-06-22.md`). Cobertura: todos los `type`/`fieldType` y todas las
+casuísticas de §25 (20/21 propiedades creadas en producción; operaciones create/update_label/update_options/
+update_field_type/update_attributes/discard; export; orígenes/grupos). El MCP reconstruido **sí** envía los
+campos de §25 en los payloads `create`. Hallazgos pendientes de corrección:
+
+- **H1 — `properties_sync` aborta 400 si una entrada referencia un objeto inaccesible** (no aísla el fallo por
+  objeto). Capturar el error por objeto y continuar.
+- **H2 — `groups_create` solo escribe en el entorno activo** (sin parámetro `environment`); crear propiedad en
+  un entorno distinto al activo falla si el grupo es nuevo. Añadir `environment` o garantizar el grupo en el
+  entorno destino al aplicar.
+- **H3 — `properties_discard_change` devuelve siempre `success: true`** (no valida existencia del id).
+- **H4 — `type: bool` exige opciones true/false explícitas**; el editor/MCP debería inyectarlas
+  automáticamente para `bool` (hoy fallan los `create` sin opciones).
+- **H5 — Propiedad calculada: divergencia falsa recurrente en `calculationFormula`** (HubSpot normaliza la
+  fórmula). Excluir `calculationFormula` del diff o normalizar antes de comparar.
+- **H6 — `dataSensitivity: sensitive` requiere el scope `sensitive-data-property-create`** en el token; el
+  campo se envía bien (no es defecto de código). Documentar y degradar con mensaje claro.
+
+### 26.1 Resolución (IMPLEMENTADO, 2026-06-22)
+
+- **H1 — RESUELTO.** `service.syncHubspot` envuelve `listProperties` por objeto en try/catch: un objeto
+  inaccesible se salta (`failedObjects`) y sus entradas quedan **intactas** (no se reconcilian contra remotos
+  vacíos, evitando `missing` falsos). Test en `service.spec.ts`.
+- **H2 — RESUELTO.** `service.applyChange`, en operaciones `create`, llama a `ensureGroup(api, objectType,
+  groupName, environment)`: lista los grupos del **entorno destino** y crea el grupo allí si falta (label =
+  name). Así crear una propiedad en producción ya no falla por grupo ausente aunque se creara en otro entorno.
+  Test en `service.spec.ts`. (Añadir `environment` explícito a `groups_create`/`groups_list` por MCP queda
+  diferido; la garantía al aplicar cubre el caso real.)
+- **H3 — RESUELTO.** `service.discardChange` verifica que el `changeId` existe y devuelve
+  `{ success:false, error:'Cambio no encontrado' }` si no. Test en `service.spec.ts`.
+- **H4 — RESUELTO.** `pending-changes.createBody` inyecta `options:[{true},{false}]` cuando `type==='bool'`
+  y no hay opciones (`BOOL_DEFAULT_OPTIONS`). Test en `pending-changes.spec.ts`.
+- **H5 — RESUELTO.** `diffDefinition` excluye `calculationFormula` del diff de atributos
+  (`DIFF_EXCLUDED_ATTRS`); se sigue enviando en `create`. Elimina la divergencia falsa recurrente. Test en
+  `pending-changes.spec.ts`.
+- **H6 — DIFERIDO.** No es defecto de código (scope del PAT `sensitive-data-property-create`). El mensaje de
+  error real ya se propaga vía `hubspotErrorMessage`. Pendiente: documentar el scope en la configuración del
+  conector.
+- **Requiere rebuild del MCP** para que el binario en ejecución tome estos fixes. typecheck/test en máquina.
+
+## 27. Adopción del patrón de estados de carga (SPEC-0002 §17) (BORRADOR, 2026-06-22)
+
+Las superficies de propiedades adoptan el patrón de SPEC-0002 §17: `PropertyManagementScreen` pinta
+`LoadingState` mientras resuelve entradas/objetos; `EntryWizard` se abre de inmediato con su esqueleto y carga
+después (propiedades HubSpot del objeto, grupos), reseteando el estado en cada apertura (ya resetea el formulario
+por `open`, falta el `aria-busy`/esqueleto durante la carga de `hubspotPropertiesList`/`groupsList`);
+`OriginsModal`, `EntryPanel` y la vista de cambios pendientes muestran su estado de carga accesible. Los diálogos
+`OptionsDialog`/`SourceOptionsDialog` (§25.8) son síncronos sobre datos ya cargados, por lo que no requieren
+carga asíncrona. Pendiente de implementación junto al resto de superficies.

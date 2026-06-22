@@ -90,6 +90,7 @@ import type {
   FormCoverageInput,
   FormCreateDefinitionInput,
   FormDiscardChangeInput,
+  FormEditPendingChangeInput,
   FormGetInput,
   FormLinkDeleteInput,
   FormLinksListInput,
@@ -370,6 +371,12 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   );
   ipcMain.handle(IpcChannels.formsUpdateDefinition, (_event, input: FormUpdateDefinitionInput) =>
     forms.updateDefinition(input),
+  );
+  ipcMain.handle(IpcChannels.formsEditPendingChange, (_event, input: FormEditPendingChangeInput) =>
+    forms.updatePendingChange(input),
+  );
+  ipcMain.handle(IpcChannels.formsSubscriptionTypes, (_event, input: FormsListInput) =>
+    forms.listSubscriptionTypes(input),
   );
   ipcMain.handle(IpcChannels.formsCoverage, (_event, input: FormCoverageInput) =>
     forms.coverage(input),

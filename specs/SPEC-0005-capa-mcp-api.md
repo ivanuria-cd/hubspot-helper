@@ -249,3 +249,10 @@ Adopción de SPEC-0002 §10 (Snackbar):
 - Error de toggle del servidor → `notify({ severity:'error' })` (puede mantenerse el `Alert` persistente).
 
 Claves i18n nuevas: `mcp.regenerateTitle`, `mcp.regenerateBody`, `mcp.tokenCopied`, `mcp.configCopied`, `mcp.tokenRegenerated` (cuatro locales).
+
+## 13. Adopción del patrón de estados de carga (SPEC-0002 §17) (BORRADOR, 2026-06-22)
+
+`McpSettingsScreen` adopta el patrón de SPEC-0002 §17: pinta de inmediato un `LoadingState` mientras resuelve el
+estado del servidor MCP y el token; las acciones (copiar token/config, regenerar, toggle del servidor) pasan a
+estado ocupado accesible mientras se ejecutan (sin doble disparo). Estado reseteado al cambiar de proyecto.
+Pendiente de implementación junto al resto de superficies.

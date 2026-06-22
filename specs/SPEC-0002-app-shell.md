@@ -437,3 +437,88 @@ Extraer a `renderer/shared/components/` un pequeño conjunto de primitivas de pr
 - **Accesibilidad:** `SearchIcon` decorativo del selector de carpeta de Drive marcado `aria-hidden` (SPEC-0004); los checkboxes de fila del asistente «+ Formulario» reciben `aria-label` (campo / obligatorio / oculto + nombre del campo) (SPEC-0008). Nota: `FolderIcon` de la pantalla de Drive y la tabla del asistente (que ya tenía `TableHead` con cabeceras) estaban correctos; no requirieron cambio.
 - **Higiene:** eliminado el fichero muerto `renderer/features/property-management/components/PropertiesTable.tsx` (`export {}`, sin referencias; reemplazado por el modelo de entradas en SPEC-0006 §16).
 - **Verificación:** `npm run typecheck` y `eslint` en verde.
+
+---
+
+## 17. Estados de carga y respuesta inmediata (A11y) (BORRADOR, 2026-06-22)
+
+**Origen:** petición de UX/accesibilidad — al pulsar un botón que dispara una carga no hay respuesta inmediata
+y no se alinea con A11y. Norma transversal enlazada desde **SPEC-0000 §15**. Patrón y componentes compartidos
+definidos aquí (App Shell, hogar de los componentes compartidos junto a Snackbar §10 y ConfirmDialog §11);
+cada SPEC de característica lo **adopta** en sus pantallas y modales.
+
+### 17.1 Principio
+
+Toda pantalla o modal que pueda **bloquearse por una carga asíncrona** debe pintarse **de inmediato** con los
+placeholders de carga de MUI (`Skeleton`, `CircularProgress`/`LinearProgress`) y cargar los datos **durante** la
+animación. El orden es siempre: **render del contenedor + animación → fetch de datos → render de datos**. Si la
+carga es rápida, la animación apenas se verá; pero debe existir para que la respuesta al clic sea instantánea.
+
+- **Modal:** al pulsar el botón que lo abre, el modal aparece **ya** (no se espera a los datos) mostrando su
+  esqueleto; los datos llegan después y reemplazan el esqueleto. Nunca «clic → espera en blanco → modal».
+- **Pantalla/ruta:** al navegar, la pantalla monta su esqueleto inmediatamente y resuelve los datos después.
+
+### 17.2 Sin fugas de datos entre ejecuciones
+
+Los datos cargados **no pueden quedarse entre ejecuciones de la misma función/apertura**. Al abrir un modal o
+montar una pantalla se **resetea** el estado (datos a vacío + `loading = true`) antes de lanzar el fetch, de modo
+que nunca se muestren datos de una apertura anterior. La identidad de la apertura (p. ej. `open`, `entryId`,
+`projectId`) es la dependencia que dispara el reset+fetch.
+
+### 17.3 Componentes y hook compartidos (`renderer/shared/components/feedback/` + `shared/hooks/`)
+
+- **`useAsyncResource<T>(loader, deps, { resetOnDepsChange: true })`** — encapsula el patrón: al cambiar `deps`
+  pone `data = initial` y `loading = true`, ejecuta `loader` (con cancelación/guard para descartar respuestas
+  obsoletas si cambian las deps o se desmonta) y expone `{ data, loading, error, reload }`. Garantiza 17.2.
+- **`<LoadingState variant=… rows=… />`** — placeholders MUI estandarizados por tipo de contenido
+  (`list`, `table`, `form`, `cards`, `text`) usando `Skeleton`. Lleva `aria-busy="true"` y `role="status"` con
+  texto live oculto (`drive/common` clave `common.loading`) para lectores de pantalla.
+- **Patrón de botón ocupado** — un botón que dispara una acción asíncrona pasa a `disabled` con
+  `<CircularProgress size={16}>` y conserva su nombre accesible (`aria-label`/texto); no se queda «muerto» sin
+  feedback. Se ofrece como helper (`<BusyButton>`), envoltorio de `Button`.
+
+### 17.4 Accesibilidad (refuerza SPEC-0000 §3)
+
+- La región en carga marca `aria-busy="true"`; al terminar, `false`.
+- Indicador de progreso con `role="status"`/`aria-live="polite"` y etiqueta textual (no solo visual).
+- Al abrir un modal, el foco entra en el diálogo (MUI `Dialog` lo hace) y, con esqueleto, el `aria-busy` evita
+  que el lector anuncie contenido a medio cargar.
+- Botones de acción asíncrona: estado ocupado accesible, sin perder el nombre; nunca doble disparo (deshabilitado
+  mientras carga).
+
+### 17.5 Inventario de superficies a cubrir (todas)
+
+Pantallas: `DashboardScreen` (SPEC-0010), `CrmOverviewScreen` (SPEC-0011), `PropertyManagementScreen`
+(SPEC-0006), `CustomObjectsScreen` (SPEC-0007), `FormsManagementScreen` (SPEC-0008),
+`HubSpotConnectorScreen` (SPEC-0003), `GoogleDriveConnectorScreen` (SPEC-0004), `McpSettingsScreen`
+(SPEC-0005) y el visor de Ayuda (SPEC-0002 §… / SPEC-0009).
+Modales/asistentes: `EntryWizard`, `OptionsDialog`, `SourceOptionsDialog`, `OriginsModal`, `EntryPanel`
+(SPEC-0006); `ObjectWizard` (SPEC-0007); `NewFormWizard`, `EditFormWizard`, `LinkOriginModal` (SPEC-0008);
+`FolderPickerDialog` (SPEC-0004); `NewProjectDialog` (SPEC-0002); `ConfirmDialog`/`DriveDirtyGuard`/
+`DriveDocActions` (revisar: solo si disparan carga). Cada uno se marca como adoptado en su SPEC propietario.
+
+### 17.6 Tests
+
+- `useAsyncResource.spec.ts`: resetea datos al cambiar deps (no fuga entre ejecuciones); descarta respuestas
+  obsoletas; expone `loading` true→false.
+- Por superficie: el modal/pantalla renderiza el esqueleto antes de resolver el fetch (mock que no resuelve →
+  esqueleto presente; al resolver → datos). A11y con `@axe-core/playwright` en estado de carga y cargado.
+
+### 17.7 Estado
+
+VALIDADO (2026-06-22) — implementación en curso. Base creada: `shared/hooks/useAsyncResource.ts` (+ test),
+`shared/components/feedback/LoadingState.tsx` y `BusyButton.tsx` (exportados en `feedback/index.ts`); i18n
+`common.loading/retry/loadError` (es). Adoptado en: `DashboardScreen`/`useDashboardStatus`,
+`CrmOverviewScreen`/`useCrmOverview` (reset por proyecto + `LoadingState`), `HubSpotConnectorScreen`,
+`GoogleDriveConnectorScreen`, `McpSettingsScreen` (esqueleto inicial + `BusyButton`), `FolderPickerDialog`
+(esqueleto + limpieza de nivel + `BusyButton`), `PropertyManagementScreen`/`CustomObjectsScreen`/
+`FormsManagementScreen` (`LoadingState` + `BusyButton` en sync) y `EntryWizard` (indicador durante la carga de
+propiedades/grupos, reset al abrir) y `ObjectWizard` (botón Guardar ocupado).
+
+**Auditoría del resto (2026-06-22):** `NewFormWizard`, `EditFormWizard`, `LinkOriginModal`, `OriginsModal`,
+`NewProjectDialog` y el visor de Ayuda **no hacen fetch al abrir** — reciben los datos por props desde la
+pantalla propietaria (que ya muestra `LoadingState`) o usan contenido empaquetado (Ayuda), y ya resetean al
+abrir; por tanto abren al instante y no requieren indicador de carga. Las únicas superficies que bloqueaban por
+carga asíncrona eran las 8 pantallas + `FolderPickerDialog` + `EntryWizard`, todas cubiertas. Queda como mejora
+opcional el estado «ocupado» en submits asíncronos de `OriginsModal`/`EntryPanel`/`NewProjectDialog` (el
+feedback de resultado ya lo da el Snackbar de la pantalla). typecheck/test en máquina.

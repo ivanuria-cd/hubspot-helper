@@ -21,25 +21,35 @@ import type {
   FormsOperationResult,
   FormsSyncInput,
   FormsSyncResult,
+  FormEditPendingChangeInput,
   FormUpdateDefinitionInput,
   HubSpotForm,
 } from '@shared/types/forms';
 import type { DataOrigin, PropertyEntry } from '@shared/types/properties';
 import type { DriveDocMeta } from '@shared/types/gdrive';
+import type { SubscriptionType } from '@shared/types/forms';
 import type { FormsApi } from '../connectors/hubspot/forms';
+import type { SubscriptionsApi } from '../connectors/hubspot/subscriptions';
 import type { FormsStore } from './store';
 import type { FormsDriveState } from './drive-state';
 import { buildCoverageReport, missingItems } from './coverage';
 import {
+  applyEditsToFormPayload,
   buildAddFieldsChange,
   buildCreateFormChange,
   buildUpdateFormChange,
+  consentMissingRequired,
+  enforceGroupSize,
+  ensureRequiredFormFields,
+  formPayloadFieldCount,
   markApplied,
+  mergeConsentTemplate,
 } from './pending-changes';
 
 export interface FormServiceDeps {
   store: FormsStore;
   formsApiFor: (projectId: string) => FormsApi;
+  subscriptionsApiFor: (projectId: string) => SubscriptionsApi;
   entriesFor: (projectId: string) => PropertyEntry[];
   originsFor: (projectId: string) => DataOrigin[];
   newId: () => string;
@@ -186,6 +196,43 @@ export function createFormService(deps: FormServiceDeps) {
     return change;
   }
 
+  /** Edita el payload (y, en create_form, los orígenes) de un cambio pendiente no aplicado (§23). */
+  function updatePendingChange(input: FormEditPendingChangeInput): FormChange {
+    const state = deps.store.get(input.projectId);
+    const change = state.changes.find((c) => c.id === input.changeId);
+    if (!change) throw new Error('Cambio no encontrado');
+    if (change.appliedToSandbox || change.appliedToProduction) {
+      throw new Error('No se puede editar un cambio ya aplicado; descártalo y recréalo.');
+    }
+    const isAddFields = change.operation === 'add_fields';
+    const base = (change.payload ?? {}) as Record<string, unknown>;
+    const newPayload = applyEditsToFormPayload(base, input.edits ?? {}, { isAddFields });
+
+    let createContext = change.createContext;
+    if (change.operation === 'create_form' && input.originIds) {
+      assertOriginsExist(input.projectId, input.originIds);
+      createContext = {
+        originIds: input.originIds,
+        objectType: change.createContext?.objectType ?? 'contacts',
+      };
+    }
+
+    const count = formPayloadFieldCount(newPayload);
+    const name = String(newPayload.name ?? '');
+    const summary =
+      change.operation === 'add_fields'
+        ? `Añadir ${count} campo(s) al formulario`
+        : `${change.operation === 'create_form' ? 'Crear' : 'Editar'} formulario «${name}» (${count} campos)`;
+
+    const updated: FormChange = { ...change, payload: newPayload, createContext, summary };
+    deps.store.set(input.projectId, {
+      ...state,
+      changes: state.changes.map((c) => (c.id === change.id ? updated : c)),
+    });
+    markChanged(input.projectId);
+    return updated;
+  }
+
   function addMissingFields(input: FormAddMissingFieldsInput): FormChange {
     const state = deps.store.get(input.projectId);
     const form = state.forms.find((f) => f.id === input.formId);
@@ -211,6 +258,31 @@ export function createFormService(deps: FormServiceDeps) {
     return deps.store.get(projectId).changes;
   }
 
+  function listSubscriptionTypes(input: FormsListInput): Promise<SubscriptionType[]> {
+    return deps.subscriptionsApiFor(input.projectId).listDefinitions();
+  }
+
+  /**
+   * Para create_form/update_form con consentimiento != none: completa privacyText/checkboxes que
+   * falten desde una plantilla del portal y devuelve el payload listo o un error si sigue incompleto (§24).
+   */
+  async function consentReadyPayload(
+    projectId: string,
+    payload: Record<string, unknown>,
+  ): Promise<{ payload: Record<string, unknown> } | { error: string }> {
+    const lco = payload.legalConsentOptions as Record<string, unknown> | undefined;
+    if (consentMissingRequired(lco).length === 0) return { payload };
+    const template = await deps.formsApiFor(projectId).getConsentTemplate(String(lco?.type ?? ''));
+    const merged = mergeConsentTemplate(lco ?? {}, template);
+    const missing = consentMissingRequired(merged);
+    if (missing.length > 0) {
+      return {
+        error: `Faltan campos de consentimiento (${missing.join(', ')}). Indícalos en el editor o crea un formulario plantilla con ese consentimiento en HubSpot.`,
+      };
+    }
+    return { payload: { ...payload, legalConsentOptions: merged } };
+  }
+
   async function applyChange(input: FormApplyChangeInput): Promise<FormApplyChangeResult> {
     const state = deps.store.get(input.projectId);
     const change = state.changes.find((c) => c.id === input.changeId);
@@ -222,7 +294,15 @@ export function createFormService(deps: FormServiceDeps) {
 
     try {
       if (change.operation === 'create_form') {
-        const response = await api.createForm(change.payload, input.environment);
+        const ready = await consentReadyPayload(
+          input.projectId,
+          change.payload as Record<string, unknown>,
+        );
+        if ('error' in ready) return { success: false, error: ready.error };
+        const response = await api.createForm(
+          enforceGroupSize(ensureRequiredFormFields(ready.payload, deps.now())),
+          input.environment,
+        );
         const data = response.data as { id?: string };
         resultFormId = data.id ?? resultFormId;
         if (resultFormId && change.createContext) {
@@ -236,7 +316,17 @@ export function createFormService(deps: FormServiceDeps) {
         }
       } else {
         if (!change.formId) return { success: false, error: 'El cambio no referencia un formulario' };
-        await api.patchForm(change.formId, change.payload, input.environment);
+        let payload = change.payload as Record<string, unknown>;
+        if (change.operation === 'update_form') {
+          const ready = await consentReadyPayload(input.projectId, payload);
+          if ('error' in ready) return { success: false, error: ready.error };
+          payload = ready.payload;
+        }
+        await api.patchForm(
+          change.formId,
+          enforceGroupSize(ensureRequiredFormFields(payload, deps.now())),
+          input.environment,
+        );
       }
     } catch (error) {
       return { success: false, error: hubspotErrorMessage(error) };
@@ -289,8 +379,10 @@ export function createFormService(deps: FormServiceDeps) {
     coverage,
     createDefinition,
     updateDefinition,
+    updatePendingChange,
     addMissingFields,
     listPendingChanges,
+    listSubscriptionTypes,
     applyChange,
     discardChange,
     getDriveMeta,

@@ -160,6 +160,43 @@ export function registerFormTools(registry: McpRegistry, service: FormService): 
   });
 
   registry.register({
+    name: 'forms_edit_pending_change',
+    description:
+      'Edita un cambio pendiente NO aplicado (create_form/update_form/add_fields) antes de aplicarlo. `edits` admite name/fields/fieldGroups/configuration/displayOptions/legalConsentOptions (en add_fields solo fields/fieldGroups). `originIds` solo aplica a create_form (validados).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        changeId: { type: 'string' },
+        edits: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            fields: { type: 'array', items: { type: 'object' } },
+            fieldGroups: { type: 'array', items: { type: 'object' } },
+            configuration: { type: 'object' },
+            displayOptions: { type: 'object' },
+            legalConsentOptions: { type: 'object' },
+          },
+        },
+        originIds: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['changeId', 'edits'],
+    },
+    featureKey: feature,
+    requiredScopes: SCOPES,
+    handler: (input, ctx) => {
+      const { changeId, edits, originIds } = (input ?? {}) as {
+        changeId: string;
+        edits: FormEditsInput;
+        originIds?: string[];
+      };
+      return Promise.resolve(
+        service.updatePendingChange({ projectId: ctx.projectId, changeId, edits, originIds }),
+      );
+    },
+  });
+
+  registry.register({
     name: 'forms_add_missing_fields',
     description: 'Prepara un cambio pendiente que añade los campos que faltan de un origen.',
     inputSchema: {
@@ -175,6 +212,17 @@ export function registerFormTools(registry: McpRegistry, service: FormService): 
         service.addMissingFields({ projectId: ctx.projectId, formId, originId }),
       );
     },
+  });
+
+  registry.register({
+    name: 'forms_subscription_types',
+    description:
+      'Lista los tipos de suscripción de Email del portal (Communication Preferences API v4). Útil para construir los communicationsCheckboxes del consentimiento legal (§24).',
+    inputSchema: { type: 'object', properties: {} },
+    featureKey: feature,
+    requiredScopes: SCOPES,
+    handler: (_input, ctx) =>
+      service.listSubscriptionTypes({ projectId: ctx.projectId }),
   });
 
   registry.register({

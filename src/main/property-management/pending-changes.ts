@@ -22,6 +22,35 @@ export function cleanOptions(options?: HsPropertyOption[]): HsPropertyOption[] {
     .map((o, i) => ({ ...o, displayOrder: i }));
 }
 
+/** Atributos escalares opcionales que HubSpot acepta en create/patch además del núcleo. */
+const ATTRIBUTE_KEYS = [
+  'description',
+  'numberDisplayHint',
+  'showCurrencySymbol',
+  'currencyPropertyName',
+  'textDisplayHint',
+  'calculationFormula',
+  'dataSensitivity',
+  'externalOptions',
+  'referencedObjectType',
+  'displayOrder',
+  'hidden',
+  'formField',
+] as const satisfies ReadonlyArray<keyof HubSpotPropertyDef>;
+
+/** Atributos que HubSpot normaliza y no deben compararse en el diff (evita divergencia falsa). */
+const DIFF_EXCLUDED_ATTRS = new Set<string>(['calculationFormula']);
+
+function attributeEntries(def: HubSpotPropertyDef): Array<[string, unknown]> {
+  return ATTRIBUTE_KEYS.filter((key) => def[key] !== undefined).map((key) => [key, def[key]]);
+}
+
+/** Opciones por defecto de una propiedad `bool` (HubSpot exige dos: true/false). */
+const BOOL_DEFAULT_OPTIONS: HsPropertyOption[] = [
+  { label: 'Sí', value: 'true', displayOrder: 0, hidden: false },
+  { label: 'No', value: 'false', displayOrder: 1, hidden: false },
+];
+
 function createBody(def: HubSpotPropertyDef): Record<string, unknown> {
   const body: Record<string, unknown> = {
     name: def.hubspotName,
@@ -32,6 +61,11 @@ function createBody(def: HubSpotPropertyDef): Record<string, unknown> {
   };
   const opts = cleanOptions(def.options);
   if (opts.length) body.options = opts;
+  // Las propiedades bool exigen exactamente dos opciones true/false; se inyectan si faltan.
+  else if (def.type === 'bool') body.options = BOOL_DEFAULT_OPTIONS;
+  // hasUniqueValue solo se puede fijar al crear (es inmutable después).
+  if (def.hasUniqueValue !== undefined) body.hasUniqueValue = def.hasUniqueValue;
+  for (const [key, value] of attributeEntries(def)) body[key] = value;
   return body;
 }
 
@@ -110,6 +144,28 @@ export function diffDefinition(
       operation: 'update_options',
       summary: `Actualizar opciones de «${def.label}»`,
       payload: { options: cleanOptions(def.options) },
+      appliedToSandbox: false,
+      appliedToProduction: false,
+      createdAt: deps.now(),
+    });
+  }
+
+  // Atributos escalares (formato, sensibilidad, fórmula…): solo se comparan los que el
+  // usuario fijó explícitamente, para no generar divergencia falsa frente a los valores
+  // por defecto que devuelve HubSpot.
+  const attrPayload: Record<string, unknown> = {};
+  const remoteRecord = remote as unknown as Record<string, unknown>;
+  for (const [key, value] of attributeEntries(def)) {
+    if (DIFF_EXCLUDED_ATTRS.has(key)) continue;
+    if (remoteRecord[key] !== value) attrPayload[key] = value;
+  }
+  if (Object.keys(attrPayload).length > 0) {
+    changes.push({
+      id: deps.newId(),
+      entryId,
+      operation: 'update_attributes',
+      summary: `Actualizar atributos de «${def.label}»: ${Object.keys(attrPayload).join(', ')}`,
+      payload: attrPayload,
       appliedToSandbox: false,
       appliedToProduction: false,
       createdAt: deps.now(),

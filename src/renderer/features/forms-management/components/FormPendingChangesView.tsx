@@ -9,6 +9,7 @@ export interface FormPendingChangesViewProps {
   busy: boolean;
   onApply: (changeId: string, environment: HubSpotEnvironment) => void;
   onDiscard: (changeId: string) => void;
+  onEdit: (change: FormChange) => void;
 }
 
 export function FormPendingChangesView({
@@ -16,6 +17,7 @@ export function FormPendingChangesView({
   busy,
   onApply,
   onDiscard,
+  onEdit,
 }: FormPendingChangesViewProps): JSX.Element {
   const { t } = useTranslation('common');
   const askConfirm = useConfirm();
@@ -62,6 +64,13 @@ export function FormPendingChangesView({
           </Stack>
           <Box sx={{ mt: 1 }}>
             <Stack direction="row" spacing={1}>
+              <Button
+                size="small"
+                disabled={busy || change.appliedToSandbox || change.appliedToProduction}
+                onClick={() => onEdit(change)}
+              >
+                {t('forms.changes.edit')}
+              </Button>
               <Button
                 size="small"
                 variant="outlined"

@@ -322,6 +322,45 @@
       "cancel": "Cancel·la",
       "save": "Desa"
     },
+    "fieldTypes": {
+      "calculation_equation": "Càlcul (fórmula)"
+    },
+    "advanced": {
+      "section": "Opcions avançades",
+      "description": "Descripció",
+      "numberDisplayHint": "Format del número",
+      "showCurrencySymbol": "Mostra el símbol de moneda",
+      "currencyPropertyName": "Propietat de moneda relacionada",
+      "textDisplayHint": "Format del text",
+      "calculationFormula": "Fórmula de càlcul",
+      "calculationHelp": "Sintaxi de l'API de HubSpot (p. ex. closed - started).",
+      "dataSensitivity": "Sensibilitat de la dada",
+      "hasUniqueValue": "Valor únic (no es pot canviar després de crear)",
+      "none": "(sense format)"
+    },
+    "numberHints": {
+      "unformatted": "Sense format",
+      "formatted": "Amb format",
+      "currency": "Moneda",
+      "percentage": "Percentatge",
+      "duration": "Durada",
+      "probability": "Probabilitat"
+    },
+    "textHints": {
+      "unformatted_single_line": "Text simple",
+      "multi_line": "Text multilínia",
+      "email": "Correu electrònic",
+      "phone_number": "Telèfon",
+      "domain_name": "Domini",
+      "ip_address": "Adreça IP",
+      "physical_address": "Adreça postal",
+      "postal_code": "Codi postal"
+    },
+    "sensitivity": {
+      "non_sensitive": "No sensible",
+      "sensitive": "Sensible",
+      "highly_sensitive": "Altament sensible"
+    },
     "deleteEntryTitle": "Elimina la propietat",
     "deleteEntryBody": "S'eliminarà l'entrada de propietat del mapa local. Aquesta acció no es pot desfer. Vols continuar?",
     "deleteOriginTitle": "Elimina l'origen",
@@ -449,6 +488,8 @@
     },
     "editWizard": {
       "title": "Edita el formulari «{{name}}»",
+      "titleFields": "Edita els camps del canvi",
+      "origins": "Orígens associats",
       "name": "Nom del formulari",
       "fields": "Camps",
       "fieldName": "Nom intern",
@@ -464,6 +505,13 @@
       "config": "Configuració",
       "submitButton": "Text del botó d'enviament",
       "consent": "Consentiment legal",
+      "privacyText": "Text de privacitat",
+      "consentToProcessText": "Text de consentiment de tractament",
+      "communicationConsentText": "Text de consentiment de comunicacions",
+      "checkboxes": "Caselles de comunicació",
+      "subscriptionType": "Tipus de subscripció",
+      "addCheckbox": "Afegeix casella",
+      "noSubscriptions": "No hi ha tipus de subscripció d'Email al portal.",
       "cancel": "Cancel·la",
       "save": "Desa els canvis"
     },
@@ -493,6 +541,7 @@
     "changes": {
       "title": "Formularis / Canvis pendents",
       "back": "Torna als formularis",
+      "edit": "Edita",
       "applySandbox": "Aplica a Sandbox",
       "applyProduction": "Aplica a Producció",
       "discard": "Descarta",

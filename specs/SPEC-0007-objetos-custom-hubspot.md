@@ -462,3 +462,10 @@ Adopción de SPEC-0002 §10 (Snackbar):
 Claves i18n nuevas: `objects.archiveTitle/Body`, `objects.deleteDraftTitle/Body`, `objects.synced`, `objects.syncError` (cuatro locales).
 
 Implementado 2026-06-19: `ObjectPanel` usa `useConfirm` para archivar y borrar borrador; el toast de resultado se emite en `handleApply` de `CustomObjectsScreen`.
+
+## 18. Adopción del patrón de estados de carga (SPEC-0002 §17) (BORRADOR, 2026-06-22)
+
+`CustomObjectsScreen` (listado), `ObjectWizard` y `ObjectPanel` adoptan el patrón de SPEC-0002 §17: la pantalla
+y el panel pintan `LoadingState` (variantes `cards`/`form`) con `aria-busy` mientras resuelven objetos/propiedades;
+el `ObjectWizard` se abre de inmediato con su esqueleto y carga después (catálogo de objetos, grupos), reseteando
+el estado en cada apertura. Sincronizar/aplicar usan botones en estado ocupado. Pendiente de implementación.

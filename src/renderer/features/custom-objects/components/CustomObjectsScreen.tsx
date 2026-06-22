@@ -12,7 +12,7 @@ import {
 import SyncIcon from '@mui/icons-material/Sync';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
-import { useSnackbar } from '@shared/components/feedback';
+import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
 import { EmptyState } from '@shared/components/EmptyState';
 import { useObjectsStore } from '@renderer/features/property-management/store/objects-store';
 import { useDriveDoc } from '@shared/hooks/useDriveDoc';
@@ -105,14 +105,14 @@ export function CustomObjectsScreen(): JSX.Element | null {
           {view === 'list' ? t('customObjects.title') : t('customObjects.changes.title')}
         </Typography>
         {view === 'list' ? (
-          <Button
+          <BusyButton
             variant="outlined"
+            busy={syncing}
             startIcon={<SyncIcon />}
             onClick={() => sync(projectId)}
-            disabled={syncing}
           >
-            {syncing ? t('customObjects.syncing') : t('customObjects.syncHs')}
-          </Button>
+            {t('customObjects.syncHs')}
+          </BusyButton>
         ) : (
           <Button variant="outlined" onClick={() => setView('list')}>
             {t('customObjects.changes.back')}
@@ -158,7 +158,7 @@ export function CustomObjectsScreen(): JSX.Element | null {
           </Stack>
 
           {loading ? (
-            <Typography color="text.primary">{t('customObjects.loading')}</Typography>
+            <LoadingState variant="cards" rows={3} label={t('customObjects.loading')} />
           ) : (definitions ?? []).length === 0 ? (
             <EmptyState message={t('customObjects.empty')} />
           ) : (

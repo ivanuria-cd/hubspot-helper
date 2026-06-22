@@ -49,11 +49,35 @@ export interface HsPropertyOption {
 
 export type HsPropertyStatus = 'exists' | 'missing' | 'divergent';
 
+/** Formato de visualización de una propiedad `number` (moneda, porcentaje, duración…). */
+export type NumberDisplayHint =
+  | 'unformatted'
+  | 'formatted'
+  | 'currency'
+  | 'percentage'
+  | 'duration'
+  | 'probability';
+
+/** Formato/validación de una propiedad de texto (email, teléfono, dirección…). */
+export type TextDisplayHint =
+  | 'unformatted_single_line'
+  | 'multi_line'
+  | 'email'
+  | 'phone_number'
+  | 'domain_name'
+  | 'ip_address'
+  | 'physical_address'
+  | 'postal_code';
+
+/** Nivel de sensibilidad del dato (datos sensibles, Enterprise). */
+export type DataSensitivity = 'non_sensitive' | 'sensitive' | 'highly_sensitive';
+
 export type ChangeOperation =
   | 'create'
   | 'update_label'
   | 'update_options'
-  | 'update_field_type';
+  | 'update_field_type'
+  | 'update_attributes';
 
 export interface HsPropertyChange {
   id: string;
@@ -107,6 +131,31 @@ export interface HubSpotPropertyDef {
   fieldType: string;
   groupName: string;
   options?: HsPropertyOption[];
+  description?: string;
+  /** Formato de un `number`: moneda, porcentaje, duración… */
+  numberDisplayHint?: NumberDisplayHint;
+  /** Muestra el símbolo de moneda de la cuenta (solo con numberDisplayHint='currency'). */
+  showCurrencySymbol?: boolean;
+  /** Propiedad de moneda relacionada. */
+  currencyPropertyName?: string;
+  /** Formato/validación de una propiedad de texto. */
+  textDisplayHint?: TextDisplayHint;
+  /** Fórmula de una propiedad calculada (fieldType='calculation_equation'). */
+  calculationFormula?: string;
+  /** El valor debe ser único; no se puede cambiar una vez fijado. */
+  hasUniqueValue?: boolean;
+  /** Nivel de sensibilidad del dato. */
+  dataSensitivity?: DataSensitivity;
+  /** Para enumeration con referencedObjectType='OWNER': opciones dinámicas de usuarios. */
+  externalOptions?: boolean;
+  /** Objeto referenciado (p. ej. 'OWNER') para enumeration con externalOptions. */
+  referencedObjectType?: string;
+  /** Orden de visualización en HubSpot. */
+  displayOrder?: number;
+  /** Oculta la propiedad de la UI de HubSpot. */
+  hidden?: boolean;
+  /** Si la propiedad puede usarse en formularios de HubSpot. */
+  formField?: boolean;
 }
 
 export type HubSpotPropertyRef =

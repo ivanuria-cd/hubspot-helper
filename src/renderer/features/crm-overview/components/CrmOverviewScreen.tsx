@@ -5,13 +5,12 @@ import {
   Button,
   Card,
   CardContent,
-  CircularProgress,
-  Stack,
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useShellStore } from '@renderer/app/store/shell-store';
+import { LoadingState } from '@shared/components/feedback';
 import { useCrmOverview } from '../hooks/useCrmOverview';
 
 const GRID = {
@@ -45,10 +44,9 @@ export function CrmOverviewScreen(): JSX.Element | null {
       </Typography>
 
       {overview.loading ? (
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 4 }}>
-          <CircularProgress size={20} />
-          <Typography color="text.primary">{t('crm.loading')}</Typography>
-        </Stack>
+        <Box sx={{ mt: 2 }}>
+          <LoadingState variant="cards" rows={3} label={t('crm.loading')} />
+        </Box>
       ) : overview.error ? (
         <Alert severity="error" sx={{ mt: 2 }}>
           {t('crm.error')}

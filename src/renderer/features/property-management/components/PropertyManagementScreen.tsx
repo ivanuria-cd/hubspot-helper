@@ -17,7 +17,7 @@ import SyncIcon from '@mui/icons-material/Sync';
 import EditIcon from '@mui/icons-material/Edit';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
-import { useSnackbar } from '@shared/components/feedback';
+import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
 import { EmptyState } from '@shared/components/EmptyState';
 import { useDriveDoc } from '@shared/hooks/useDriveDoc';
 import { DriveDocActions } from '@shared/components/DriveDocActions';
@@ -125,9 +125,9 @@ export function PropertyManagementScreen(): JSX.Element | null {
           {view === 'list' ? t('properties.title') : t('properties.changes.title')}
         </Typography>
         {view === 'list' ? (
-          <Button variant="outlined" startIcon={<SyncIcon />} onClick={() => sync(projectId)} disabled={syncing}>
-            {syncing ? t('properties.syncing') : t('properties.syncHs')}
-          </Button>
+          <BusyButton variant="outlined" busy={syncing} startIcon={<SyncIcon />} onClick={() => sync(projectId)}>
+            {t('properties.syncHs')}
+          </BusyButton>
         ) : (
           <Button variant="outlined" onClick={() => setView('list')}>
             {t('properties.changes.back')}
@@ -199,7 +199,7 @@ export function PropertyManagementScreen(): JSX.Element | null {
           </Stack>
 
           {loading ? (
-            <Typography color="text.primary">{t('properties.loading')}</Typography>
+            <LoadingState variant="list" rows={4} label={t('properties.loading')} />
           ) : objectEntries.length === 0 ? (
             <EmptyState message={t('properties.empty')} />
           ) : (

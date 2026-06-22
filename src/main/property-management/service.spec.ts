@@ -191,6 +191,78 @@ describe('PropertyService (entradas)', () => {
     expect(entry.sources[0]?.originId).toBe(origin.id);
   });
 
+  it('H1: syncHubspot salta un objeto cuyo listProperties falla, sin abortar', async () => {
+    const store = createMemoryPropertyStore();
+    const props = fakeProperties([]);
+    // El objeto 'broken' lanza; 'contacts' responde vacío.
+    (props.listProperties as ReturnType<typeof vi.fn>).mockImplementation((objectType: string) => {
+      if (objectType === 'broken') return Promise.reject(new Error('400'));
+      return Promise.resolve([]);
+    });
+    const service = createPropertyService(deps(store, props, fakeObjects()));
+    service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'broken',
+        name: 'Resto',
+        hubspotProperty: { mode: 'existing', hubspotName: 'x' },
+        sources: [],
+      },
+    });
+    service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'contacts',
+        name: 'Nueva',
+        hubspotProperty: {
+          mode: 'new',
+          definition: { hubspotName: 'np', label: 'Nueva', type: 'string', fieldType: 'text', groupName: 'g' },
+        },
+        sources: [],
+      },
+    });
+    const summary = await service.syncHubspot({ projectId: 'p1' });
+    // No lanza; reconcilia solo 'contacts' (1 missing) y deja la entrada de 'broken' intacta.
+    expect(summary.missing).toBe(1);
+    expect(service.listEntries({ projectId: 'p1' })).toHaveLength(2);
+  });
+
+  it('H2: applyChange (create) garantiza el grupo en el entorno destino si falta', async () => {
+    const store = createMemoryPropertyStore();
+    const props = fakeProperties([]);
+    (props.listGroups as ReturnType<typeof vi.fn>).mockResolvedValue([]); // grupo ausente
+    const service = createPropertyService(deps(store, props, fakeObjects()));
+    service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'contacts',
+        name: 'Nueva',
+        hubspotProperty: {
+          mode: 'new',
+          definition: { hubspotName: 'np', label: 'Nueva', type: 'string', fieldType: 'text', groupName: 'gym_information' },
+        },
+        sources: [],
+      },
+    });
+    await service.syncHubspot({ projectId: 'p1' });
+    const change = service.listEntries({ projectId: 'p1' }).flatMap((e) => e.pendingChanges ?? [])[0];
+    await service.applyChange({ projectId: 'p1', changeId: change.id, environment: 'production' });
+    expect(props.createGroup).toHaveBeenCalledWith(
+      'contacts',
+      { name: 'gym_information', label: 'gym_information' },
+      'production',
+    );
+  });
+
+  it('H3: discardChange devuelve error si el changeId no existe', () => {
+    const store = createMemoryPropertyStore();
+    const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));
+    expect(service.discardChange({ projectId: 'p1', changeId: 'no-existe' })).toEqual({
+      success: false,
+      error: 'Cambio no encontrado',
+    });
+  });
+
   it('CRUD de origenes y exportacion JSON v2', () => {
     const store = createMemoryPropertyStore();
     const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));

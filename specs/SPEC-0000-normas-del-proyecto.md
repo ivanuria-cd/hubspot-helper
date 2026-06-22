@@ -38,6 +38,7 @@ Este documento define las reglas que rigen **todos** los demás SPECs y el desar
 - Imágenes e iconos informativos deben tener `alt` o `aria-label` descriptivos.
 - El contraste de color cumple los ratios de la guía CD (ver SPEC-0000 §4).
 - Las pruebas de accesibilidad se incluirán en los tests funcionales de cada característica (herramienta: `axe-core` vía `@axe-core/playwright`).
+- **Respuesta inmediata y estados de carga (obligatorio):** toda pantalla o modal que pueda bloquearse por una carga asíncrona debe pintarse de inmediato con los placeholders de carga de MUI (`Skeleton`/`CircularProgress`) y resolver los datos durante la animación (orden: render+animación → fetch → datos). El estado de carga es accesible (`aria-busy`, `role="status"`/live region, botones de acción en estado ocupado sin perder su nombre) y los datos no se filtran entre ejecuciones/aperturas (reset al abrir). El patrón, los componentes compartidos y el inventario de superficies a cubrir están definidos en **[SPEC-0002 §17](SPEC-0002-app-shell.md)**; cada SPEC de característica registra su adopción.
 
 ### Internacionalización (i18n)
 - Toda cadena de texto visible en la interfaz debe externalizarse — **prohibido texto hardcodeado** en componentes.

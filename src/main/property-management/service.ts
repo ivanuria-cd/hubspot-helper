@@ -71,6 +71,16 @@ function toDef(remote: RemoteProperty): HubSpotPropertyDef {
     fieldType: remote.fieldType,
     groupName: remote.groupName,
     options: remote.options,
+    description: remote.description,
+    numberDisplayHint: remote.numberDisplayHint,
+    showCurrencySymbol: remote.showCurrencySymbol,
+    currencyPropertyName: remote.currencyPropertyName,
+    textDisplayHint: remote.textDisplayHint,
+    calculationFormula: remote.calculationFormula,
+    hasUniqueValue: remote.hasUniqueValue,
+    dataSensitivity: remote.dataSensitivity,
+    externalOptions: remote.externalOptions,
+    referencedObjectType: remote.referencedObjectType,
   };
 }
 
@@ -169,14 +179,36 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     const objectTypes = Array.from(new Set(state.entries.map((e) => e.objectType)));
 
     const remotes: RemoteProperty[] = [];
+    const failedObjects = new Set<string>();
     for (const objectType of objectTypes) {
-      remotes.push(...(await api.listProperties(objectType)));
+      try {
+        remotes.push(...(await api.listProperties(objectType)));
+      } catch {
+        // Un objeto inaccesible (p. ej. custom archivado/inexistente) no debe abortar el sync;
+        // se salta y sus entradas quedan intactas (no se reconcilian contra remotos vacíos).
+        failedObjects.add(objectType);
+      }
     }
 
-    const result = reconcileEntries(state.entries, remotes, changeFactory());
-    deps.store.set(input.projectId, { ...state, entries: result.entries });
+    const reconcilable = state.entries.filter((e) => !failedObjects.has(e.objectType));
+    const skipped = state.entries.filter((e) => failedObjects.has(e.objectType));
+    const result = reconcileEntries(reconcilable, remotes, changeFactory());
+    deps.store.set(input.projectId, { ...state, entries: [...result.entries, ...skipped] });
     markChanged(input.projectId);
     return result.summary;
+  }
+
+  /** Garantiza que el grupo de la propiedad existe en el entorno destino antes de crearla (H2). */
+  async function ensureGroup(
+    api: PropertiesApi,
+    objectType: string,
+    groupName: string | undefined,
+    environment: ApplyChangeInput['environment'],
+  ): Promise<void> {
+    if (!groupName) return;
+    const groups = await api.listGroups(objectType, environment);
+    if (groups.some((g) => g.name === groupName)) return;
+    await api.createGroup(objectType, { name: groupName, label: groupName }, environment);
   }
 
   async function applyChange(input: ApplyChangeInput): Promise<ApplyChangeResult> {
@@ -190,6 +222,8 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     const api = deps.propertiesApiFor(input.projectId);
     try {
       if (change.operation === 'create') {
+        const groupName = (change.payload as { groupName?: string }).groupName;
+        await ensureGroup(api, entry.objectType, groupName, input.environment);
         await api.createProperty(entry.objectType, change.payload, input.environment);
       } else {
         await api.patchProperty(
@@ -221,6 +255,10 @@ export function createPropertyService(deps: PropertyServiceDeps) {
 
   function discardChange(input: DiscardChangeInput): OperationResult {
     const state = deps.store.get(input.projectId);
+    const exists = state.entries.some((e) =>
+      e.pendingChanges?.some((c) => c.id === input.changeId),
+    );
+    if (!exists) return { success: false, error: 'Cambio no encontrado' };
     const entries = state.entries.map((e) => ({
       ...e,
       pendingChanges: e.pendingChanges?.filter((c) => c.id !== input.changeId),

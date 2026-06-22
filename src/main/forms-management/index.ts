@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createFormService, type FormService } from './service';
 import { ElectronFormsStore } from './store';
 import { createFormsApi } from '../connectors/hubspot/forms';
+import { createSubscriptionsApi } from '../connectors/hubspot/subscriptions';
 import { ElectronPropertyStore } from '../property-management/store';
 import type { HubSpotConnector } from '../connectors/hubspot';
 
@@ -15,6 +16,7 @@ export function createElectronFormService(deps: ElectronFormServiceDeps): FormSe
   return createFormService({
     store: new ElectronFormsStore(),
     formsApiFor: (projectId) => createFormsApi({ request, projectId }),
+    subscriptionsApiFor: (projectId) => createSubscriptionsApi({ request, projectId }),
     entriesFor: (projectId) => propertyStore.get(projectId).entries,
     originsFor: (projectId) => propertyStore.get(projectId).origins,
     newId: () => randomUUID(),

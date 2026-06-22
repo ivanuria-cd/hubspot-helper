@@ -322,6 +322,45 @@
       "cancel": "Utzi",
       "save": "Gorde"
     },
+    "fieldTypes": {
+      "calculation_equation": "Kalkulua (formula)"
+    },
+    "advanced": {
+      "section": "Aukera aurreratuak",
+      "description": "Deskribapena",
+      "numberDisplayHint": "Zenbakiaren formatua",
+      "showCurrencySymbol": "Erakutsi moneta ikurra",
+      "currencyPropertyName": "Lotutako moneta propietatea",
+      "textDisplayHint": "Testuaren formatua",
+      "calculationFormula": "Kalkulu formula",
+      "calculationHelp": "HubSpot APIaren sintaxia (adib. closed - started).",
+      "dataSensitivity": "Datuaren sentikortasuna",
+      "hasUniqueValue": "Balio bakarra (ezin da aldatu sortu ondoren)",
+      "none": "(formaturik gabe)"
+    },
+    "numberHints": {
+      "unformatted": "Formaturik gabe",
+      "formatted": "Formatuarekin",
+      "currency": "Moneta",
+      "percentage": "Ehunekoa",
+      "duration": "Iraupena",
+      "probability": "Probabilitatea"
+    },
+    "textHints": {
+      "unformatted_single_line": "Testu soila",
+      "multi_line": "Lerro anitzeko testua",
+      "email": "Posta elektronikoa",
+      "phone_number": "Telefonoa",
+      "domain_name": "Domeinua",
+      "ip_address": "IP helbidea",
+      "physical_address": "Helbide postala",
+      "postal_code": "Posta kodea"
+    },
+    "sensitivity": {
+      "non_sensitive": "Ez-sentikorra",
+      "sensitive": "Sentikorra",
+      "highly_sensitive": "Oso sentikorra"
+    },
     "deleteEntryTitle": "Ezabatu propietatea",
     "deleteEntryBody": "Propietatearen sarrera tokiko mapatik ezabatuko da. Ekintza hau ezin da desegin. Jarraitu nahi duzu?",
     "deleteOriginTitle": "Ezabatu jatorria",
@@ -449,6 +488,8 @@
     },
     "editWizard": {
       "title": "Editatu «{{name}}» inprimakia",
+      "titleFields": "Editatu aldaketaren eremuak",
+      "origins": "Lotutako jatorriak",
       "name": "Inprimakiaren izena",
       "fields": "Eremuak",
       "fieldName": "Barne-izena",
@@ -464,6 +505,13 @@
       "config": "Konfigurazioa",
       "submitButton": "Bidaltzeko botoiaren testua",
       "consent": "Lege-baimena",
+      "privacyText": "Pribatutasun-testua",
+      "consentToProcessText": "Tratamendurako baimen-testua",
+      "communicationConsentText": "Komunikazioetarako baimen-testua",
+      "checkboxes": "Komunikazio-laukiak",
+      "subscriptionType": "Harpidetza mota",
+      "addCheckbox": "Gehitu laukia",
+      "noSubscriptions": "Ez dago Email harpidetza motarik atarian.",
       "cancel": "Utzi",
       "save": "Gorde aldaketak"
     },
@@ -493,6 +541,7 @@
     "changes": {
       "title": "Inprimakiak / Aldaketa zain",
       "back": "Itzuli inprimakietara",
+      "edit": "Editatu",
       "applySandbox": "Aplikatu Sandbox-ean",
       "applyProduction": "Aplikatu Produkzioan",
       "discard": "Baztertu",

@@ -3,7 +3,13 @@
  * Ref: https://developers.hubspot.com/docs/api/crm/properties
  * Se apoya en el `request()` genérico del conector (SPEC-0003).
  */
-import type { HsPropertyOption, HsPropertyType } from '@shared/types/properties';
+import type {
+  DataSensitivity,
+  HsPropertyOption,
+  HsPropertyType,
+  NumberDisplayHint,
+  TextDisplayHint,
+} from '@shared/types/properties';
 import type { HubSpotEnvironment, HubSpotRequest, HubSpotResponse } from '@shared/types/hubspot';
 
 export type HubSpotRequester = (req: HubSpotRequest) => Promise<HubSpotResponse>;
@@ -19,6 +25,15 @@ export interface RemoteProperty {
   description?: string;
   hubspotDefined?: boolean;
   options?: HsPropertyOption[];
+  numberDisplayHint?: NumberDisplayHint;
+  showCurrencySymbol?: boolean;
+  currencyPropertyName?: string;
+  textDisplayHint?: TextDisplayHint;
+  calculationFormula?: string;
+  hasUniqueValue?: boolean;
+  dataSensitivity?: DataSensitivity;
+  externalOptions?: boolean;
+  referencedObjectType?: string;
 }
 
 /** Grupo de propiedades de un objeto. */
@@ -43,6 +58,15 @@ interface RawProperty {
   description?: string;
   hubspotDefined?: boolean;
   options?: RawPropertyOption[];
+  numberDisplayHint?: NumberDisplayHint;
+  showCurrencySymbol?: boolean;
+  currencyPropertyName?: string;
+  textDisplayHint?: TextDisplayHint;
+  calculationFormula?: string;
+  hasUniqueValue?: boolean;
+  dataSensitivity?: DataSensitivity;
+  externalOptions?: boolean;
+  referencedObjectType?: string;
 }
 
 interface RawGroup {
@@ -75,6 +99,15 @@ export function toRemoteProperty(raw: RawProperty, objectType = ''): RemotePrope
     description: raw.description,
     hubspotDefined: raw.hubspotDefined ?? false,
     options: normalizeOptions(raw.options),
+    numberDisplayHint: raw.numberDisplayHint,
+    showCurrencySymbol: raw.showCurrencySymbol,
+    currencyPropertyName: raw.currencyPropertyName,
+    textDisplayHint: raw.textDisplayHint,
+    calculationFormula: raw.calculationFormula,
+    hasUniqueValue: raw.hasUniqueValue,
+    dataSensitivity: raw.dataSensitivity,
+    externalOptions: raw.externalOptions,
+    referencedObjectType: raw.referencedObjectType,
   };
 }
 

@@ -135,6 +135,23 @@ export interface FormUpdateDefinitionInput {
   edits: FormEditsInput;
 }
 
+/** Tipo de suscripción del portal (Communication Preferences API v4), §24. */
+export interface SubscriptionType {
+  id: number; // subscriptionTypeId para communicationsCheckboxes
+  name: string;
+}
+
+/**
+ * Edición de un cambio pendiente (create_form/update_form/add_fields, §23) antes de aplicarlo.
+ * `originIds` solo aplica a `create_form` (asociación validada); se ignora en el resto.
+ */
+export interface FormEditPendingChangeInput {
+  projectId: string;
+  changeId: string;
+  edits: FormEditsInput;
+  originIds?: string[];
+}
+
 // ── Contratos IPC (entradas / salidas) ──────────────────────────────────────
 
 export interface FormsListInput {

@@ -61,12 +61,14 @@ function makeService(apiOverrides: Partial<FormsApi> = {}, seedForms: HubSpotFor
     getForm: vi.fn(() => Promise.resolve(form('x', []))),
     createForm: vi.fn(() => Promise.resolve({ status: 201, data: { id: 'new-form' } })),
     patchForm: vi.fn(() => Promise.resolve({ status: 200, data: {} })),
+    getConsentTemplate: vi.fn(() => Promise.resolve(null)),
     listLegacyForms: vi.fn(() => Promise.resolve([])),
     ...apiOverrides,
   };
   const service = createFormService({
     store,
     formsApiFor: () => api,
+    subscriptionsApiFor: () => ({ listDefinitions: vi.fn(() => Promise.resolve([])) }),
     entriesFor: () => entries,
     originsFor: () => origins,
     newId: () => `id-${++counter}`,
@@ -215,6 +217,112 @@ describe('FormService', () => {
       useDefaultBlockList: false,
     });
     expect(service.listPendingChanges('p1')).toHaveLength(1);
+  });
+
+  it('updatePendingChange edita un create_form y fija orígenes validados (§23)', () => {
+    const { service } = makeService();
+    const change = service.createDefinition({
+      projectId: 'p1',
+      definition: {
+        name: 'Aficiones',
+        originIds: [],
+        objectType: 'contacts',
+        fields: [
+          { hubspotName: 'email', label: 'Email', fieldType: 'email', required: false, hidden: false },
+        ],
+      },
+    });
+    const edited = service.updatePendingChange({
+      projectId: 'p1',
+      changeId: change.id,
+      edits: {
+        name: 'Aficiones v2',
+        fields: [
+          { name: 'email', label: 'Correo', fieldType: 'email', required: true, hidden: false },
+          { name: 'firstname', label: 'Nombre', fieldType: 'single_line_text', required: false, hidden: false },
+        ],
+      },
+      originIds: ['o1'],
+    });
+    expect(edited.id).toBe(change.id);
+    expect(edited.operation).toBe('create_form');
+    expect(edited.createContext?.originIds).toEqual(['o1']);
+    const payload = edited.payload as {
+      name: string;
+      fieldGroups: Array<{ fields: Array<{ name: string }> }>;
+    };
+    expect(payload.name).toBe('Aficiones v2');
+    expect(payload.fieldGroups[0]?.fields.map((f) => f.name)).toEqual(['email', 'firstname']);
+    // sigue habiendo un único cambio (se edita in situ)
+    expect(service.listPendingChanges('p1')).toHaveLength(1);
+  });
+
+  it('updatePendingChange rechaza orígenes inexistentes y cambios ya aplicados (§23)', async () => {
+    const { service } = makeService();
+    const change = service.createDefinition({
+      projectId: 'p1',
+      definition: { name: 'X', originIds: [], objectType: 'contacts', fields: [] },
+    });
+    expect(() =>
+      service.updatePendingChange({
+        projectId: 'p1',
+        changeId: change.id,
+        edits: {},
+        originIds: ['fantasma'],
+      }),
+    ).toThrow(/fantasma/);
+    // tras aplicar, ya no se puede editar
+    await service.applyChange({ projectId: 'p1', changeId: change.id, environment: 'sandbox' });
+    expect(() =>
+      service.updatePendingChange({ projectId: 'p1', changeId: change.id, edits: { name: 'Y' } }),
+    ).toThrow(/aplicado/);
+  });
+
+  it('applyChange exige privacyText/checkboxes en consentimiento != none y avisa si no hay plantilla (§24)', async () => {
+    const { service } = makeService();
+    const change = service.createDefinition({
+      projectId: 'p1',
+      definition: { name: 'C', originIds: [], objectType: 'contacts', fields: [] },
+    });
+    service.updatePendingChange({
+      projectId: 'p1',
+      changeId: change.id,
+      edits: { legalConsentOptions: { type: 'explicit_consent_to_process' } },
+    });
+    const result = await service.applyChange({
+      projectId: 'p1',
+      changeId: change.id,
+      environment: 'sandbox',
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/privacyText|consentimiento/i);
+  });
+
+  it('applyChange completa el consentimiento desde una plantilla del portal (§24)', async () => {
+    const { service } = makeService({
+      getConsentTemplate: vi.fn(() =>
+        Promise.resolve({
+          type: 'explicit_consent_to_process',
+          privacyText: 'Política',
+          communicationsCheckboxes: [{ subscriptionTypeId: 1, label: 'News', required: false }],
+        }),
+      ),
+    });
+    const change = service.createDefinition({
+      projectId: 'p1',
+      definition: { name: 'C', originIds: [], objectType: 'contacts', fields: [] },
+    });
+    service.updatePendingChange({
+      projectId: 'p1',
+      changeId: change.id,
+      edits: { legalConsentOptions: { type: 'explicit_consent_to_process' } },
+    });
+    const result = await service.applyChange({
+      projectId: 'p1',
+      changeId: change.id,
+      environment: 'sandbox',
+    });
+    expect(result.success).toBe(true);
   });
 
   it('discardChange elimina el cambio pendiente', () => {

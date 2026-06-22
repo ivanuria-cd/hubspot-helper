@@ -6,13 +6,13 @@ import {
   Card,
   CardContent,
   Chip,
-  CircularProgress,
   Stack,
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useShellStore } from '@renderer/app/store/shell-store';
+import { LoadingState } from '@shared/components/feedback';
 import { useDashboardStatus } from '../hooks/useDashboardStatus';
 
 const GRID = {
@@ -81,10 +81,9 @@ export function DashboardScreen(): JSX.Element | null {
       </Typography>
 
       {status.loading ? (
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 4 }}>
-          <CircularProgress size={20} />
-          <Typography color="text.primary">{t('dashboard.loading')}</Typography>
-        </Stack>
+        <Box sx={{ mt: 2 }}>
+          <LoadingState variant="cards" rows={3} label={t('dashboard.loading')} />
+        </Box>
       ) : status.error ? (
         <Alert severity="error" sx={{ mt: 2 }}>
           {t('dashboard.error')}

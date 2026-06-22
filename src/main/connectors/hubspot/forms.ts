@@ -185,6 +185,26 @@ export function createFormsApi(deps: FormsApiDeps) {
     });
   }
 
+  /**
+   * Devuelve el `legalConsentOptions` de un formulario existente del portal que use ese `type`
+   * y tenga `privacyText` (plantilla para reutilizar textos/checkboxes), o `null` (§24).
+   */
+  async function getConsentTemplate(
+    type: string,
+    environment?: HubSpotEnvironment,
+  ): Promise<Record<string, unknown> | null> {
+    if (!type || type === 'none') return null;
+    const forms = await listForms({}, environment);
+    for (const form of forms) {
+      const raw = (form.raw ?? {}) as { legalConsentOptions?: Record<string, unknown> };
+      const lco = raw.legalConsentOptions;
+      if (lco && lco.type === type && typeof lco.privacyText === 'string' && lco.privacyText) {
+        return lco;
+      }
+    }
+    return null;
+  }
+
   /** Importación legacy v2 (solo lectura): formularios muy antiguos que no aparecen en v3. */
   async function listLegacyForms(environment?: HubSpotEnvironment): Promise<HubSpotForm[]> {
     const response = await deps.request({
@@ -198,7 +218,7 @@ export function createFormsApi(deps: FormsApiDeps) {
     return raw.map(toHubSpotForm);
   }
 
-  return { listForms, getForm, createForm, patchForm, listLegacyForms };
+  return { listForms, getForm, createForm, patchForm, getConsentTemplate, listLegacyForms };
 }
 
 export type FormsApi = ReturnType<typeof createFormsApi>;

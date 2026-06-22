@@ -322,6 +322,45 @@
       "cancel": "Cancel",
       "save": "Save"
     },
+    "fieldTypes": {
+      "calculation_equation": "Calculation (formula)"
+    },
+    "advanced": {
+      "section": "Advanced options",
+      "description": "Description",
+      "numberDisplayHint": "Number format",
+      "showCurrencySymbol": "Show currency symbol",
+      "currencyPropertyName": "Related currency property",
+      "textDisplayHint": "Text format",
+      "calculationFormula": "Calculation formula",
+      "calculationHelp": "HubSpot API syntax (e.g. closed - started).",
+      "dataSensitivity": "Data sensitivity",
+      "hasUniqueValue": "Unique value (cannot be changed after creation)",
+      "none": "(no format)"
+    },
+    "numberHints": {
+      "unformatted": "Unformatted",
+      "formatted": "Formatted",
+      "currency": "Currency",
+      "percentage": "Percentage",
+      "duration": "Duration",
+      "probability": "Probability"
+    },
+    "textHints": {
+      "unformatted_single_line": "Plain text",
+      "multi_line": "Multi-line text",
+      "email": "Email",
+      "phone_number": "Phone number",
+      "domain_name": "Domain",
+      "ip_address": "IP address",
+      "physical_address": "Physical address",
+      "postal_code": "Postal code"
+    },
+    "sensitivity": {
+      "non_sensitive": "Non-sensitive",
+      "sensitive": "Sensitive",
+      "highly_sensitive": "Highly sensitive"
+    },
     "deleteEntryTitle": "Delete property",
     "deleteEntryBody": "This removes the property entry from the local map. This action cannot be undone. Continue?",
     "deleteOriginTitle": "Delete origin",
@@ -449,6 +488,8 @@
     },
     "editWizard": {
       "title": "Edit form \"{{name}}\"",
+      "titleFields": "Edit change fields",
+      "origins": "Linked origins",
       "name": "Form name",
       "fields": "Fields",
       "fieldName": "Internal name",
@@ -464,6 +505,13 @@
       "config": "Configuration",
       "submitButton": "Submit button text",
       "consent": "Legal consent",
+      "privacyText": "Privacy text",
+      "consentToProcessText": "Consent to process text",
+      "communicationConsentText": "Communication consent text",
+      "checkboxes": "Communication checkboxes",
+      "subscriptionType": "Subscription type",
+      "addCheckbox": "Add checkbox",
+      "noSubscriptions": "No Email subscription types in the portal.",
       "cancel": "Cancel",
       "save": "Save changes"
     },
@@ -493,6 +541,7 @@
     "changes": {
       "title": "Forms / Pending changes",
       "back": "Back to forms",
+      "edit": "Edit",
       "applySandbox": "Apply in Sandbox",
       "applyProduction": "Apply in Production",
       "discard": "Discard",

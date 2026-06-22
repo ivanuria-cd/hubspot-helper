@@ -1,5 +1,10 @@
 {
   "appName": "RevOps Assistant",
+  "common": {
+    "loading": "Cargando…",
+    "retry": "Reintentar",
+    "loadError": "No se pudo cargar la información."
+  },
   "language": {
     "label": "Idioma"
   },
@@ -365,6 +370,11 @@
       "optionLabel": "Etiqueta",
       "optionValue": "Valor",
       "addPropOption": "Añadir opción",
+      "editOptions": "Editar opciones",
+      "optionsCount": "{{count}} opciones",
+      "searchOption": "Buscar opción…",
+      "noOptions": "Sin opciones",
+      "pasteSourceHint": "Un valor de origen por línea; el valor HubSpot se mapea después.",
       "editExistingHint": "Puedes editar la definición; los cambios se aplicarán en HubSpot.",
       "pasteOptions": "Pegar listado",
       "pasteHint": "Un valor por línea (valor = etiqueta). Para «etiqueta + valor», indica el separador.",
@@ -397,7 +407,44 @@
       "select": "Desplegable",
       "radio": "Opción única",
       "checkbox": "Casillas múltiples",
-      "booleancheckbox": "Sí/No"
+      "booleancheckbox": "Sí/No",
+      "calculation_equation": "Cálculo (fórmula)"
+    },
+    "advanced": {
+      "section": "Opciones avanzadas",
+      "description": "Descripción",
+      "numberDisplayHint": "Formato del número",
+      "showCurrencySymbol": "Mostrar símbolo de moneda",
+      "currencyPropertyName": "Propiedad de moneda relacionada",
+      "textDisplayHint": "Formato del texto",
+      "calculationFormula": "Fórmula de cálculo",
+      "calculationHelp": "Sintaxis de la API de HubSpot (p. ej. closed - started).",
+      "dataSensitivity": "Sensibilidad del dato",
+      "hasUniqueValue": "Valor único (no editable tras crear)",
+      "none": "(sin formato)"
+    },
+    "numberHints": {
+      "unformatted": "Sin formato",
+      "formatted": "Con formato",
+      "currency": "Moneda",
+      "percentage": "Porcentaje",
+      "duration": "Duración",
+      "probability": "Probabilidad"
+    },
+    "textHints": {
+      "unformatted_single_line": "Texto simple",
+      "multi_line": "Texto multilínea",
+      "email": "Email",
+      "phone_number": "Teléfono",
+      "domain_name": "Dominio",
+      "ip_address": "Dirección IP",
+      "physical_address": "Dirección postal",
+      "postal_code": "Código postal"
+    },
+    "sensitivity": {
+      "non_sensitive": "No sensible",
+      "sensitive": "Sensible",
+      "highly_sensitive": "Altamente sensible"
     },
     "deleteEntryTitle": "Eliminar propiedad",
     "deleteEntryBody": "Se eliminará la entrada de propiedad del mapa local. Esta acción no se puede deshacer. ¿Continuar?",
@@ -526,6 +573,8 @@
     },
     "editWizard": {
       "title": "Editar formulario «{{name}}»",
+      "titleFields": "Editar campos del cambio",
+      "origins": "Orígenes asociados",
       "name": "Nombre del formulario",
       "fields": "Campos",
       "fieldName": "Nombre interno",
@@ -541,6 +590,13 @@
       "config": "Configuración",
       "submitButton": "Texto del botón de envío",
       "consent": "Consentimiento legal",
+      "privacyText": "Texto de privacidad",
+      "consentToProcessText": "Texto de consentimiento de tratamiento",
+      "communicationConsentText": "Texto de consentimiento de comunicaciones",
+      "checkboxes": "Casillas de comunicación",
+      "subscriptionType": "Tipo de suscripción",
+      "addCheckbox": "Añadir casilla",
+      "noSubscriptions": "No hay tipos de suscripción de Email en el portal.",
       "cancel": "Cancelar",
       "save": "Guardar cambios"
     },
@@ -570,6 +626,7 @@
     "changes": {
       "title": "Formularios / Cambios pendientes",
       "back": "Volver a formularios",
+      "edit": "Editar",
       "applySandbox": "Aplicar en Sandbox",
       "applyProduction": "Aplicar en Producción",
       "discard": "Descartar",

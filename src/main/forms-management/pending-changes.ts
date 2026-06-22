@@ -64,6 +64,37 @@ const DEFAULT_EMAIL_VALIDATION: EmailFieldValidation = {
   useDefaultBlockList: false,
 };
 
+/** HubSpot limita cada `fieldGroup` a un máximo de 3 campos (SPEC-0008 §26). */
+const MAX_FIELDS_PER_GROUP = 3;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+/** Reparte campos en grupos de ≤3 (forma exigida por HubSpot). */
+function fieldGroupsFrom(fields: FieldPayload[]): Array<Record<string, unknown>> {
+  return chunk(fields, MAX_FIELDS_PER_GROUP).map((group) => ({
+    groupType: 'default_group',
+    richTextType: 'text',
+    fields: group,
+  }));
+}
+
+/**
+ * Garantiza que ningún `fieldGroup` supere los 3 campos (§26). Aplana y reparticiona; usado al
+ * aplicar para cubrir también payloads guardados antes de este fix (sin re-editarlos).
+ */
+export function enforceGroupSize(payload: Record<string, unknown>): Record<string, unknown> {
+  const groups = payload.fieldGroups as Array<{ fields?: FieldPayload[] }> | undefined;
+  if (!groups || groups.length === 0) return payload;
+  const exceeds = groups.some((g) => (g.fields?.length ?? 0) > MAX_FIELDS_PER_GROUP);
+  if (!exceeds) return payload;
+  const allFields = groups.flatMap((g) => g.fields ?? []);
+  return { ...payload, fieldGroups: fieldGroupsFrom(allFields) };
+}
+
 function toFieldPayload(objectType: string, field: NewFormFieldDefinition): FieldPayload {
   const payload: FieldPayload = {
     objectTypeId: objectTypeToId(objectType),
@@ -149,20 +180,19 @@ export function buildCreateFormChange(
   deps: ChangeFactoryDeps,
 ): FormChange {
   const normalized = normalizeFormDefinition(definition);
-  const payload = {
-    name: normalized.name,
-    formType: 'hubspot',
-    fieldGroups: [
-      {
-        groupType: 'default_group',
-        richTextType: 'text',
-        fields: normalized.fields.map((field) => toFieldPayload(normalized.objectType, field)),
-      },
-    ],
-    configuration: DEFAULT_FORM_CONFIGURATION,
-    displayOptions: DEFAULT_FORM_DISPLAY_OPTIONS,
-    legalConsentOptions: { type: 'none' },
-  };
+  const payload = ensureRequiredFormFields(
+    {
+      name: normalized.name,
+      formType: 'hubspot',
+      fieldGroups: fieldGroupsFrom(
+        normalized.fields.map((field) => toFieldPayload(normalized.objectType, field)),
+      ),
+      configuration: DEFAULT_FORM_CONFIGURATION,
+      displayOptions: DEFAULT_FORM_DISPLAY_OPTIONS,
+      legalConsentOptions: { type: 'none' },
+    },
+    deps.now(),
+  );
   return {
     id: deps.newId(),
     operation: 'create_form',
@@ -199,25 +229,38 @@ export function buildAddFieldsChange(
       ...(field.fieldType === 'email' ? { validation: { ...DEFAULT_EMAIL_VALIDATION } } : {}),
     })),
   }));
-  const newGroup = {
-    groupType: 'default_group',
-    richTextType: 'text',
-    fields: missing.map((item) => toFieldPayload(objectType, coverageItemToField(item))),
-  };
+  const newGroups = fieldGroupsFrom(
+    missing.map((item) => toFieldPayload(objectType, coverageItemToField(item))),
+  );
   return {
     id: deps.newId(),
     formId: form.id,
     operation: 'add_fields',
     summary: `Añadir ${missing.length} campo(s) que faltan al formulario «${form.name}»`,
-    payload: { fieldGroups: [...existingGroups, newGroup] },
+    payload: { fieldGroups: [...existingGroups, ...newGroups] },
     appliedToSandbox: false,
     appliedToProduction: false,
     createdAt: deps.now(),
   };
 }
 
-/** Claves de solo-lectura que HubSpot no acepta en el cuerpo de un PATCH. */
-const READONLY_FORM_KEYS = ['id', 'updatedAt', 'createdAt', 'archivedAt'] as const;
+/** Claves gestionadas por HubSpot que no deben enviarse en el cuerpo. */
+const READONLY_FORM_KEYS = ['id', 'archivedAt'] as const;
+
+/**
+ * HubSpot exige `archived`, `createdAt` y `updatedAt` en el cuerpo de creación/actualización
+ * (SPEC-0008 §25). Los rellena si faltan, sin pisar valores existentes.
+ */
+export function ensureRequiredFormFields(
+  payload: Record<string, unknown>,
+  now: string,
+): Record<string, unknown> {
+  const p = { ...payload };
+  if (p.archived === undefined) p.archived = false;
+  if (!p.createdAt) p.createdAt = now;
+  if (!p.updatedAt) p.updatedAt = now;
+  return p;
+}
 
 function editFieldToPayload(field: FormFieldEditInput, defaultObjectTypeId: string): FieldPayload {
   const fieldType = field.fieldType ?? '';
@@ -233,11 +276,66 @@ function editFieldToPayload(field: FormFieldEditInput, defaultObjectTypeId: stri
   return payload;
 }
 
+/** objectTypeId del primer campo de un payload (para mapear campos nuevos). */
+function firstObjectTypeId(base: Record<string, unknown>): string | undefined {
+  const groups = base.fieldGroups as
+    | Array<{ fields?: Array<{ objectTypeId?: string }> }>
+    | undefined;
+  return groups?.[0]?.fields?.[0]?.objectTypeId;
+}
+
+/** Nº de campos de un payload de formulario (para los resúmenes). */
+export function formPayloadFieldCount(payload: Record<string, unknown>): number {
+  const groups = (payload.fieldGroups as Array<{ fields?: unknown[] }> | undefined) ?? [];
+  return groups.reduce((sum, group) => sum + (group.fields?.length ?? 0), 0);
+}
+
+/**
+ * Aplica `edits` sobre un payload de formulario existente (núcleo común de §21 y §23).
+ * Reemplaza `fieldGroups` si las ediciones tocan campos; fusiona `configuration`/`displayOptions`;
+ * sustituye `legalConsentOptions`; elimina claves de solo-lectura; inyecta `validation` en email (§20).
+ * Con `opts.isAddFields` solo se tocan los `fieldGroups` (nombre/config no aplican).
+ */
+export function applyEditsToFormPayload(
+  base: Record<string, unknown>,
+  edits: FormEditsInput,
+  opts: { isAddFields?: boolean } = {},
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = { ...base };
+  for (const key of READONLY_FORM_KEYS) delete payload[key];
+
+  const defaultObjectTypeId = firstObjectTypeId(base) ?? '0-1';
+
+  if (edits.fields) {
+    payload.fieldGroups = fieldGroupsFrom(
+      edits.fields.map((f) => editFieldToPayload(f, defaultObjectTypeId)),
+    );
+  } else if (edits.fieldGroups) {
+    // Se aplanan y reparten en grupos de ≤3 (límite de HubSpot, §26).
+    payload.fieldGroups = fieldGroupsFrom(
+      edits.fieldGroups.flatMap((group) =>
+        (group.fields ?? []).map((f) => editFieldToPayload(f, defaultObjectTypeId)),
+      ),
+    );
+  }
+
+  if (opts.isAddFields) return payload;
+
+  if (edits.name !== undefined) payload.name = edits.name.trim();
+  if (edits.configuration) {
+    payload.configuration = { ...((payload.configuration as Record<string, unknown>) ?? {}), ...edits.configuration };
+  }
+  if (edits.displayOptions) {
+    payload.displayOptions = { ...((payload.displayOptions as Record<string, unknown>) ?? {}), ...edits.displayOptions };
+  }
+  if (edits.legalConsentOptions) payload.legalConsentOptions = edits.legalConsentOptions;
+  return payload;
+}
+
 /**
  * Cambio pendiente `update_form`: PATCH `/marketing/v3/forms/{id}` con el estado completo
  * deseado (HubSpot reemplaza en bloque). Parte del snapshot `raw` del formulario para conservar
  * configuración/estilos/consentimiento/lógica que la app no modela, y superpone las ediciones.
- * Los campos `email` conservan `validation` (§20).
  */
 export function buildUpdateFormChange(
   form: HubSpotForm,
@@ -246,70 +344,70 @@ export function buildUpdateFormChange(
 ): FormChange {
   const base: Record<string, unknown> =
     form.raw && typeof form.raw === 'object' ? { ...(form.raw as Record<string, unknown>) } : {};
-  for (const key of READONLY_FORM_KEYS) delete base[key];
-
-  const defaultObjectTypeId =
-    form.fieldGroups[0]?.fields[0]?.objectTypeId ??
-    objectTypeToId(form.objectTypes[0] ?? 'contacts');
-
-  // fieldGroups: si las ediciones tocan campos, se reconstruye; si no, se conserva el del raw
-  // (o, en su defecto, se reconstruye desde el espejo conocido del formulario).
-  let fieldGroups: unknown = base.fieldGroups;
-  if (edits.fields) {
-    fieldGroups = [
-      {
-        groupType: 'default_group',
-        richTextType: 'text',
-        fields: edits.fields.map((f) => editFieldToPayload(f, defaultObjectTypeId)),
-      },
-    ];
-  } else if (edits.fieldGroups) {
-    fieldGroups = edits.fieldGroups.map((group) => ({
-      groupType: 'default_group',
-      richTextType: 'text',
-      ...(group.richText !== undefined ? { richText: group.richText } : {}),
-      fields: (group.fields ?? []).map((f) => editFieldToPayload(f, defaultObjectTypeId)),
-    }));
-  } else if (!fieldGroups) {
-    fieldGroups = [
-      {
-        groupType: 'default_group',
-        richTextType: 'text',
-        fields: form.fieldGroups
-          .flatMap((group) => group.fields)
-          .map((f) => editFieldToPayload(f, defaultObjectTypeId)),
-      },
-    ];
+  // Sin raw y sin ediciones de campos: reconstruye los fieldGroups desde el espejo conocido.
+  if (!base.fieldGroups && !edits.fields && !edits.fieldGroups) {
+    const defaultObjectTypeId = objectTypeToId(form.objectTypes[0] ?? 'contacts');
+    base.fieldGroups = fieldGroupsFrom(
+      form.fieldGroups.flatMap((group) => group.fields).map((f) => editFieldToPayload(f, defaultObjectTypeId)),
+    );
   }
+  if (!base.name) base.name = form.name;
+  if (!base.formType) base.formType = form.formType;
+  if (!base.legalConsentOptions) base.legalConsentOptions = { type: 'none' };
 
-  const baseConfig = (base.configuration as Record<string, unknown>) ?? {};
-  const baseDisplay = (base.displayOptions as Record<string, unknown>) ?? {};
-  const configuration = { ...baseConfig, ...(edits.configuration ?? {}) };
-  const displayOptions = { ...baseDisplay, ...(edits.displayOptions ?? {}) };
-  const legalConsentOptions =
-    edits.legalConsentOptions ?? base.legalConsentOptions ?? { type: 'none' };
-
-  const name = (edits.name ?? form.name ?? '').trim();
-  const payload = {
-    ...base,
-    name,
-    formType: base.formType ?? form.formType ?? 'hubspot',
-    fieldGroups,
-    configuration,
-    displayOptions,
-    legalConsentOptions,
-  };
+  const payload = applyEditsToFormPayload(base, edits);
+  if (!payload.name) payload.name = form.name;
+  const name = String(payload.name);
 
   return {
     id: deps.newId(),
     formId: form.id,
     operation: 'update_form',
-    summary: `Editar formulario «${name || form.name}»`,
+    summary: `Editar formulario «${name}»`,
     payload,
     appliedToSandbox: false,
     appliedToProduction: false,
     createdAt: deps.now(),
   };
+}
+
+// ── Consentimiento legal (§24) ──────────────────────────────────────────────
+
+type Lco = Record<string, unknown>;
+
+function nonEmptyArray(value: unknown): boolean {
+  return Array.isArray(value) && value.length > 0;
+}
+
+/** Campos requeridos que faltan en un `legalConsentOptions` (vacío si type==='none' o completo). */
+export function consentMissingRequired(lco: Lco | undefined): string[] {
+  const type = lco?.type;
+  if (!type || type === 'none') return [];
+  const missing: string[] = [];
+  if (typeof lco?.privacyText !== 'string' || !lco.privacyText) missing.push('privacyText');
+  if (!nonEmptyArray(lco?.communicationsCheckboxes)) missing.push('communicationsCheckboxes');
+  return missing;
+}
+
+/** Completa los campos de consentimiento que falten a partir de una plantilla (sin pisar lo puesto). */
+export function mergeConsentTemplate(lco: Lco, template: Lco | null): Lco {
+  if (!template) return lco;
+  const merged: Lco = { ...lco };
+  if (typeof merged.privacyText !== 'string' || !merged.privacyText) {
+    if (typeof template.privacyText === 'string') merged.privacyText = template.privacyText;
+  }
+  if (!nonEmptyArray(merged.communicationsCheckboxes) && nonEmptyArray(template.communicationsCheckboxes)) {
+    merged.communicationsCheckboxes = template.communicationsCheckboxes;
+  }
+  for (const key of [
+    'communicationConsentText',
+    'consentToProcessText',
+    'consentToProcessCheckboxLabel',
+    'consentToProcessFooterText',
+  ]) {
+    if (merged[key] === undefined && template[key] !== undefined) merged[key] = template[key];
+  }
+  return merged;
 }
 
 /** Marca un cambio como aplicado a un entorno tras una respuesta OK de HubSpot. */

@@ -627,3 +627,135 @@ Hoy `applyChange` ya crea el link form↔origen a partir de `change.createContex
 - Tests: `service.spec.ts` (rechazo de originId inexistente; harness con fixture de orígenes).
 
 El link form↔origen lo sigue creando `applyChange` desde `createContext.originIds`. Pendiente en máquina: `npm run typecheck`, `npm run test:unit`, PR. Requiere reconstruir/reiniciar la app para el MCP.
+
+---
+
+## 23. Edición de cambios pendientes (IMPLEMENTADO, 2026-06-19)
+
+Necesidad: un formulario creado por MCP es un cambio pendiente `create_form` que no entra en el listado (fuente de verdad = HubSpot) hasta aplicarse + sincronizarse. Hace falta poder **editar el cambio pendiente antes de aplicarlo**, sin discard+recreate.
+
+### 23.1 Alcance (respuestas del usuario)
+
+- Editables **todos** los tipos: `create_form`, `update_form` y `add_fields`.
+  - `create_form`/`update_form`: payload completo (nombre, campos, configuración, display, consentimiento).
+  - `add_fields`: solo `fieldGroups` (nombre/config/consentimiento no aplican; el editor los oculta).
+- En `create_form`: editar también `createContext.originIds` (**validados** contra los orígenes del proyecto, §22).
+
+### 23.2 Modelo
+
+- Función pura `applyEditsToFormPayload(basePayload, edits)` en `pending-changes.ts` que fusiona ediciones sobre un payload existente (mismo núcleo que `buildUpdateFormChange`: reemplaza `fieldGroups` si se tocan campos, fusiona `configuration`/`displayOptions`, sustituye `legalConsentOptions`, inyecta `validation` en email §20). `buildUpdateFormChange` se refactoriza para apoyarse en ella.
+- Servicio `updatePendingChange({ projectId, changeId, edits, originIds? })`:
+  - Localiza el cambio; **solo editable si no está aplicado** (`!appliedToSandbox && !appliedToProduction`) para evitar duplicar creaciones en HubSpot; si está aplicado → error (descártalo y recréalo).
+  - Reescribe `payload` con `applyEditsToFormPayload` (en `add_fields` solo `fieldGroups`).
+  - En `create_form`, si llegan `originIds`, los valida (`assertOriginsExist`) y actualiza `createContext.originIds`.
+  - Conserva `id`, `operation`, `formId`, `createdAt`; regenera `summary` (recuento de campos).
+
+### 23.3 MCP
+
+Nueva tool `forms_edit_pending_change` (`changeId` + `edits` + `originIds?`). Documentar schema.
+
+### 23.4 UI
+
+`FormPendingChangesView`: botón **«Editar»** por cambio (deshabilitado si ya está aplicado). Abre el editor reutilizando `EditFormWizard`, generalizado para aceptar como origen el `payload` de un cambio (adaptador payload→pseudo-formulario) y con dos extras: (a) selector de orígenes cuando el cambio es `create_form`; (b) modo «solo campos» cuando es `add_fields` (oculta nombre/config/consentimiento). Al guardar llama a `updatePendingChange` y refresca.
+
+### 23.5 Ficheros previstos
+
+`shared/types/forms.ts` (`FormEditPendingChangeInput`), `pending-changes.ts` (función pura + refactor), `service.ts` (`updatePendingChange`), `mcp-tools.ts` (tool), `ipc.ts`/`preload`/`forms-store` (canal `forms:edit-pending-change`), `FormPendingChangesView.tsx` + `EditFormWizard.tsx` (generalización), i18n es/ca/eu/en. Tests en `service.spec.ts` y `pending-changes.spec.ts`.
+
+### 23.6 Implementación (2026-06-19)
+
+- **Núcleo**: `applyEditsToFormPayload(base, edits, {isAddFields})` y `formPayloadFieldCount` en `pending-changes.ts`; `buildUpdateFormChange` refactorizado para apoyarse en la función pura.
+- **Servicio**: `updatePendingChange` (rechaza cambios aplicados con error «…aplicado…»; en `create_form` valida `originIds` con `assertOriginsExist` y actualiza `createContext`; regenera `summary`).
+- **MCP**: tool `forms_edit_pending_change` (`changeId` + `edits` + `originIds?`).
+- **IPC/preload/store**: canal `forms:edit-pending-change`, método `formsEditPendingChange`, acción `editPendingChange`.
+- **UI**: `EditFormWizard` generalizado (`source` desde `editSourceFromForm`/`editSourceFromChange`, flags `showName`/`showConfig`/`showOrigins`, selector de orígenes); botón «Editar» por fila en `FormPendingChangesView` (deshabilitado si el cambio ya se aplicó); wiring en `FormsManagementScreen` (objetivo formulario vs cambio). i18n `forms.changes.edit`, `forms.editWizard.titleFields`/`origins` en las cuatro locales.
+- **Tests**: `service.spec.ts` (editar create_form + orígenes; rechazo de origen inexistente y de cambio aplicado) y `pending-changes.spec.ts` (`applyEditsToFormPayload` isAddFields).
+
+Pendiente en máquina: `npm run typecheck`, `npm run test:unit`, PR. **Requiere reconstruir/reiniciar la app** para que el MCP tome `forms_edit_pending_change`.
+
+---
+
+## 24. Consentimiento legal: privacyText y checkboxes (IMPLEMENTADO, 2026-06-19)
+
+Problema: al aplicar un formulario con `legalConsentOptions.type != none` HubSpot devuelve `Some required fields were not set: [privacyText]`. Confirmado en la doc (*Create a form*): para `explicit_consent_to_process` son **requeridos** `privacyText` (string) y `communicationsCheckboxes` (array; cada checkbox necesita un **id de tipo de suscripción válido** del portal); opcionales `consentToProcessText`, `communicationConsentText`, `consentToProcessCheckboxLabel`, `consentToProcessFooterText`. Los tipos `legitimate_interest`/`implicit_consent_to_process` tienen requisitos análogos. La Marketing Forms API **no expone** un endpoint con el texto de privacidad por defecto de la cuenta (la UI de HubSpot lo prerellena desde ajustes RGPD, pero no vía API).
+
+Decisión (usuario): **ambas fuentes** — copiar de un formulario existente + editable en el wizard.
+
+### 24.1 Copiar de HubSpot (automático)
+
+- Conector: `getConsentTemplate(type)` → recorre `listForms()` y devuelve el `legalConsentOptions` del primer formulario del portal con ese `type` y `privacyText` no vacío (o `null`).
+- `service.applyChange` (create_form/update_form): antes de enviar, si `type != none` y faltan `privacyText`/`communicationsCheckboxes`, los completa desde `getConsentTemplate(type)` (sin pisar lo que el usuario haya puesto). Si tras el intento siguen faltando requeridos → `{ success:false, error }` claro (no llama a HubSpot). Resuelve también los `communicationsCheckboxes` (ids de suscripción válidos) reutilizándolos del template.
+
+### 24.2 Subscriptions API (decisión del usuario)
+
+Para construir `communicationsCheckboxes` sin depender de una plantilla, se integra la **Subscriptions API** de HubSpot:
+
+- Endpoint (**v4**, confirmado en la doc): `GET /communication-preferences/v4/definitions` → `{ status, results: [{ id, name, description, purpose, communicationMethod, isActive, isDefault, isInternal, businessUnitId }] }`. `id` viene como **string** → `subscriptionTypeId = Number(id)`. Se filtran `isActive === true` y `communicationMethod === 'Email'`. (v3 `/v3/definitions` con `{ subscriptionDefinitions }` es legacy; usamos v4.) Scope: `communication_preferences.read`.
+- Nuevo módulo conector `connectors/hubspot/subscriptions.ts` con `listDefinitions()` → `SubscriptionType[] = { id: number; name: string }[]`.
+- Expuesto al renderer: servicio `listSubscriptionTypes(projectId)`, canal IPC `forms:subscription-types`, método `formsListSubscriptionTypes`, acción de store. (Solo lectura.)
+
+Forma de cada checkbox (confirmada en la doc): `{ label: string, required: boolean, subscriptionTypeId: number }`.
+
+### 24.3 Editable (UI)
+
+`EditFormWizard`, cuando el tipo de consentimiento != none:
+
+- Campos de texto editables: `privacyText` (requerido), `consentToProcessText`, `communicationConsentText`, `consentToProcessCheckboxLabel`, `consentToProcessFooterText`. Prerellenados desde el `legalConsentOptions` del cambio/formulario o, si está vacío, desde `getConsentTemplate`.
+- Sección de **communicationsCheckboxes**: filas con selector de tipo de suscripción (desde 24.2), `label` y `required`; añadir/quitar. Para `explicit_consent_to_process` se exige ≥1.
+- Todo va a `edits.legalConsentOptions` (que `applyEditsToFormPayload` ya pasa tal cual).
+
+### 24.4 Copiar como prerelleno/fallback
+
+`getConsentTemplate(type)` (24.1) se mantiene: prerellena el editor si el cambio no trae consentimiento y, al aplicar, completa lo que falte. Con la Subscriptions API, el consentimiento explícito ya no depende de que exista una plantilla.
+
+### 24.5 Validación previa al envío
+
+`service.applyChange`: si `type != none` y falta `privacyText` o `communicationsCheckboxes` (tras intentar plantilla), devuelve error claro sin llamar a HubSpot.
+
+### 24.6 Ficheros previstos
+
+`connectors/hubspot/subscriptions.ts` (nuevo) + `forms.ts` (`getConsentTemplate`), `service.ts` (`listSubscriptionTypes`, enriquecer en `applyChange`), `mcp-tools.ts` (¿tool `forms_subscription_types`? opcional), `ipc.ts`/`preload`/`forms-store`, `EditFormWizard.tsx` (sección consentimiento + checkboxes), tipos (`SubscriptionType`), i18n es/ca/eu/en. Tests en `service.spec.ts`.
+
+### 24.7 Implementación (2026-06-19)
+
+- **Conector**: `connectors/hubspot/subscriptions.ts` (`listDefinitions` → v4 `/communication-preferences/v4/definitions`, filtra `isActive` + `communicationMethod==='Email'`, `id`→`Number`). `forms.ts`: `getConsentTemplate(type)` (busca en `listForms()` un `legalConsentOptions` con ese tipo y `privacyText`).
+- **Núcleo** (`pending-changes.ts`): `consentMissingRequired`, `mergeConsentTemplate` (puros).
+- **Servicio**: `listSubscriptionTypes`; `consentReadyPayload` enriquece `legalConsentOptions` desde plantilla en `applyChange` (create_form y update_form) y devuelve error claro si tras intentarlo faltan `privacyText`/`communicationsCheckboxes` (no llama a HubSpot). Nueva dep `subscriptionsApiFor` cableada en `index.ts`.
+- **MCP**: tool `forms_subscription_types` (solo lectura).
+- **IPC/preload/store**: canal `forms:subscription-types`, método `formsListSubscriptionTypes`, estado `subscriptionTypes` + `loadSubscriptionTypes`.
+- **UI**: `EditFormWizard` con sección de consentimiento cuando el tipo != none: `privacyText` (multilínea) + `consentToProcessText`/`communicationConsentText` + editor de `communicationsCheckboxes` (selector de tipo de suscripción + label + required, alta/baja); `FormsManagementScreen` carga los tipos y los pasa. i18n en las cuatro locales (`forms.editWizard.privacyText`/`consentToProcessText`/`communicationConsentText`/`checkboxes`/`subscriptionType`/`addCheckbox`/`noSubscriptions`).
+- **Tests**: `service.spec.ts` (error si falta consentimiento y no hay plantilla; completado desde plantilla) y `pending-changes.spec.ts` (`consentMissingRequired`/`mergeConsentTemplate`).
+
+Pendiente en máquina: `npm run typecheck`, `npm run test:unit`, PR. **Requiere reconstruir/reiniciar la app** para que el MCP tome los cambios. Nota: para `explicit_consent_to_process` sigue siendo necesario que el portal tenga tipos de suscripción de Email (para los checkboxes); si no hay ninguno, el editor lo avisa.
+
+---
+
+## 25. Campos requeridos en el cuerpo: archived/createdAt/updatedAt (IMPLEMENTADO, 2026-06-19)
+
+Origen: tras resolver §24, al aplicar «Aficiones» HubSpot devolvía `Some required fields were not set: [createdAt]`. La doc de *Create a form* marca `archived`, `createdAt` y `updatedAt` como **requeridos en el cuerpo** (POST/PATCH), y el builder no los enviaba (se trataban como solo-lectura). Los errores afloran de uno en uno: al limpiar tipos/validation/privacyText, surgió `createdAt`.
+
+Corrección:
+- `READONLY_FORM_KEYS` se reduce a `['id', 'archivedAt']` (gestionados por HubSpot); `createdAt`/`updatedAt`/`archived` ya **no** se eliminan.
+- Nueva función pura `ensureRequiredFormFields(payload, now)` que rellena `archived:false`/`createdAt`/`updatedAt` si faltan (sin pisar). La usa `buildCreateFormChange` y, en `service.applyChange`, se aplica al payload **antes** de `createForm`/`patchForm` — así también funcionan los cambios pendientes creados antes de este fix (p. ej. el «Aficiones» actual) sin re-editarlos.
+
+Ficheros: `pending-changes.ts` (`ensureRequiredFormFields`, READONLY reducido, buildCreateFormChange), `service.ts` (applyChange), test en `pending-changes.spec.ts`. Pendiente en máquina: typecheck/test/PR. Requiere rebuild para el MCP.
+
+---
+
+## 26. Límite de 3 campos por grupo (IMPLEMENTADO, 2026-06-19)
+
+Origen: al aplicar «Aficiones» (15 campos) HubSpot devolvía `There are too many fields in this group. A group should be no more than 3 fields.`. Construíamos los `fieldGroups` con **un único grupo** que contenía todos los campos; HubSpot limita cada grupo a **3**.
+
+Corrección:
+- `fieldGroupsFrom(fields)` reparte los campos en grupos de ≤3 (`MAX_FIELDS_PER_GROUP = 3`). Lo usan `buildCreateFormChange`, `applyEditsToFormPayload` (rutas `fields` y `fieldGroups`, que se aplanan y reparticionan), `buildUpdateFormChange` (fallback sin raw) y `buildAddFieldsChange` (campos nuevos).
+- `enforceGroupSize(payload)` reparticiona al vuelo en `service.applyChange` (create y update) si algún grupo supera 3, cubriendo también los cambios pendientes guardados antes de este fix (p. ej. el «Aficiones» actual) sin re-editarlos. Nota: aplanar puede fusionar grupos preexistentes de la UI de HubSpot; aceptable dado el límite y que la app no modela layout por grupos.
+
+Ficheros: `pending-changes.ts` (`fieldGroupsFrom`/`enforceGroupSize` + builders), `service.ts` (applyChange), test en `pending-changes.spec.ts`. Pendiente en máquina: typecheck/test/PR. Requiere rebuild para el MCP.
+
+## 27. Adopción del patrón de estados de carga (SPEC-0002 §17) (BORRADOR, 2026-06-22)
+
+`FormsManagementScreen`, `NewFormWizard`, `EditFormWizard` y `LinkOriginModal` adoptan el patrón de SPEC-0002 §17.
+Los asistentes/modales se abren de inmediato con `LoadingState` (variante `form`/`list`) y `aria-busy` mientras
+resuelven objetos, campos por origen, tipos de suscripción (consentimiento) o el formulario a editar; el estado
+se resetea en cada apertura (sin arrastrar campos del formulario anterior). Crear/editar/aplicar usan botones en
+estado ocupado accesible. Pendiente de implementación junto al resto de superficies.

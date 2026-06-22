@@ -14,7 +14,7 @@ import {
 import FolderIcon from '@mui/icons-material/Folder';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
-import { useSnackbar } from '@shared/components/feedback';
+import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
 import { useGoogleDriveConnector } from '../hooks/useGoogleDriveConnector';
 import { GoogleCredentialsCard } from './GoogleCredentialsCard';
 import { FolderPickerDialog } from './FolderPickerDialog';
@@ -77,7 +77,7 @@ export function GoogleDriveConnectorScreen(): JSX.Element | null {
             {t('gdrive.account')}
           </Typography>
           {loading ? (
-            <Typography color="text.primary">{t('gdrive.loading')}</Typography>
+            <LoadingState variant="text" rows={2} label={t('gdrive.loading')} />
           ) : connected ? (
             <Stack direction="row" spacing={2} alignItems="center">
               <Chip color="secondary" size="small" label={t('gdrive.connected')} />
@@ -135,9 +135,9 @@ export function GoogleDriveConnectorScreen(): JSX.Element | null {
                     ? t('gdrive.lastSync', { date: new Date(status.lastSyncAt).toLocaleString() })
                     : t('gdrive.neverSynced')}
                 </Typography>
-                <Button variant="outlined" onClick={() => void handleSync()} disabled={working}>
-                  {working ? t('gdrive.syncing') : t('gdrive.sync')}
-                </Button>
+                <BusyButton variant="outlined" busy={working} onClick={() => void handleSync()}>
+                  {t('gdrive.sync')}
+                </BusyButton>
               </Stack>
               {lastSync && lastSync.conflicts.length > 0 ? (
                 <Alert severity="warning" sx={{ mt: 2 }}>

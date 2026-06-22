@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
-import { useSnackbar } from '@shared/components/feedback';
+import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
 import { useHubSpotConnector } from '../hooks/useHubSpotConnector';
 
@@ -75,13 +75,14 @@ export function HubSpotConnectorScreen(): JSX.Element | null {
             inputProps={{ 'aria-label': t('hubspot.tokenLabel') }}
           />
           <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-            <Button
+            <BusyButton
               variant="contained"
+              busy={saving}
               onClick={() => void handleSave()}
-              disabled={saving || token.trim().length === 0}
+              disabled={token.trim().length === 0}
             >
-              {saving ? t('hubspot.saving') : t('hubspot.save')}
-            </Button>
+              {t('hubspot.save')}
+            </BusyButton>
             {envConfig ? (
               <Button color="inherit" onClick={() => void revoke(environment)} disabled={saving}>
                 {t('hubspot.revoke')}
@@ -98,7 +99,7 @@ export function HubSpotConnectorScreen(): JSX.Element | null {
             {t('hubspot.connectionStatus')}
           </Typography>
           {loading ? (
-            <Typography color="text.primary">{t('hubspot.loading')}</Typography>
+            <LoadingState variant="text" rows={2} label={t('hubspot.loading')} />
           ) : envConfig ? (
             <Stack spacing={1}>
               <Stack direction="row" spacing={1} alignItems="center">

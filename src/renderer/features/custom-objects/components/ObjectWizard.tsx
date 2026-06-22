@@ -26,6 +26,8 @@ import type {
   ObjectUpsertDraftInput,
 } from '@shared/types/custom-objects';
 import type { HubSpotObject } from '@shared/types/properties';
+import { HS_TYPES, fieldTypesFor } from '@shared/constants/hubspotPropertyTypes';
+import { BusyButton } from '@shared/components/feedback';
 
 interface ObjectWizardProps {
   open: boolean;
@@ -36,22 +38,6 @@ interface ObjectWizardProps {
 }
 
 const NAME_RE = /^[a-z][a-z0-9_]*$/;
-
-const HS_TYPES = ['string', 'number', 'date', 'datetime', 'enumeration', 'bool'];
-
-// Mismo mapeo type → fieldType que el asistente de propiedades (SPEC-0006).
-const FIELD_TYPES_BY_TYPE: Record<string, string[]> = {
-  string: ['text', 'textarea', 'phonenumber', 'html', 'file'],
-  number: ['number'],
-  date: ['date'],
-  datetime: ['date'],
-  enumeration: ['select', 'radio', 'checkbox'],
-  bool: ['booleancheckbox'],
-};
-
-function fieldTypesFor(type: string): string[] {
-  return FIELD_TYPES_BY_TYPE[type] ?? ['text'];
-}
 
 function defaultFieldType(type: string): string {
   return fieldTypesFor(type)[0] ?? 'text';
@@ -112,23 +98,30 @@ export function ObjectWizard({
     setProperties((prev) => prev.map((p, i) => (i === index ? { ...p, ...patch } : p)));
   };
 
+  const [submitting, setSubmitting] = useState(false);
+
   const handleSubmit = async (): Promise<void> => {
     // Solo nombres internos de propiedades existentes (descarta referencias obsoletas).
     const valid = new Set(propNames);
     const keep = (list: string[]): string[] => list.filter((n) => valid.has(n));
-    await onSubmit({
-      id: definition?.id,
-      name,
-      description: description || undefined,
-      labels: { singular, plural },
-      primaryDisplayProperty: primary,
-      secondaryDisplayProperties: keep(secondary),
-      searchableProperties: keep(searchable),
-      requiredProperties: keep(required),
-      associatedObjects: associated,
-      properties,
-    });
-    onClose();
+    setSubmitting(true);
+    try {
+      await onSubmit({
+        id: definition?.id,
+        name,
+        description: description || undefined,
+        labels: { singular, plural },
+        primaryDisplayProperty: primary,
+        secondaryDisplayProperties: keep(secondary),
+        searchableProperties: keep(searchable),
+        requiredProperties: keep(required),
+        associatedObjects: associated,
+        properties,
+      });
+      onClose();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const renderMultiSelect = (
@@ -334,9 +327,9 @@ export function ObjectWizard({
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>{t('customObjects.wizard.cancel')}</Button>
-        <Button variant="contained" disabled={!canSubmit} onClick={() => void handleSubmit()}>
+        <BusyButton variant="contained" busy={submitting} disabled={!canSubmit} onClick={() => void handleSubmit()}>
           {t('customObjects.wizard.save')}
-        </Button>
+        </BusyButton>
       </DialogActions>
     </Dialog>
   );

@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Autocomplete,
   Button,
   Dialog,
@@ -7,20 +10,25 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  FormControlLabel,
   IconButton,
+  LinearProgress,
   MenuItem,
   Stack,
+  Switch,
   TextField,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { OptionsDialog } from './OptionsDialog';
+import { SourceOptionsDialog } from './SourceOptionsDialog';
 import { useTranslation } from 'react-i18next';
 import type {
   DataOrigin,
   EntrySource,
-  HsPropertyOption,
   HsPropertyType,
   HubSpotGroup,
   HubSpotPropertyDef,
@@ -28,41 +36,32 @@ import type {
   SourceEnumOption,
   SourceFieldKind,
 } from '@shared/types/properties';
+import {
+  DATA_SENSITIVITIES,
+  FIELD_TYPES_BY_TYPE,
+  HS_TYPES,
+  NUMBER_DISPLAY_HINTS,
+  TEXT_DISPLAY_HINTS,
+  defaultFieldType,
+} from '@shared/constants/hubspotPropertyTypes';
 
 const KINDS: SourceFieldKind[] = ['number', 'text', 'boolean', 'enum', 'memo'];
-const HS_TYPES: HsPropertyType[] = ['string', 'number', 'date', 'datetime', 'enumeration', 'bool'];
 
-const FIELD_TYPES_BY_TYPE: Record<string, string[]> = {
-  string: ['text', 'textarea', 'phonenumber', 'html', 'file'],
-  number: ['number'],
-  date: ['date'],
-  datetime: ['date'],
-  enumeration: ['select', 'radio', 'checkbox', 'booleancheckbox'],
-  bool: ['booleancheckbox'],
-};
-
-function defaultFieldType(type: string): string {
-  return FIELD_TYPES_BY_TYPE[type]?.[0] ?? 'text';
+/** ¿La definición usa alguna opción avanzada? Sirve para abrir la sección colapsable. */
+function hasAdvancedContent(def: HubSpotPropertyDef): boolean {
+  return Boolean(
+    def.description ||
+      def.numberDisplayHint ||
+      def.textDisplayHint ||
+      def.calculationFormula ||
+      def.dataSensitivity ||
+      def.hasUniqueValue ||
+      def.fieldType === 'calculation_equation',
+  );
 }
 
 function slugify(label: string): string {
   return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-}
-
-function parseBulkOptions(text: string, sep: string): Array<{ label: string; value: string }> {
-  return text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .map((line) => {
-      if (sep && line.includes(sep)) {
-        const i = line.indexOf(sep);
-        const label = line.slice(0, i).trim();
-        const value = line.slice(i + sep.length).trim();
-        return { label: label || value, value: value || label };
-      }
-      return { label: line, value: line };
-    });
 }
 
 const EMPTY_DEF: HubSpotPropertyDef = {
@@ -127,36 +126,48 @@ export function EntryWizard({
   const [groups, setGroups] = useState<HubSpotGroup[]>([]);
   const [newGroupLabel, setNewGroupLabel] = useState('');
   const [sources, setSources] = useState<DraftSource[]>([]);
-  const [bulkOpen, setBulkOpen] = useState(false);
-  const [bulkText, setBulkText] = useState('');
-  const [bulkSep, setBulkSep] = useState('');
+  const [advOpen, setAdvOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [srcOptionsId, setSrcOptionsId] = useState<string | null>(null);
+  const [metaLoading, setMetaLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setName(entry?.name ?? '');
     setMode(entry?.hubspotProperty.mode ?? 'existing');
     setExistingName(entry?.hubspotProperty.mode === 'existing' ? entry.hubspotProperty.hubspotName : '');
-    if (entry?.hubspotProperty.mode === 'new') setDef(entry.hubspotProperty.definition);
-    else if (entry?.hubspotProperty.mode === 'existing' && entry.hubspotProperty.definition)
-      setDef(entry.hubspotProperty.definition);
-    else setDef(EMPTY_DEF);
+    const loadedDef =
+      entry?.hubspotProperty.mode === 'new'
+        ? entry.hubspotProperty.definition
+        : entry?.hubspotProperty.mode === 'existing' && entry.hubspotProperty.definition
+          ? entry.hubspotProperty.definition
+          : EMPTY_DEF;
+    setDef(loadedDef);
+    setAdvOpen(hasAdvancedContent(loadedDef));
     setSources((entry?.sources ?? []).map(toDraft));
     setNewGroupLabel('');
     // Limpia datos del objeto anterior para no mostrar grupos/propiedades obsoletos.
     setHsProps([]);
     setGroups([]);
+    setMetaLoading(true);
+    const tasks: Promise<unknown>[] = [];
     if (typeof window.api.hubspotPropertiesList === 'function') {
-      void window.api.hubspotPropertiesList({ projectId, objectType }).then(setHsProps).catch(() => setHsProps([]));
+      tasks.push(
+        window.api.hubspotPropertiesList({ projectId, objectType }).then(setHsProps).catch(() => setHsProps([])),
+      );
     }
     if (typeof window.api.groupsList === 'function') {
-      void window.api
-        .groupsList({ projectId, objectType })
-        .then((list) => {
-          setGroups(list);
-          setDef((d) => (d.groupName || list.length === 0 ? d : { ...d, groupName: list[0].name }));
-        })
-        .catch(() => setGroups([]));
+      tasks.push(
+        window.api
+          .groupsList({ projectId, objectType })
+          .then((list) => {
+            setGroups(list);
+            setDef((d) => (d.groupName || list.length === 0 ? d : { ...d, groupName: list[0].name }));
+          })
+          .catch(() => setGroups([])),
+      );
     }
+    void Promise.allSettled(tasks).then(() => setMetaLoading(false));
   }, [open, entry, projectId, objectType]);
 
   const selectExisting = (prop: HubSpotPropertyDef | null): void => {
@@ -183,25 +194,6 @@ export function EntryWizard({
     setGroups(list);
     setDef((d) => ({ ...d, groupName: created.name }));
     setNewGroupLabel('');
-  };
-
-  const updateOption = (idx: number, patch: Partial<HsPropertyOption>): void => {
-    setDef((d) => ({ ...d, options: (d.options ?? []).map((o, i) => (i === idx ? { ...o, ...patch } : o)) }));
-  };
-
-  const applyBulkOptions = (): void => {
-    const parsed = parseBulkOptions(bulkText, bulkSep);
-    if (parsed.length > 0) {
-      setDef((d) => {
-        const merged = [...(d.options ?? []), ...parsed.map((o) => ({ ...o, displayOrder: 0, hidden: false }))].map(
-          (o, i) => ({ ...o, displayOrder: i }),
-        );
-        return { ...d, options: merged };
-      });
-    }
-    setBulkText('');
-    setBulkSep('');
-    setBulkOpen(false);
   };
 
   // El grupo se resuelve antes de aplicar en HubSpot (puede no haber grupos sin portal);
@@ -266,7 +258,10 @@ export function EntryWizard({
         select
         label={t('properties.newProp.fieldType')}
         value={fieldTypeOptions.includes(def.fieldType) ? def.fieldType : fieldTypeOptions[0]}
-        onChange={(e) => setDef({ ...def, fieldType: e.target.value })}
+        onChange={(e) => {
+          setDef({ ...def, fieldType: e.target.value });
+          if (e.target.value === 'calculation_equation') setAdvOpen(true);
+        }}
       >
         {fieldTypeOptions.map((ft) => (
           <MenuItem key={ft} value={ft}>{t(`properties.fieldTypes.${ft}`, { defaultValue: ft })}</MenuItem>
@@ -274,48 +269,19 @@ export function EntryWizard({
       </TextField>
 
       {def.type === 'enumeration' ? (
-        <Stack spacing={1} sx={{ pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}>
-          <Typography variant="caption" color="text.primary">{t('properties.wizard.optionsTitle')}</Typography>
-          {(def.options ?? []).map((opt, idx) => (
-            <Stack key={idx} direction="row" spacing={1} alignItems="center">
-              <TextField size="small" label={t('properties.wizard.optionLabel')} value={opt.label} onChange={(e) => updateOption(idx, { label: e.target.value })} />
-              <TextField size="small" label={t('properties.wizard.optionValue')} value={opt.value} onChange={(e) => updateOption(idx, { value: e.target.value })} />
-              <IconButton size="small" aria-label={t('properties.panel.delete')} onClick={() => setDef((d) => ({ ...d, options: (d.options ?? []).filter((_, i) => i !== idx) }))}>
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Stack>
-          ))}
-          <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center" flexWrap="wrap" useFlexGap>
-            <Button size="small" variant="text" onClick={() => setBulkOpen((o) => !o)}>
-              {t('properties.wizard.pasteOptions')}
-            </Button>
-            <Button
-              size="small"
-              variant="contained"
-              onClick={() =>
-                setDef((d) => ({
-                  ...d,
-                  options: [...(d.options ?? []), { label: '', value: '', displayOrder: (d.options ?? []).length, hidden: false }],
-                }))
-              }
-            >
-              {t('properties.wizard.addPropOption')}
-            </Button>
-          </Stack>
-          {bulkOpen ? (
-            <Stack spacing={1}>
-              <TextField size="small" label={t('properties.wizard.separator')} value={bulkSep} onChange={(e) => setBulkSep(e.target.value)} sx={{ maxWidth: 220 }} />
-              <TextField size="small" label={t('properties.wizard.bulkList')} value={bulkText} onChange={(e) => setBulkText(e.target.value)} multiline minRows={3} helperText={t('properties.wizard.pasteHint')} />
-              <Stack direction="row" spacing={1}>
-                <Button size="small" variant="outlined" onClick={applyBulkOptions} disabled={!bulkText.trim()}>
-                  {t('properties.wizard.bulkApply')}
-                </Button>
-                <Button size="small" onClick={() => setBulkOpen(false)}>
-                  {t('properties.wizard.cancel')}
-                </Button>
-              </Stack>
-            </Stack>
-          ) : null}
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          justifyContent="space-between"
+          sx={{ pl: 1, borderLeft: '2px solid', borderColor: 'divider' }}
+        >
+          <Typography variant="body2" color="text.primary">
+            {t('properties.wizard.optionsTitle')} · {t('properties.wizard.optionsCount', { count: (def.options ?? []).length })}
+          </Typography>
+          <Button size="small" variant="outlined" onClick={() => setOptionsOpen(true)}>
+            {t('properties.wizard.editOptions')}
+          </Button>
         </Stack>
       ) : null}
 
@@ -335,13 +301,128 @@ export function EntryWizard({
           {t('properties.wizard.createGroup')}
         </Button>
       </Stack>
+
+      <Accordion expanded={advOpen} onChange={(_e, v) => setAdvOpen(v)} disableGutters>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="subtitle2">{t('properties.advanced.section')}</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Stack spacing={1.5}>
+            <TextField
+              label={t('properties.advanced.description')}
+              value={def.description ?? ''}
+              onChange={(e) => setDef({ ...def, description: e.target.value || undefined })}
+              multiline
+              minRows={2}
+            />
+
+            {def.type === 'number' ? (
+              <Stack spacing={1.5}>
+                <TextField
+                  select
+                  label={t('properties.advanced.numberDisplayHint')}
+                  value={def.numberDisplayHint ?? ''}
+                  onChange={(e) => {
+                    const hint = (e.target.value || undefined) as HubSpotPropertyDef['numberDisplayHint'];
+                    setDef({
+                      ...def,
+                      numberDisplayHint: hint,
+                      ...(hint === 'currency' ? {} : { showCurrencySymbol: undefined, currencyPropertyName: undefined }),
+                    });
+                  }}
+                >
+                  <MenuItem value="">{t('properties.advanced.none')}</MenuItem>
+                  {NUMBER_DISPLAY_HINTS.map((h) => (
+                    <MenuItem key={h} value={h}>{t(`properties.numberHints.${h}`, { defaultValue: h })}</MenuItem>
+                  ))}
+                </TextField>
+                {def.numberDisplayHint === 'currency' ? (
+                  <>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={Boolean(def.showCurrencySymbol)}
+                          onChange={(e) => setDef({ ...def, showCurrencySymbol: e.target.checked })}
+                        />
+                      }
+                      label={t('properties.advanced.showCurrencySymbol')}
+                    />
+                    <TextField
+                      label={t('properties.advanced.currencyPropertyName')}
+                      value={def.currencyPropertyName ?? ''}
+                      onChange={(e) => setDef({ ...def, currencyPropertyName: e.target.value || undefined })}
+                    />
+                  </>
+                ) : null}
+              </Stack>
+            ) : null}
+
+            {def.type === 'string' && (def.fieldType === 'text' || def.fieldType === 'textarea') ? (
+              <TextField
+                select
+                label={t('properties.advanced.textDisplayHint')}
+                value={def.textDisplayHint ?? ''}
+                onChange={(e) =>
+                  setDef({ ...def, textDisplayHint: (e.target.value || undefined) as HubSpotPropertyDef['textDisplayHint'] })
+                }
+              >
+                <MenuItem value="">{t('properties.advanced.none')}</MenuItem>
+                {TEXT_DISPLAY_HINTS.map((h) => (
+                  <MenuItem key={h} value={h}>{t(`properties.textHints.${h}`, { defaultValue: h })}</MenuItem>
+                ))}
+              </TextField>
+            ) : null}
+
+            {def.fieldType === 'calculation_equation' ? (
+              <TextField
+                label={t('properties.advanced.calculationFormula')}
+                value={def.calculationFormula ?? ''}
+                onChange={(e) => setDef({ ...def, calculationFormula: e.target.value || undefined })}
+                multiline
+                minRows={2}
+                helperText={t('properties.advanced.calculationHelp')}
+              />
+            ) : null}
+
+            <TextField
+              select
+              label={t('properties.advanced.dataSensitivity')}
+              value={def.dataSensitivity ?? ''}
+              onChange={(e) =>
+                setDef({ ...def, dataSensitivity: (e.target.value || undefined) as HubSpotPropertyDef['dataSensitivity'] })
+              }
+            >
+              <MenuItem value="">{t('properties.advanced.none')}</MenuItem>
+              {DATA_SENSITIVITIES.map((s) => (
+                <MenuItem key={s} value={s}>{t(`properties.sensitivity.${s}`, { defaultValue: s })}</MenuItem>
+              ))}
+            </TextField>
+
+            {editableName ? (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={Boolean(def.hasUniqueValue)}
+                    onChange={(e) => setDef({ ...def, hasUniqueValue: e.target.checked })}
+                  />
+                }
+                label={t('properties.advanced.hasUniqueValue')}
+              />
+            ) : null}
+          </Stack>
+        </AccordionDetails>
+      </Accordion>
     </Stack>
   );
 
   return (
+    <>
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>{t(entry ? 'properties.wizard.editTitle' : 'properties.wizard.title')}</DialogTitle>
       <DialogContent>
+        {metaLoading ? (
+          <LinearProgress aria-label={t('common.loading', { defaultValue: 'Cargando…' })} sx={{ mb: 2 }} />
+        ) : null}
         <Stack spacing={2} sx={{ mt: 1 }}>
           <TextField label={t('properties.wizard.name')} value={name} onChange={(e) => setName(e.target.value)} fullWidth />
 
@@ -424,27 +505,12 @@ export function EntryWizard({
                 ) : null}
 
                 {s.kind === 'enum' ? (
-                  <Stack spacing={1}>
-                    {s.options.map((opt, idx) => (
-                      <Stack key={idx} direction="row" spacing={1} alignItems="center">
-                        <TextField size="small" label={t('properties.wizard.sourceValue')} value={opt.sourceValue} onChange={(e) => updateSource(s.id, { options: s.options.map((o, i) => (i === idx ? { ...o, sourceValue: e.target.value } : o)) })} />
-                        <Typography>→</Typography>
-                        {(def.options ?? []).length > 0 ? (
-                          <TextField select size="small" label={t('properties.wizard.hubspotValue')} value={opt.hubspotValue ?? ''} onChange={(e) => updateSource(s.id, { options: s.options.map((o, i) => (i === idx ? { ...o, hubspotValue: e.target.value } : o)) })} sx={{ minWidth: 160 }}>
-                            {(def.options ?? []).map((d) => (
-                              <MenuItem key={d.value} value={d.value}>{d.label || d.value}</MenuItem>
-                            ))}
-                          </TextField>
-                        ) : (
-                          <TextField size="small" label={t('properties.wizard.hubspotValue')} value={opt.hubspotValue ?? ''} onChange={(e) => updateSource(s.id, { options: s.options.map((o, i) => (i === idx ? { ...o, hubspotValue: e.target.value } : o)) })} />
-                        )}
-                        <IconButton size="small" aria-label={t('properties.panel.delete')} onClick={() => updateSource(s.id, { options: s.options.filter((_, i) => i !== idx) })}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Stack>
-                    ))}
-                    <Button size="small" variant="text" onClick={() => updateSource(s.id, { options: [...s.options, { sourceValue: '', hubspotValue: '' }] })}>
-                      {t('properties.wizard.addOption')}
+                  <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                    <Typography variant="body2" color="text.primary">
+                      {t('properties.wizard.optionsTitle')} · {t('properties.wizard.optionsCount', { count: s.options.length })}
+                    </Typography>
+                    <Button size="small" variant="outlined" onClick={() => setSrcOptionsId(s.id)}>
+                      {t('properties.wizard.editOptions')}
                     </Button>
                   </Stack>
                 ) : null}
@@ -462,5 +528,23 @@ export function EntryWizard({
         </Button>
       </DialogActions>
     </Dialog>
+    <OptionsDialog
+      open={optionsOpen}
+      title={`${t('properties.wizard.optionsTitle')} — ${def.label || name}`}
+      options={def.options ?? []}
+      onChange={(opts) => setDef((d) => ({ ...d, options: opts }))}
+      onClose={() => setOptionsOpen(false)}
+    />
+    <SourceOptionsDialog
+      open={srcOptionsId !== null}
+      title={`${t('properties.wizard.optionsTitle')} — ${
+        origins.find((o) => o.id === sources.find((s) => s.id === srcOptionsId)?.originId)?.name ?? ''
+      }`}
+      options={sources.find((s) => s.id === srcOptionsId)?.options ?? []}
+      hubspotOptions={def.options ?? []}
+      onChange={(opts) => srcOptionsId && updateSource(srcOptionsId, { options: opts })}
+      onClose={() => setSrcOptionsId(null)}
+    />
+    </>
   );
 }

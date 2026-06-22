@@ -110,4 +110,100 @@ describe('pending-changes', () => {
     };
     expect(diffDefinition('e1', withEmpty, remote, deps)).toEqual([]);
   });
+
+  it('createBody incluye los atributos definidos (moneda, único)', () => {
+    const money: HubSpotPropertyDef = {
+      hubspotName: 'deal_amount',
+      label: 'Importe',
+      type: 'number',
+      fieldType: 'number',
+      groupName: 'dealinformation',
+      numberDisplayHint: 'currency',
+      showCurrencySymbol: true,
+      hasUniqueValue: true,
+    };
+    const change = buildCreateChange('e1', 'deals', money, deps);
+    expect(change.payload).toMatchObject({
+      numberDisplayHint: 'currency',
+      showCurrencySymbol: true,
+      hasUniqueValue: true,
+    });
+  });
+
+  it('diffDefinition emite update_attributes solo ante atributo fijado que difiere', () => {
+    const local: HubSpotPropertyDef = {
+      hubspotName: 'deal_amount',
+      label: 'Importe',
+      type: 'number',
+      fieldType: 'number',
+      groupName: 'dealinformation',
+      numberDisplayHint: 'currency',
+    };
+    const remote: RemoteProperty = {
+      name: 'deal_amount',
+      objectType: 'deals',
+      label: 'Importe',
+      type: 'number',
+      fieldType: 'number',
+      groupName: 'dealinformation',
+      numberDisplayHint: 'unformatted',
+    };
+    const changes = diffDefinition('e1', local, remote, deps);
+    expect(changes.map((c) => c.operation)).toEqual(['update_attributes']);
+    expect(changes[0].payload).toEqual({ numberDisplayHint: 'currency' });
+  });
+
+  it('diffDefinition no marca divergencia cuando el atributo local es undefined', () => {
+    const local: HubSpotPropertyDef = {
+      hubspotName: 'deal_amount',
+      label: 'Importe',
+      type: 'number',
+      fieldType: 'number',
+      groupName: 'dealinformation',
+    };
+    const remote: RemoteProperty = {
+      name: 'deal_amount',
+      objectType: 'deals',
+      label: 'Importe',
+      type: 'number',
+      fieldType: 'number',
+      groupName: 'dealinformation',
+      numberDisplayHint: 'unformatted',
+    };
+    expect(diffDefinition('e1', local, remote, deps)).toEqual([]);
+  });
+
+  it('H4: createBody inyecta opciones true/false para bool sin opciones', () => {
+    const boolDef: HubSpotPropertyDef = {
+      hubspotName: 'gym_towel_service',
+      label: 'Servicio de toalla',
+      type: 'bool',
+      fieldType: 'booleancheckbox',
+      groupName: 'contactinformation',
+    };
+    const change = buildCreateChange('e1', 'contacts', boolDef, deps);
+    const payload = change.payload as { options: Array<{ value: string }> };
+    expect(payload.options.map((o) => o.value)).toEqual(['true', 'false']);
+  });
+
+  it('H5: diffDefinition ignora calculationFormula (HubSpot la normaliza)', () => {
+    const local: HubSpotPropertyDef = {
+      hubspotName: 'gym_total_due',
+      label: 'Total a pagar',
+      type: 'number',
+      fieldType: 'calculation_equation',
+      groupName: 'contactinformation',
+      calculationFormula: 'gym_monthly_fee * 12',
+    };
+    const remote: RemoteProperty = {
+      name: 'gym_total_due',
+      objectType: 'contacts',
+      label: 'Total a pagar',
+      type: 'number',
+      fieldType: 'calculation_equation',
+      groupName: 'contactinformation',
+      calculationFormula: 'gym_monthly_fee*12.0',
+    };
+    expect(diffDefinition('e1', local, remote, deps)).toEqual([]);
+  });
 });

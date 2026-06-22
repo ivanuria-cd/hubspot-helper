@@ -83,6 +83,10 @@ const api: RevOpsApi = {
   formsGet: (input) => ipcRenderer.invoke(IpcChannels.formsGet, input),
   formsCreateDefinition: (input) => ipcRenderer.invoke(IpcChannels.formsCreateDefinition, input),
   formsUpdateDefinition: (input) => ipcRenderer.invoke(IpcChannels.formsUpdateDefinition, input),
+  formsEditPendingChange: (input) =>
+    ipcRenderer.invoke(IpcChannels.formsEditPendingChange, input),
+  formsListSubscriptionTypes: (input) =>
+    ipcRenderer.invoke(IpcChannels.formsSubscriptionTypes, input),
   formsCoverage: (input) => ipcRenderer.invoke(IpcChannels.formsCoverage, input),
   formsAddMissingFields: (input) => ipcRenderer.invoke(IpcChannels.formsAddMissingFields, input),
   formsApplyChange: (input) => ipcRenderer.invoke(IpcChannels.formsApplyChange, input),

@@ -686,3 +686,11 @@ No hay acciones destructivas en este conector que requieran `ConfirmDialog` en e
 Claves i18n nuevas: `gdrive.credentialsSaved`, `gdrive.credentialsError`, `gdrive.syncDone` (cuatro locales).
 
 > 2026-06-19 (a11y, SPEC-0002 §16): `SearchIcon` decorativo del selector de carpeta marcado `aria-hidden`.
+
+## 17. Adopción del patrón de estados de carga (SPEC-0002 §17) (BORRADOR, 2026-06-22)
+
+`GoogleDriveConnectorScreen` y, sobre todo, `FolderPickerDialog` adoptan el patrón de SPEC-0002 §17. El selector
+de carpeta es el caso claro: al abrirlo aparece **de inmediato** con un `LoadingState` (variante `list`) y
+`aria-busy` mientras lista las carpetas de Drive; al navegar a una carpeta se resetea el listado (no se muestran
+carpetas del nivel anterior) y se vuelve a cargar. Las acciones (guardar credenciales, sincronizar) pasan a
+estado ocupado accesible. Pendiente de implementación junto al resto de superficies.

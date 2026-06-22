@@ -7,6 +7,7 @@ import type {
   FormsSyncResult,
   HubSpotForm,
   NewFormDefinition,
+  SubscriptionType,
 } from '@shared/types/forms';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
 
@@ -15,6 +16,7 @@ interface FormsState {
   links: FormOriginLink[];
   changes: FormChange[];
   coverage: Record<string, FormCoverageReport[]>;
+  subscriptionTypes: SubscriptionType[];
   loading: boolean;
   syncing: boolean;
   lastSync: FormsSyncResult | null;
@@ -24,6 +26,12 @@ interface FormsState {
   loadCoverage: (projectId: string, formId: string) => Promise<void>;
   createDefinition: (projectId: string, definition: NewFormDefinition) => Promise<void>;
   updateDefinition: (projectId: string, formId: string, edits: FormEditsInput) => Promise<void>;
+  editPendingChange: (
+    projectId: string,
+    changeId: string,
+    edits: FormEditsInput,
+    originIds?: string[],
+  ) => Promise<void>;
   addMissingFields: (projectId: string, formId: string, originId: string) => Promise<void>;
   applyChange: (
     projectId: string,
@@ -36,6 +44,7 @@ interface FormsState {
     link: { id?: string; formId: string; originIds: string[]; objectType: string },
   ) => Promise<void>;
   deleteLink: (projectId: string, linkId: string) => Promise<void>;
+  loadSubscriptionTypes: (projectId: string) => Promise<void>;
 }
 
 export const useFormsStore = create<FormsState>((set, get) => ({
@@ -43,6 +52,7 @@ export const useFormsStore = create<FormsState>((set, get) => ({
   links: [],
   changes: [],
   coverage: {},
+  subscriptionTypes: [],
   loading: false,
   syncing: false,
   lastSync: null,
@@ -86,6 +96,10 @@ export const useFormsStore = create<FormsState>((set, get) => ({
     await window.api.formsUpdateDefinition({ projectId, formId, edits });
     await get().load(projectId);
   },
+  editPendingChange: async (projectId, changeId, edits, originIds) => {
+    await window.api.formsEditPendingChange({ projectId, changeId, edits, originIds });
+    await get().load(projectId);
+  },
   addMissingFields: async (projectId, formId, originId) => {
     await window.api.formsAddMissingFields({ projectId, formId, originId });
     await get().load(projectId);
@@ -110,5 +124,13 @@ export const useFormsStore = create<FormsState>((set, get) => ({
   deleteLink: async (projectId, linkId) => {
     await window.api.formLinksDelete({ projectId, linkId });
     await get().load(projectId);
+  },
+  loadSubscriptionTypes: async (projectId) => {
+    try {
+      const subscriptionTypes = await window.api.formsListSubscriptionTypes({ projectId });
+      set({ subscriptionTypes: subscriptionTypes ?? [] });
+    } catch {
+      set({ subscriptionTypes: [] });
+    }
   },
 }));

@@ -3,7 +3,7 @@ import { Alert, Box, Button, MenuItem, Stack, TextField, Typography } from '@mui
 import SyncIcon from '@mui/icons-material/Sync';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
-import { useSnackbar } from '@shared/components/feedback';
+import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
 import { EmptyState } from '@shared/components/EmptyState';
 import { useDriveDoc } from '@shared/hooks/useDriveDoc';
 import { DriveDocActions } from '@shared/components/DriveDocActions';
@@ -15,8 +15,14 @@ import { useFormsRefsStore } from '../store/forms-refs-store';
 import { FormsTable } from './FormsTable';
 import { FormPanel } from './FormPanel';
 import { NewFormWizard } from './NewFormWizard';
-import { EditFormWizard } from './EditFormWizard';
+import {
+  EditFormWizard,
+  editSourceFromChange,
+  editSourceFromForm,
+  type EditFormSource,
+} from './EditFormWizard';
 import { LinkOriginModal } from './LinkOriginModal';
+import type { FormChange, FormEditsInput } from '@shared/types/forms';
 import { FormPendingChangesView } from './FormPendingChangesView';
 import { coverageState } from './CoverageBadge';
 
@@ -40,17 +46,23 @@ export function FormsManagementScreen(): JSX.Element | null {
     loadCoverage,
     createDefinition,
     updateDefinition,
+    editPendingChange,
     addMissingFields,
     applyChange,
     discardChange,
     upsertLink,
+    subscriptionTypes,
+    loadSubscriptionTypes,
   } = useFormsStore();
   const { objects, origins, entries, load: loadRefs } = useFormsRefsStore();
 
   const [view, setView] = useState<'list' | 'changes'>('list');
   const [selected, setSelected] = useState<HubSpotForm | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
+  const [editSource, setEditSource] = useState<EditFormSource | null>(null);
+  const [editTarget, setEditTarget] = useState<
+    { kind: 'form'; formId: string } | { kind: 'change'; changeId: string } | null
+  >(null);
   const [linkOpen, setLinkOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -74,7 +86,8 @@ export function FormsManagementScreen(): JSX.Element | null {
     if (!projectId) return;
     void load(projectId);
     void loadRefs(projectId);
-  }, [projectId, load, loadRefs]);
+    void loadSubscriptionTypes(projectId);
+  }, [projectId, load, loadRefs, loadSubscriptionTypes]);
 
   useEffect(() => {
     if (!projectId) return;
@@ -122,6 +135,27 @@ export function FormsManagementScreen(): JSX.Element | null {
     }
   };
 
+  const handleEditForm = (): void => {
+    if (!selected) return;
+    setEditTarget({ kind: 'form', formId: selected.id });
+    setEditSource(editSourceFromForm(selected));
+  };
+
+  const handleEditChange = (change: FormChange): void => {
+    setEditTarget({ kind: 'change', changeId: change.id });
+    setEditSource(editSourceFromChange(change, change.createContext?.originIds ?? []));
+  };
+
+  const handleEditSubmit = (edits: FormEditsInput, originIds: string[] | undefined): void => {
+    if (!editTarget) return;
+    if (editTarget.kind === 'form') {
+      void updateDefinition(projectId, editTarget.formId, edits);
+      setView('changes');
+    } else {
+      void editPendingChange(projectId, editTarget.changeId, edits, originIds);
+    }
+  };
+
   return (
     <Box>
       <Stack direction="row" alignItems="center" sx={{ mb: 2 }}>
@@ -129,14 +163,14 @@ export function FormsManagementScreen(): JSX.Element | null {
           {view === 'list' ? t('forms.title') : t('forms.changes.title')}
         </Typography>
         {view === 'list' ? (
-          <Button
+          <BusyButton
             variant="outlined"
+            busy={syncing}
             startIcon={<SyncIcon />}
             onClick={() => sync(projectId, true)}
-            disabled={syncing}
           >
-            {syncing ? t('forms.syncing') : t('forms.syncHs')}
-          </Button>
+            {t('forms.syncHs')}
+          </BusyButton>
         ) : (
           <Button variant="outlined" onClick={() => setView('list')}>
             {t('forms.changes.back')}
@@ -160,6 +194,7 @@ export function FormsManagementScreen(): JSX.Element | null {
           busy={busy}
           onApply={(changeId, environment) => void handleApply(changeId, environment)}
           onDiscard={(changeId) => void discardChange(projectId, changeId)}
+          onEdit={handleEditChange}
         />
       ) : (
         <>
@@ -208,7 +243,7 @@ export function FormsManagementScreen(): JSX.Element | null {
           </Stack>
 
           {loading ? (
-            <Typography color="text.primary">{t('forms.loading')}</Typography>
+            <LoadingState variant="list" rows={4} label={t('forms.loading')} />
           ) : forms.length === 0 ? (
             <EmptyState message={t('forms.empty')} />
           ) : filtered.length === 0 ? (
@@ -234,17 +269,19 @@ export function FormsManagementScreen(): JSX.Element | null {
         onClose={() => setSelected(null)}
         onAddMissing={(originId) => void handleAddMissing(originId)}
         onLinkOrigin={() => setLinkOpen(true)}
-        onEdit={() => setEditOpen(true)}
+        onEdit={handleEditForm}
       />
 
       <EditFormWizard
-        open={editOpen}
-        form={selected}
-        onClose={() => setEditOpen(false)}
-        onSubmit={(edits) => {
-          if (selected) void updateDefinition(projectId, selected.id, edits);
-          setView('changes');
+        open={Boolean(editSource)}
+        source={editSource}
+        origins={origins}
+        subscriptionTypes={subscriptionTypes}
+        onClose={() => {
+          setEditSource(null);
+          setEditTarget(null);
         }}
+        onSubmit={handleEditSubmit}
       />
 
       <NewFormWizard
