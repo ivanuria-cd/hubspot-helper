@@ -17,6 +17,12 @@ const api: RevOpsApi = {
   updateProject: (project) => ipcRenderer.invoke(IpcChannels.projectsUpdate, project),
   deleteProject: (id) => ipcRenderer.invoke(IpcChannels.projectsDelete, id),
   setActiveProject: (id) => ipcRenderer.invoke(IpcChannels.projectsSetActive, id),
+  exportProject: (input) => ipcRenderer.invoke(IpcChannels.projectsExport, input),
+  exportProjectDialog: (defaultName) =>
+    ipcRenderer.invoke(IpcChannels.projectsExportDialog, defaultName),
+  importProjectValidate: (input) => ipcRenderer.invoke(IpcChannels.projectsImportValidate, input),
+  importProjectApply: (input) => ipcRenderer.invoke(IpcChannels.projectsImportApply, input),
+  importProjectDialog: () => ipcRenderer.invoke(IpcChannels.projectsImportDialog),
   hubspotSaveToken: (input) => ipcRenderer.invoke(IpcChannels.hubspotSaveToken, input),
   hubspotGetStatus: (projectId) => ipcRenderer.invoke(IpcChannels.hubspotGetStatus, projectId),
   hubspotRevokeToken: (input) => ipcRenderer.invoke(IpcChannels.hubspotRevokeToken, input),

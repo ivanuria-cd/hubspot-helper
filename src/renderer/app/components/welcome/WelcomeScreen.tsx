@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Box, Button, Container, List, Stack, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
 import { useTranslation } from 'react-i18next';
 import { cdPalette } from '@renderer/theme';
 import { LanguageSwitcher } from '@shared/components/LanguageSwitcher';
@@ -14,7 +15,11 @@ interface WelcomeScreenProps {
   onOpenProject: (project: Project) => void;
   onCreateProject: (input: NewProjectInput) => void;
   onDeleteProject: (project: Project) => void;
+  onExportProject?: (project: Project) => void;
+  onImportProject?: () => void;
 }
+
+const noop = (): void => undefined;
 
 /** Pantalla de bienvenida: hero oscuro de marca + lista de proyectos sobre fondo claro. */
 export function WelcomeScreen({
@@ -22,6 +27,8 @@ export function WelcomeScreen({
   onOpenProject,
   onCreateProject,
   onDeleteProject,
+  onExportProject = noop,
+  onImportProject = noop,
 }: WelcomeScreenProps): JSX.Element {
   const { t } = useTranslation('common');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -81,13 +88,22 @@ export function WelcomeScreen({
             <Typography variant="h4" component="h2">
               {t('welcome.recentProjects')}
             </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setDialogOpen(true)}
-            >
-              {t('welcome.newProject')}
-            </Button>
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="outlined"
+                startIcon={<FileUploadOutlinedIcon />}
+                onClick={onImportProject}
+              >
+                {t('welcome.importProject')}
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => setDialogOpen(true)}
+              >
+                {t('welcome.newProject')}
+              </Button>
+            </Stack>
           </Stack>
 
           {projects.length > 0 ? (
@@ -99,6 +115,7 @@ export function WelcomeScreen({
                   index={index}
                   onOpen={onOpenProject}
                   onDelete={onDeleteProject}
+                  onExport={onExportProject}
                 />
               ))}
             </List>

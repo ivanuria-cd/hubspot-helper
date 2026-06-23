@@ -75,6 +75,18 @@ export function createProjectsService(storage: ProjectsStorage) {
       storage.set(storage.get().filter((p) => p.id !== id));
     },
 
+    /** Inserta o reemplaza un proyecto completo conservando su `id` (import .rvproj, SPEC-0013). */
+    upsert(project: Project): Project {
+      const merged: Project = { ...project, name: normalizeName(project.name) };
+      const projects = storage.get();
+      const index = projects.findIndex((p) => p.id === merged.id);
+      const next = [...projects];
+      if (index === -1) next.push(merged);
+      else next[index] = merged;
+      storage.set(next);
+      return merged;
+    },
+
     setActive(id: string): Project {
       const projects = storage.get();
       const index = projects.findIndex((p) => p.id === id);

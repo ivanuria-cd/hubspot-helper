@@ -15,7 +15,32 @@
     "newProject": "Nuevo proyecto",
     "emptyState": "¿Primer uso? Configura tu primer proyecto.",
     "openProject": "Abrir proyecto {{name}}",
-    "deleteProject": "Eliminar proyecto {{name}}"
+    "deleteProject": "Eliminar proyecto {{name}}",
+    "importProject": "Importar proyecto",
+    "exportProject": "Exportar proyecto {{name}}"
+  },
+  "projectFile": {
+    "exportSuccess": "Proyecto exportado a {{path}}",
+    "exportError": "No se pudo exportar el proyecto",
+    "importTitle": "Importar proyecto",
+    "importValidating": "Validando archivo…",
+    "importError": "No se pudo leer el archivo de proyecto",
+    "importSuccess": "Proyecto «{{name}}» importado",
+    "summaryConnectors": "Conectores referenciados",
+    "summarySections": "Contenido",
+    "summaryNoConnectors": "Ninguno",
+    "sectionApply": "Se importará",
+    "sectionSkippedNewer": "Omitida (versión más nueva)",
+    "sectionUnknown": "Omitida (desconocida)",
+    "sectionItems": "{{count}} elementos",
+    "checksumWarning": "La integridad del archivo no coincide; el contenido podría estar alterado.",
+    "collisionTitle": "Ya existe un proyecto con este identificador",
+    "collisionBody": "Elige cómo importar «{{name}}».",
+    "strategyCopy": "Crear copia",
+    "strategyOverwrite": "Sobrescribir el existente",
+    "reconnectNotice": "Reconecta HubSpot y Google Drive: las credenciales no viajan en el archivo.",
+    "cancel": "Cancelar",
+    "import": "Importar"
   },
   "dialog": {
     "title": "Nuevo proyecto",

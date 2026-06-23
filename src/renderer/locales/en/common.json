@@ -10,7 +10,32 @@
     "newProject": "New project",
     "emptyState": "First time? Set up your first project.",
     "openProject": "Open project {{name}}",
-    "deleteProject": "Delete project {{name}}"
+    "deleteProject": "Delete project {{name}}",
+    "importProject": "Import project",
+    "exportProject": "Export project {{name}}"
+  },
+  "projectFile": {
+    "exportSuccess": "Project exported to {{path}}",
+    "exportError": "Could not export the project",
+    "importTitle": "Import project",
+    "importValidating": "Validating file…",
+    "importError": "Could not read the project file",
+    "importSuccess": "Project “{{name}}” imported",
+    "summaryConnectors": "Referenced connectors",
+    "summarySections": "Contents",
+    "summaryNoConnectors": "None",
+    "sectionApply": "Will be imported",
+    "sectionSkippedNewer": "Skipped (newer version)",
+    "sectionUnknown": "Skipped (unknown)",
+    "sectionItems": "{{count}} items",
+    "checksumWarning": "File integrity does not match; the contents may have been altered.",
+    "collisionTitle": "A project with this identifier already exists",
+    "collisionBody": "Choose how to import “{{name}}”.",
+    "strategyCopy": "Create a copy",
+    "strategyOverwrite": "Overwrite the existing one",
+    "reconnectNotice": "Reconnect HubSpot and Google Drive: credentials are not included in the file.",
+    "cancel": "Cancel",
+    "import": "Import"
   },
   "dialog": {
     "title": "New project",

@@ -5,6 +5,13 @@
 import type { SupportedLanguage } from '@shared/i18n/languages';
 import type { NewProjectInput, Project } from '@shared/types/project';
 import type {
+  ExportProjectInput,
+  ExportProjectResult,
+  ImportApplyInput,
+  ImportSummary,
+  ImportValidateInput,
+} from '@shared/types/project-file';
+import type {
   HubSpotConfig,
   HubSpotEnvironmentInput,
   HubSpotOperationResult,
@@ -112,6 +119,11 @@ export const IpcChannels = {
   projectsUpdate: 'projects:update',
   projectsDelete: 'projects:delete',
   projectsSetActive: 'projects:set-active',
+  projectsExport: 'projects:export',
+  projectsExportDialog: 'projects:export-dialog',
+  projectsImportValidate: 'projects:import-validate',
+  projectsImportApply: 'projects:import-apply',
+  projectsImportDialog: 'projects:import-dialog',
   hubspotSaveToken: 'hubspot:save-token',
   hubspotGetStatus: 'hubspot:get-status',
   hubspotRevokeToken: 'hubspot:revoke-token',
@@ -205,6 +217,11 @@ export interface RevOpsApi {
   updateProject(project: Project): Promise<Project>;
   deleteProject(id: string): Promise<void>;
   setActiveProject(id: string): Promise<Project>;
+  exportProject(input: ExportProjectInput): Promise<ExportProjectResult>;
+  exportProjectDialog(defaultName: string): Promise<string | null>;
+  importProjectValidate(input: ImportValidateInput): Promise<ImportSummary>;
+  importProjectApply(input: ImportApplyInput): Promise<Project>;
+  importProjectDialog(): Promise<string | null>;
   hubspotSaveToken(input: HubSpotSaveTokenInput): Promise<HubSpotSaveTokenResult>;
   hubspotGetStatus(projectId: string): Promise<HubSpotConfig | null>;
   hubspotRevokeToken(input: HubSpotEnvironmentInput): Promise<HubSpotOperationResult>;

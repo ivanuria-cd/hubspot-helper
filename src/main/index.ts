@@ -1,5 +1,16 @@
-import { app, BrowserWindow, ipcMain, session } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, session } from 'electron';
+import { readFile, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import { IpcChannels } from '@shared/types/ipc';
+import {
+  applyImport,
+  buildArchiveEntries,
+  buildImportSummary,
+  createSectionRegistry,
+  packZip,
+  readManifest,
+  unpackZip,
+} from './project-file';
 import { createMainWindow } from './window';
 import { loadEnv } from './env';
 import { checkForUpdates, registerUpdaterEvents } from './updater';
@@ -26,13 +37,17 @@ import {
 } from './property-management/sheets-model';
 import {
   PROPERTY_STATE_FEATURE_KEY,
+  PROPERTY_STATE_SCHEMA_VERSION,
   parsePropertyState,
   serializePropertyState,
+  type PropertyDriveState,
 } from './property-management/drive-state';
 import {
   FORMS_STATE_FEATURE_KEY,
+  FORMS_STATE_SCHEMA_VERSION,
   parseFormsState,
   serializeFormsState,
+  type FormsDriveState,
 } from './forms-management/drive-state';
 import {
   buildCustomObjectsTabs,
@@ -41,13 +56,20 @@ import {
 } from './custom-objects/sheets-model';
 import {
   CUSTOM_OBJECTS_STATE_FEATURE_KEY,
+  CUSTOM_OBJECTS_STATE_SCHEMA_VERSION,
   parseCustomObjectsState,
   serializeCustomObjectsState,
+  type CustomObjectsDriveState,
 } from './custom-objects/drive-state';
 import type { DriveDocMeta, LoadSheetsResult } from '@shared/types/gdrive';
 import { refreshDrive, type RefreshFeature } from './drive-refresh';
 import type { SupportedLanguage } from '@shared/i18n/languages';
 import type { NewProjectInput, Project } from '@shared/types/project';
+import type {
+  ExportProjectInput,
+  ImportApplyInput,
+  ImportValidateInput,
+} from '@shared/types/project-file';
 import type {
   HubSpotEnvironmentInput,
   HubSpotRequest,
@@ -143,6 +165,90 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   ipcMain.handle(IpcChannels.projectsSetActive, (_event, id: string) => {
     activeProjectId = id;
     return projects.setActive(id);
+  });
+
+  // Registro de secciones del archivo de proyecto portable (SPEC-0013).
+  const projectFileRegistry = createSectionRegistry();
+  projectFileRegistry.register({
+    featureKey: 'property-management',
+    currentSchemaVersion: PROPERTY_STATE_SCHEMA_VERSION,
+    collect: (projectId) => ({
+      entries: properties.listEntries({ projectId }),
+      origins: properties.listOrigins({ projectId }),
+    }),
+    apply: (projectId, data) =>
+      properties.applyDriveState({ projectId }, data as PropertyDriveState),
+  });
+  projectFileRegistry.register({
+    featureKey: 'custom-objects',
+    currentSchemaVersion: CUSTOM_OBJECTS_STATE_SCHEMA_VERSION,
+    collect: (projectId) => ({ objects: customObjects.listDefinitions({ projectId }) }),
+    apply: (projectId, data) =>
+      customObjects.applyDriveState({ projectId }, data as CustomObjectsDriveState),
+  });
+  projectFileRegistry.register({
+    featureKey: 'forms-management',
+    currentSchemaVersion: FORMS_STATE_SCHEMA_VERSION,
+    collect: (projectId) => ({
+      forms: forms.listForms({ projectId }),
+      links: forms.listLinks({ projectId }),
+    }),
+    apply: (projectId, data) => forms.applyDriveState({ projectId }, data as FormsDriveState),
+  });
+
+  ipcMain.handle(IpcChannels.projectsExportDialog, async (_event, defaultName: string) => {
+    const result = await dialog.showSaveDialog({
+      defaultPath: defaultName,
+      filters: [{ name: 'Proyecto RevOps', extensions: ['rvproj'] }],
+    });
+    return result.canceled || !result.filePath ? null : result.filePath;
+  });
+  ipcMain.handle(IpcChannels.projectsExport, async (_event, input: ExportProjectInput) => {
+    const project = projects.list().find((p) => p.id === input.projectId);
+    if (!project) return { success: false, error: 'Proyecto no encontrado.' };
+    try {
+      const entries = buildArchiveEntries(
+        project,
+        projectFileRegistry,
+        app.getVersion(),
+        new Date().toISOString(),
+      );
+      await writeFile(input.filePath, packZip(entries));
+      return { success: true, filePath: input.filePath };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Error al exportar' };
+    }
+  });
+  ipcMain.handle(IpcChannels.projectsImportDialog, async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [{ name: 'Proyecto RevOps', extensions: ['rvproj'] }],
+    });
+    return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
+  });
+  ipcMain.handle(IpcChannels.projectsImportValidate, async (_event, input: ImportValidateInput) => {
+    const buffer = await readFile(input.filePath);
+    const entries = unpackZip(buffer);
+    const manifest = readManifest(entries);
+    return buildImportSummary(
+      manifest,
+      entries,
+      projectFileRegistry,
+      projects.list().map((p) => p.id),
+    );
+  });
+  ipcMain.handle(IpcChannels.projectsImportApply, async (_event, input: ImportApplyInput) => {
+    const buffer = await readFile(input.filePath);
+    const entries = unpackZip(buffer);
+    const manifest = readManifest(entries);
+    const built = applyImport(manifest, entries, projectFileRegistry, {
+      strategy: input.strategy,
+      newId: () => randomUUID(),
+      now: new Date().toISOString(),
+    });
+    const saved = projects.upsert(built);
+    activeProjectId = saved.id;
+    return saved;
   });
   ipcMain.handle(IpcChannels.hubspotSaveToken, (_event, input: HubSpotSaveTokenInput) =>
     hubspot.saveToken(input),

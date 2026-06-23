@@ -10,7 +10,32 @@
     "newProject": "Nou projecte",
     "emptyState": "Primer cop? Configura el teu primer projecte.",
     "openProject": "Obre el projecte {{name}}",
-    "deleteProject": "Elimina el projecte {{name}}"
+    "deleteProject": "Elimina el projecte {{name}}",
+    "importProject": "Importa un projecte",
+    "exportProject": "Exporta el projecte {{name}}"
+  },
+  "projectFile": {
+    "exportSuccess": "Projecte exportat a {{path}}",
+    "exportError": "No s'ha pogut exportar el projecte",
+    "importTitle": "Importa un projecte",
+    "importValidating": "Validant el fitxer…",
+    "importError": "No s'ha pogut llegir el fitxer del projecte",
+    "importSuccess": "Projecte «{{name}}» importat",
+    "summaryConnectors": "Connectors referenciats",
+    "summarySections": "Contingut",
+    "summaryNoConnectors": "Cap",
+    "sectionApply": "S'importarà",
+    "sectionSkippedNewer": "Omesa (versió més nova)",
+    "sectionUnknown": "Omesa (desconeguda)",
+    "sectionItems": "{{count}} elements",
+    "checksumWarning": "La integritat del fitxer no coincideix; el contingut podria estar alterat.",
+    "collisionTitle": "Ja existeix un projecte amb aquest identificador",
+    "collisionBody": "Tria com importar «{{name}}».",
+    "strategyCopy": "Crea'n una còpia",
+    "strategyOverwrite": "Sobreescriu l'existent",
+    "reconnectNotice": "Torna a connectar HubSpot i Google Drive: les credencials no viatgen al fitxer.",
+    "cancel": "Cancel·la",
+    "import": "Importa"
   },
   "dialog": {
     "title": "Nou projecte",

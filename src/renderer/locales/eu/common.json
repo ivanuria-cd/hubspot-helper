@@ -10,7 +10,32 @@
     "newProject": "Proiektu berria",
     "emptyState": "Lehen aldia? Konfiguratu zure lehen proiektua.",
     "openProject": "Ireki {{name}} proiektua",
-    "deleteProject": "Ezabatu {{name}} proiektua"
+    "deleteProject": "Ezabatu {{name}} proiektua",
+    "importProject": "Inportatu proiektua",
+    "exportProject": "Esportatu {{name}} proiektua"
+  },
+  "projectFile": {
+    "exportSuccess": "Proiektua hona esportatu da: {{path}}",
+    "exportError": "Ezin izan da proiektua esportatu",
+    "importTitle": "Inportatu proiektua",
+    "importValidating": "Fitxategia balioztatzen…",
+    "importError": "Ezin izan da proiektuaren fitxategia irakurri",
+    "importSuccess": "«{{name}}» proiektua inportatu da",
+    "summaryConnectors": "Erreferentziatutako konektoreak",
+    "summarySections": "Edukia",
+    "summaryNoConnectors": "Bat ere ez",
+    "sectionApply": "Inportatuko da",
+    "sectionSkippedNewer": "Saltatua (bertsio berriagoa)",
+    "sectionUnknown": "Saltatua (ezezaguna)",
+    "sectionItems": "{{count}} elementu",
+    "checksumWarning": "Fitxategiaren osotasuna ez dator bat; edukia aldatuta egon liteke.",
+    "collisionTitle": "Identifikatzaile hau duen proiektu bat badago jada",
+    "collisionBody": "Aukeratu «{{name}}» nola inportatu.",
+    "strategyCopy": "Sortu kopia bat",
+    "strategyOverwrite": "Gainidatzi lehendik dagoena",
+    "reconnectNotice": "Berriz konektatu HubSpot eta Google Drive: kredentzialak ez doaz fitxategian.",
+    "cancel": "Utzi",
+    "import": "Inportatu"
   },
   "dialog": {
     "title": "Proiektu berria",
