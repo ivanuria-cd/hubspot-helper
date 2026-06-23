@@ -31,9 +31,10 @@ Cuatro hojas, diseño cerrado por versión (solo el usuario puede editar las col
 | `03_Mapeo_Origenes` | Relación propiedad ↔ origen con reglas de transformación |
 
 ### Versión de API HubSpot utilizada
-- Lectura de propiedades: **CRM Properties API v3** — `GET /crm/v3/properties/{objectType}`
-- Creación/edición de propiedades: **CRM Properties API v3** — `POST/PATCH /crm/v3/properties/{objectType}`
-- Verificar en `https://developers.hubspot.com/docs/api/crm/properties` antes de implementar.
+- **CRM Properties API, versión por fecha `2026-03`** (la más moderna; ver §28). Base `/crm/properties/2026-03/{objectType}`.
+  - Lectura: `GET /crm/properties/2026-03/{objectType}` (y `/groups`).
+  - Creación/edición: `POST/PATCH /crm/properties/2026-03/{objectType}` (`/{name}` para PATCH).
+- Histórico: hasta §28 se usaba `v3` (`/crm/v3/properties/...`). Migrado a `2026-03` (ver §28).
 
 ### Cambios en HubSpot
 - La app **nunca aplica cambios en HubSpot de forma automática**. Todos los cambios propuestos se presentan como una lista de operaciones pendientes que el usuario debe revisar y aceptar explícitamente.
@@ -1079,3 +1080,85 @@ por `open`, falta el `aria-busy`/esqueleto durante la carga de `hubspotPropertie
 `OriginsModal`, `EntryPanel` y la vista de cambios pendientes muestran su estado de carga accesible. Los diálogos
 `OptionsDialog`/`SourceOptionsDialog` (§25.8) son síncronos sobre datos ya cargados, por lo que no requieren
 carga asíncrona. Pendiente de implementación junto al resto de superficies.
+
+## 28. Migración a CRM Properties API 2026-03 (IMPLEMENTADO, 2026-06-22)
+
+Por la preferencia de versión (CLAUDE.md: `2026-03` > `v4` > `v3` > `v2` > `v1`) y la auditoría de APIs por SPEC,
+Properties era el único recurso que seguía en `v3` pudiendo usar la versión por fecha **`2026-03`** (la doc
+oficial recomienda usar siempre la última versión por fecha para integraciones nuevas).
+
+### 28.1 Cambio
+
+`connectors/hubspot/properties.ts` pasa el path base de `/crm/v3/properties/...` a
+**`/crm/properties/2026-03/...`** en las cinco llamadas: `listProperties`, `createProperty`, `patchProperty`,
+`listGroups`, `createGroup`. El resto (request genérico, normalización, tipos) no cambia: la respuesta y el
+cuerpo son los mismos, y los atributos de §25 (`numberDisplayHint`, `textDisplayHint`, `calculationFormula`,
+`hasUniqueValue`, `dataSensitivity`, `externalOptions`/`referencedObjectType`, etc.) son **nativos** de
+`2026-03` (es donde se verificaron). Verificado contra *Create a property* (2026-03):
+`POST https://api.hubapi.com/crm/properties/2026-03/{objectType}`.
+
+### 28.2 Efecto sobre `phone_number`
+
+`2026-03` admite `phone_number` como `type` (a diferencia de la guía legacy). El enum `HsPropertyType` ya es
+abierto y lo preserva verbatim, así que la migración **resuelve** la discrepancia anotada en §15/§25.2.
+
+### 28.3 Alcance y notas
+
+- Es un cambio de **conector** (SPEC-0003 expone el `request` genérico; el path lo fija cada feature). Solo se
+  toca la feature de propiedades; objetos custom (Schemas, `v3`) y formularios (Marketing Forms `v3` +
+  Subscriptions `v4`) **siguen en su versión más moderna disponible** (no hay equivalente `2026-03` para esos
+  recursos: schemas no está date-versionado y de Forms solo lo está «Form events and instances», no el CRUD de
+  definiciones). El endpoint de verificación del conector ya usaba `account-info/2026-03/details`.
+- **Grupos** (`/crm/properties/2026-03/{objectType}/groups`): mismo recurso anidado que en `v3`.
+
+### 28.4 Tests
+
+`properties.spec.ts`: las aserciones de path comprueban `/crm/properties/2026-03/...` en
+list/create/patch. Requiere **rebuild del MCP** para que el binario en ejecución use el nuevo path. typecheck/test
+en máquina (el clon al sandbox venía truncado; el conector real verificado por lectura).
+
+## 29. Borrado (archivado) de propiedades como cambio pendiente (IMPLEMENTADO, 2026-06-22)
+
+Se expone el **archivado** de la propiedad destino en HubSpot, manteniendo la regla del proyecto «nada se aplica
+en HubSpot sin confirmación»: el borrado **no es inmediato**, sino un **cambio pendiente** que se aplica por
+entorno (sandbox→producción) como create/update. Es **borrado lógico** (recuperable), no hard-delete.
+
+### 29.1 Modelo y flujo
+
+- `ChangeOperation` gana `'delete'`. `PropertyEntry` gana `pendingDelete?: boolean`.
+- `service.requestDelete({ entryId })` marca `pendingDelete = true` (no llama a HubSpot). Tool MCP
+  `properties_request_delete` (scope write).
+- `reconcileEntries`: si `pendingDelete` y la propiedad **existe** en HubSpot, el único cambio de la entrada es
+  un `delete` (`buildDeleteChange`); se regenera en cada `properties_sync` igual que el `create` desde
+  `mode:'new'` (sobrevive a la regeneración de `changeId`, §22.2). Si no existe remoto, no genera nada.
+- `applyChange` con `operation:'delete'` → `api.deleteProperty(objectType, destName, environment)` →
+  `DELETE /crm/properties/2026-03/{objectType}/{name}` (archiva). Aplicado a **producción**, se limpia
+  `pendingDelete` para no regenerarlo. Para cancelar antes de aplicar: `properties_discard_change`.
+- La entrada **local** del mapa se borra aparte con `entries_delete` (sin tocar HubSpot); archivar la propiedad
+  y borrar la entrada local son acciones independientes.
+
+### 29.2 Alcance
+
+- Solo Properties. Grupos: el borrado de grupos sigue **diferido** (§22.3). Schemas/formularios no se borran por
+  la app (SPEC-0007/0008).
+- Scopes: `crm.schemas.*.write` (ya requeridos para crear/editar).
+
+### 29.3 Tests
+
+- `properties.spec.ts`: `deleteProperty` hace `DELETE /crm/properties/2026-03/{objectType}/{name}`.
+- `service.spec.ts`: `requestDelete` + `sync` genera un cambio `delete` cuando el remoto existe; `applyChange`
+  llama a `deleteProperty`; `requestDelete` con entryId inexistente → error.
+- Requiere **rebuild del MCP** para exponer `properties_request_delete` y el nuevo path. typecheck/test en
+  máquina (clon al sandbox truncado; ficheros reales verificados por lectura).
+
+## 30. Adopción de la identidad visual de los documentos de Drive (SPEC-0012) (IMPLEMENTADO, 2026-06-23)
+
+El Sheets del mapa de propiedades adopta SPEC-0012. `buildPropertyMapTabs` (`sheets-model.ts`) pasa a emitir
+hojas globales `00_Portada`/`01_Indice`/`02_Origenes` y un **bloque por objeto con entradas**
+`<NN>_<Obj>_(Campos|Fuentes|Opciones)` (SPEC-0012 §2.3; la hoja de propiedades se titula `Campos`, no
+«Entradas»); `Opciones` se omite si el objeto no tiene fuentes
+`enum`. Nombres de hoja saneados al límite de 100 caracteres y colisiones resueltas. `SHEETS_SCHEMA_VERSION`
+2 → 3. El estilo (banner de marca, cabeceras `#090017`, notas, validación/formato condicional de `Estado`,
+wrap, anchos fijos) lo aporta `buildStyleRequests` (`sheets-style.ts`, SPEC-0012 §3.1). El documento de estado
+companion y su round-trip (SPEC-0004 §15.5) no cambian. Tests: `sheets-model.spec.ts` y `sheets-writer.spec.ts`
+actualizados (autorizado por SPEC-0012 §6/§11).

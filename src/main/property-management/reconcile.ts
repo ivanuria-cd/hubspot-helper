@@ -5,7 +5,12 @@
  */
 import type { PropertyEntry } from '@shared/types/properties';
 import type { RemoteProperty } from '../connectors/hubspot/properties';
-import { buildCreateChange, diffDefinition, type ChangeFactoryDeps } from './pending-changes';
+import {
+  buildCreateChange,
+  buildDeleteChange,
+  diffDefinition,
+  type ChangeFactoryDeps,
+} from './pending-changes';
 
 export interface ReconcileResult {
   entries: PropertyEntry[];
@@ -32,6 +37,16 @@ export function reconcileEntries(
   const result = entries.map((entry) => {
     const remote = remoteByKey.get(key(entry.objectType, destName(entry)));
     const ref = entry.hubspotProperty;
+
+    // Solicitud de archivado: si la propiedad existe en HubSpot, el único cambio es `delete`.
+    if (entry.pendingDelete && remote) {
+      divergent += 1;
+      return {
+        ...entry,
+        hubspotStatus: 'divergent' as const,
+        pendingChanges: [buildDeleteChange(entry.id, entry.objectType, destName(entry), deps)],
+      };
+    }
 
     // Propiedad nueva: si no existe en HubSpot, hay que crearla.
     if (ref.mode === 'new') {

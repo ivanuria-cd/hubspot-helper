@@ -5,12 +5,14 @@ import {
   Button,
   Chip,
   Divider,
+  Link,
   List,
   ListItem,
   ListItemText,
   Stack,
   Typography,
 } from '@mui/material';
+import { driveFileUrl } from '@shared/utils/driveFileUrl';
 import FolderIcon from '@mui/icons-material/Folder';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
@@ -152,7 +154,20 @@ export function GoogleDriveConnectorScreen(): JSX.Element | null {
                 {(status.files ?? []).map((file) => (
                   <ListItem key={file.driveId} disableGutters>
                     <ListItemText
-                      primary={file.name}
+                      primary={
+                        file.mimeType === 'application/vnd.google-apps.spreadsheet' ? (
+                          <Link
+                            href={driveFileUrl(file.driveId, file.mimeType)}
+                            target="_blank"
+                            rel="noopener"
+                            aria-label={t('gdrive.openFile', { name: file.name })}
+                          >
+                            {file.name}
+                          </Link>
+                        ) : (
+                          file.name
+                        )
+                      }
                       secondary={t(`gdrive.status.${file.syncStatus}`)}
                       secondaryTypographyProps={{ color: 'text.primary' }}
                     />

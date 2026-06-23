@@ -136,6 +136,7 @@
     "neverSynced": "Not synced yet",
     "conflicts": "{{count}} file(s) in conflict: decide which version to keep.",
     "managedFiles": "Managed files: {{count}}",
+    "openFile": "Open {{name}} in Drive",
     "status": {
       "synced": "Synced",
       "conflict": "Conflict",
@@ -183,6 +184,7 @@
       "updating": "Updating…",
       "load": "Load from Drive",
       "loading": "Loading…",
+      "open": "Open in Drive",
       "updateSuccess": "File updated in Drive.",
       "updateError": "Could not update: {{error}}",
       "loadSuccess": "State loaded from Drive.",
@@ -191,6 +193,10 @@
       "loadConfirmTitle": "Load from Drive",
       "loadConfirmBody": "This will replace the local state with the content of the Drive file. Continue?",
       "cancel": "Cancel"
+    },
+    "refresh": {
+      "updated": "Updated {{count}} file(s) in Drive: {{names}}.",
+      "error": "Could not update in Drive: {{names}}."
     },
     "dirtyGuard": {
       "title": "Unsaved changes in Drive",

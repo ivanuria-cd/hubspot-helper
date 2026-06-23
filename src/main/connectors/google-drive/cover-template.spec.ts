@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildCover,
+  buildCoverDocStyleRequests,
   COVER_SECTION_KEYS,
   renderCoverText,
   toDocsInsertRequests,
@@ -39,5 +40,31 @@ describe('cover-template', () => {
     const request = requests[0] as { insertText: { location: { index: number }; text: string } };
     expect(request.insertText.location.index).toBe(1);
     expect(request.insertText.text).toContain('schema_version: 2');
+  });
+
+  it('buildCoverDocStyleRequests estila título (H1), secciones (H2) y pie', () => {
+    const cover = buildCover(input);
+    const reqs = buildCoverDocStyleRequests(cover, 1);
+
+    type Para = { updateParagraphStyle: { range: { startIndex: number; endIndex: number }; paragraphStyle: { namedStyleType: string } } };
+    const paras = reqs.filter((r) => 'updateParagraphStyle' in r) as Para[];
+    const h1 = paras.filter((p) => p.updateParagraphStyle.paragraphStyle.namedStyleType === 'HEADING_1');
+    const h2 = paras.filter((p) => p.updateParagraphStyle.paragraphStyle.namedStyleType === 'HEADING_2');
+    expect(h1).toHaveLength(1);
+    expect(h1[0].updateParagraphStyle.range.startIndex).toBe(1);
+    expect(h2).toHaveLength(COVER_SECTION_KEYS.length);
+
+    const italic = reqs.some(
+      (r) =>
+        'updateTextStyle' in r &&
+        (r as { updateTextStyle: { textStyle: { italic?: boolean } } }).updateTextStyle.textStyle.italic === true,
+    );
+    expect(italic).toBe(true);
+
+    reqs.forEach((r) => {
+      const range = (r as { updateParagraphStyle?: { range: { startIndex: number; endIndex: number } }; updateTextStyle?: { range: { startIndex: number; endIndex: number } } });
+      const span = range.updateParagraphStyle?.range ?? range.updateTextStyle?.range;
+      expect(span && span.endIndex).toBeGreaterThan(span!.startIndex);
+    });
   });
 });

@@ -136,6 +136,7 @@
     "neverSynced": "Encara no sincronitzat",
     "conflicts": "{{count}} fitxer(s) en conflicte: decideix quina versió conservar.",
     "managedFiles": "Fitxers gestionats: {{count}}",
+    "openFile": "Obre {{name}} a Drive",
     "status": {
       "synced": "Sincronitzat",
       "conflict": "En conflicte",
@@ -183,6 +184,7 @@
       "updating": "Actualitzant…",
       "load": "Carrega des de Drive",
       "loading": "Carregant…",
+      "open": "Obre a Drive",
       "updateSuccess": "Fitxer actualitzat a Drive.",
       "updateError": "No s'ha pogut actualitzar: {{error}}",
       "loadSuccess": "Estat carregat des de Drive.",
@@ -191,6 +193,10 @@
       "loadConfirmTitle": "Carrega des de Drive",
       "loadConfirmBody": "Això reemplaçarà l'estat local amb el contingut del fitxer de Drive. Vols continuar?",
       "cancel": "Cancel·la"
+    },
+    "refresh": {
+      "updated": "S'han actualitzat {{count}} fitxer(s) a Drive: {{names}}.",
+      "error": "No s'han pogut actualitzar a Drive: {{names}}."
     },
     "dirtyGuard": {
       "title": "Canvis sense desar a Drive",

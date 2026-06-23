@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Box } from '@mui/material';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
+import { useSnackbar } from '@shared/components/feedback';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { UpdateBanner } from './UpdateBanner';
@@ -13,6 +15,9 @@ export function MainLayout(): JSX.Element | null {
   const activeProject = useShellStore((state) => state.activeProject);
   const setActiveProject = useShellStore((state) => state.setActiveProject);
   const setHubspotEnvironment = useShellStore((state) => state.setHubspotEnvironment);
+  const { notify } = useSnackbar();
+  const { t } = useTranslation();
+  const refreshedProjectRef = useRef<string | null>(null);
   const [resolved, setResolved] = useState(false);
 
   useEffect(() => {
@@ -48,6 +53,45 @@ export function MainLayout(): JSX.Element | null {
       setHubspotEnvironment(null);
     };
   }, [projectId, setHubspotEnvironment]);
+
+  // Al abrir el proyecto: revisa los archivos de Drive y actualiza los desactualizados (SPEC-0004 §19).
+  useEffect(() => {
+    if (!projectId || !resolved) return undefined;
+    if (refreshedProjectRef.current === projectId) return undefined;
+    // Best-effort: si el bridge no expone el método (build antiguo / entorno parcial), no hacer nada.
+    const refreshProject = window.api.gdriveRefreshProject;
+    if (typeof refreshProject !== 'function') return undefined;
+    refreshedProjectRef.current = projectId;
+    let cancelled = false;
+    void refreshProject({ projectId }).then(
+      (result) => {
+        if (cancelled || !result.connected) return;
+        const updated = result.items.filter((item) => item.status === 'updated');
+        const errors = result.items.filter((item) => item.status === 'error');
+        if (updated.length > 0) {
+          notify({
+            message: t('drive.refresh.updated', {
+              count: updated.length,
+              names: updated.map((item) => item.name).join(', '),
+            }),
+            severity: 'success',
+          });
+        }
+        if (errors.length > 0) {
+          notify({
+            message: t('drive.refresh.error', { names: errors.map((item) => item.name).join(', ') }),
+            severity: 'error',
+          });
+        }
+      },
+      () => {
+        /* best-effort: si falla la revisión no se molesta al usuario */
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, resolved, notify, t]);
 
   if (!resolved) return null;
 

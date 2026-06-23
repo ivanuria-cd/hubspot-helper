@@ -154,6 +154,7 @@ export function createPropertyService(deps: PropertyServiceDeps) {
       hubspotStatus:
         existing?.hubspotStatus ?? (incoming.hubspotProperty.mode === 'existing' ? 'exists' : 'missing'),
       pendingChanges: existing?.pendingChanges ?? [],
+      pendingDelete: existing?.pendingDelete,
     };
     const entries = existing
       ? state.entries.map((e) => (e.id === entry.id ? entry : e))
@@ -225,6 +226,8 @@ export function createPropertyService(deps: PropertyServiceDeps) {
         const groupName = (change.payload as { groupName?: string }).groupName;
         await ensureGroup(api, entry.objectType, groupName, input.environment);
         await api.createProperty(entry.objectType, change.payload, input.environment);
+      } else if (change.operation === 'delete') {
+        await api.deleteProperty(entry.objectType, entryDestName(entry), input.environment);
       } else {
         await api.patchProperty(
           entry.objectType,
@@ -238,15 +241,31 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     }
 
     const updatedChange = markApplied(change, input.environment);
+    // Un archivado aplicado a producción se completa: se limpia la solicitud para no regenerarlo.
+    const clearDelete = change.operation === 'delete' && input.environment === 'production';
     const entries = state.entries.map((e) =>
       e.id === entry.id
         ? {
             ...e,
+            ...(clearDelete ? { pendingDelete: false } : {}),
             pendingChanges: e.pendingChanges?.map((c) =>
               c.id === input.changeId ? updatedChange : c,
             ),
           }
         : e,
+    );
+    deps.store.set(input.projectId, { ...state, entries });
+    markChanged(input.projectId);
+    return { success: true };
+  }
+
+  /** Solicita archivar la propiedad destino de una entrada en HubSpot (genera un cambio `delete` al sincronizar). */
+  function requestDelete(input: { projectId: string; entryId: string }): OperationResult {
+    const state = deps.store.get(input.projectId);
+    const target = state.entries.find((e) => e.id === input.entryId);
+    if (!target) return { success: false, error: 'Entrada no encontrada' };
+    const entries = state.entries.map((e) =>
+      e.id === input.entryId ? { ...e, pendingDelete: true } : e,
     );
     deps.store.set(input.projectId, { ...state, entries });
     markChanged(input.projectId);
@@ -353,6 +372,7 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     syncHubspot,
     applyChange,
     discardChange,
+    requestDelete,
     listOrigins,
     createOrigin,
     updateOrigin,

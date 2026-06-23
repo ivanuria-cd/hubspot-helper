@@ -44,7 +44,8 @@ import {
   parseCustomObjectsState,
   serializeCustomObjectsState,
 } from './custom-objects/drive-state';
-import type { LoadSheetsResult } from '@shared/types/gdrive';
+import type { DriveDocMeta, LoadSheetsResult } from '@shared/types/gdrive';
+import { refreshDrive, type RefreshFeature } from './drive-refresh';
 import type { SupportedLanguage } from '@shared/i18n/languages';
 import type { NewProjectInput, Project } from '@shared/types/project';
 import type {
@@ -234,12 +235,12 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   ipcMain.handle(IpcChannels.propertiesExportJson, (_event, input: ExportJsonInput) =>
     properties.exportJson(input),
   );
-  ipcMain.handle(IpcChannels.propertiesWriteSheets, async (_event, input: ProjectScopedInput) => {
-    const entries = properties.listEntries({ projectId: input.projectId });
-    const origins = properties.listOrigins(input);
+  async function writePropertiesSheets(projectId: string) {
+    const entries = properties.listEntries({ projectId });
+    const origins = properties.listOrigins({ projectId });
     const tabs = buildPropertyMapTabs(entries, origins, new Date().toISOString());
     const result = await gdrive.writeSpreadsheet({
-      projectId: input.projectId,
+      projectId,
       name: 'Mapa de propiedades CRM',
       featureKey: PROPERTY_MAP_FEATURE_KEY,
       schemaVersion: SHEETS_SCHEMA_VERSION,
@@ -247,14 +248,17 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
     });
     if (result.success) {
       await gdrive.writeFile({
-        projectId: input.projectId,
+        projectId,
         featureKey: PROPERTY_STATE_FEATURE_KEY,
         content: serializePropertyState({ entries, origins }),
       });
-      properties.markDriveWritten(input);
+      properties.markDriveWritten({ projectId });
     }
     return result;
-  });
+  }
+  ipcMain.handle(IpcChannels.propertiesWriteSheets, (_event, input: ProjectScopedInput) =>
+    writePropertiesSheets(input.projectId),
+  );
   ipcMain.handle(
     IpcChannels.propertiesLoadSheets,
     async (_event, input: ProjectScopedInput): Promise<LoadSheetsResult> => {
@@ -274,9 +278,50 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
       }
     },
   );
-  ipcMain.handle(IpcChannels.propertiesDriveMeta, (_event, input: ProjectScopedInput) =>
-    properties.getDriveMeta(input),
-  );
+  const managedSpreadsheetId = (projectId: string, featureKey: string): string | null => {
+    const config = gdrive.getStatus(projectId);
+    const file = (config?.files ?? []).find((f) => f.featureKey === featureKey);
+    return file?.driveId ?? null;
+  };
+  const isDriveDocStale = (meta: DriveDocMeta, fileId: string | null): boolean =>
+    fileId === null ||
+    meta.lastWrittenAt === null ||
+    (meta.lastChangedAt !== null && meta.lastChangedAt > meta.lastWrittenAt);
+  const buildRefreshFeatures = (projectId: string): RefreshFeature[] => [
+    {
+      featureKey: PROPERTY_MAP_FEATURE_KEY,
+      name: 'Mapa de propiedades CRM',
+      hasData: () => properties.listEntries({ projectId }).length > 0,
+      isStale: () =>
+        isDriveDocStale(properties.getDriveMeta({ projectId }), managedSpreadsheetId(projectId, PROPERTY_MAP_FEATURE_KEY)),
+      write: () => writePropertiesSheets(projectId),
+    },
+    {
+      featureKey: CUSTOM_OBJECTS_FEATURE_KEY,
+      name: 'Objetos custom',
+      hasData: () => customObjects.listDefinitions({ projectId }).length > 0,
+      isStale: () =>
+        isDriveDocStale(customObjects.getDriveMeta({ projectId }), managedSpreadsheetId(projectId, CUSTOM_OBJECTS_FEATURE_KEY)),
+      write: () => writeCustomObjectsSheets(projectId),
+    },
+    {
+      featureKey: FORMS_FEATURE_KEY,
+      name: 'Formularios HubSpot',
+      hasData: () => forms.listForms({ projectId }).length > 0,
+      isStale: () =>
+        isDriveDocStale(forms.getDriveMeta({ projectId }), managedSpreadsheetId(projectId, FORMS_FEATURE_KEY)),
+      write: () => writeFormsSheets(projectId),
+    },
+  ];
+  ipcMain.handle(IpcChannels.gdriveRefreshProject, (_event, input: GoogleDriveProjectInput) => {
+    const config = gdrive.getStatus(input.projectId);
+    const connected = Boolean(config?.folderId && config?.accountEmail);
+    return refreshDrive(connected, buildRefreshFeatures(input.projectId));
+  });
+  ipcMain.handle(IpcChannels.propertiesDriveMeta, (_event, input: ProjectScopedInput) => ({
+    ...properties.getDriveMeta(input),
+    fileId: managedSpreadsheetId(input.projectId, PROPERTY_MAP_FEATURE_KEY),
+  }));
   ipcMain.handle(IpcChannels.originsList, (_event, input: ProjectScopedInput) =>
     properties.listOrigins(input),
   );
@@ -313,28 +358,28 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   ipcMain.handle(IpcChannels.objectsDiscardChange, (_event, input: ObjectDiscardChangeInput) =>
     customObjects.discardChange(input),
   );
-  ipcMain.handle(
-    IpcChannels.customObjectsWriteSheets,
-    async (_event, input: ObjectsListSchemasInput) => {
-      const objects = customObjects.listDefinitions(input);
-      const tabs = buildCustomObjectsTabs(objects, new Date().toISOString());
-      const result = await gdrive.writeSpreadsheet({
-        projectId: input.projectId,
-        name: 'Objetos custom',
-        featureKey: CUSTOM_OBJECTS_FEATURE_KEY,
-        schemaVersion: CUSTOM_OBJECTS_SHEETS_SCHEMA_VERSION,
-        tabs,
+  async function writeCustomObjectsSheets(projectId: string) {
+    const objects = customObjects.listDefinitions({ projectId });
+    const tabs = buildCustomObjectsTabs(objects, new Date().toISOString());
+    const result = await gdrive.writeSpreadsheet({
+      projectId,
+      name: 'Objetos custom',
+      featureKey: CUSTOM_OBJECTS_FEATURE_KEY,
+      schemaVersion: CUSTOM_OBJECTS_SHEETS_SCHEMA_VERSION,
+      tabs,
+    });
+    if (result.success) {
+      await gdrive.writeFile({
+        projectId,
+        featureKey: CUSTOM_OBJECTS_STATE_FEATURE_KEY,
+        content: serializeCustomObjectsState({ objects }),
       });
-      if (result.success) {
-        await gdrive.writeFile({
-          projectId: input.projectId,
-          featureKey: CUSTOM_OBJECTS_STATE_FEATURE_KEY,
-          content: serializeCustomObjectsState({ objects }),
-        });
-        customObjects.markDriveWritten(input);
-      }
-      return result;
-    },
+      customObjects.markDriveWritten({ projectId });
+    }
+    return result;
+  }
+  ipcMain.handle(IpcChannels.customObjectsWriteSheets, (_event, input: ObjectsListSchemasInput) =>
+    writeCustomObjectsSheets(input.projectId),
   );
   ipcMain.handle(
     IpcChannels.customObjectsLoadSheets,
@@ -355,9 +400,10 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
       }
     },
   );
-  ipcMain.handle(IpcChannels.customObjectsDriveMeta, (_event, input: ObjectsListSchemasInput) =>
-    customObjects.getDriveMeta(input),
-  );
+  ipcMain.handle(IpcChannels.customObjectsDriveMeta, (_event, input: ObjectsListSchemasInput) => ({
+    ...customObjects.getDriveMeta(input),
+    fileId: managedSpreadsheetId(input.projectId, CUSTOM_OBJECTS_FEATURE_KEY),
+  }));
   ipcMain.handle(IpcChannels.formsList, (_event, input: FormsListInput) => forms.listForms(input));
   ipcMain.handle(IpcChannels.formsPendingChanges, (_event, input: FormsListInput) =>
     forms.listPendingChanges(input.projectId),
@@ -399,21 +445,19 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   ipcMain.handle(IpcChannels.formLinksDelete, (_event, input: FormLinkDeleteInput) =>
     forms.deleteLink(input),
   );
-  ipcMain.handle(IpcChannels.formsWriteSheets, async (_event, input: FormsListInput) => {
-    const formsList = forms.listForms(input);
-    const links = forms.listLinks(input);
-    const reports = formsList.flatMap((form) =>
-      forms.coverage({ projectId: input.projectId, formId: form.id }),
-    );
+  async function writeFormsSheets(projectId: string) {
+    const formsList = forms.listForms({ projectId });
+    const links = forms.listLinks({ projectId });
+    const reports = formsList.flatMap((form) => forms.coverage({ projectId, formId: form.id }));
     const tabs = buildFormsTabs(
       formsList,
       links,
       reports,
-      properties.listOrigins(input),
+      properties.listOrigins({ projectId }),
       new Date().toISOString(),
     );
     const result = await gdrive.writeSpreadsheet({
-      projectId: input.projectId,
+      projectId,
       name: 'Formularios HubSpot',
       featureKey: FORMS_FEATURE_KEY,
       schemaVersion: FORMS_SHEETS_SCHEMA_VERSION,
@@ -421,14 +465,17 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
     });
     if (result.success) {
       await gdrive.writeFile({
-        projectId: input.projectId,
+        projectId,
         featureKey: FORMS_STATE_FEATURE_KEY,
         content: serializeFormsState({ forms: formsList, links }),
       });
-      forms.markDriveWritten(input);
+      forms.markDriveWritten({ projectId });
     }
     return result;
-  });
+  }
+  ipcMain.handle(IpcChannels.formsWriteSheets, (_event, input: FormsListInput) =>
+    writeFormsSheets(input.projectId),
+  );
   ipcMain.handle(
     IpcChannels.formsLoadSheets,
     async (_event, input: FormsListInput): Promise<LoadSheetsResult> => {
@@ -448,9 +495,10 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
       }
     },
   );
-  ipcMain.handle(IpcChannels.formsDriveMeta, (_event, input: FormsListInput) =>
-    forms.getDriveMeta(input),
-  );
+  ipcMain.handle(IpcChannels.formsDriveMeta, (_event, input: FormsListInput) => ({
+    ...forms.getDriveMeta(input),
+    fileId: managedSpreadsheetId(input.projectId, FORMS_FEATURE_KEY),
+  }));
 
   return mcp;
 }

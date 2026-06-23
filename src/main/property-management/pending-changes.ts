@@ -99,6 +99,25 @@ export function buildCreateChange(
   };
 }
 
+/** Cambio de archivado (borrado lógico) de la propiedad destino en HubSpot. */
+export function buildDeleteChange(
+  entryId: string,
+  objectType: string,
+  hubspotName: string,
+  deps: ChangeFactoryDeps,
+): HsPropertyChange {
+  return {
+    id: deps.newId(),
+    entryId,
+    operation: 'delete',
+    summary: `Archivar propiedad «${hubspotName}» en ${objectType}`,
+    payload: { name: hubspotName },
+    appliedToSandbox: false,
+    appliedToProduction: false,
+    createdAt: deps.now(),
+  };
+}
+
 /**
  * Compara la definición destino (de una entrada con propiedad nueva/personalizada)
  * con la remota y devuelve los cambios necesarios.

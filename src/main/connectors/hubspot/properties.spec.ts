@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { createPropertiesApi, toRemoteProperty } from './properties';
 import type { HubSpotRequest, HubSpotResponse } from '@shared/types/hubspot';
 
-describe('CRM Properties API v3', () => {
+describe('CRM Properties API 2026-03', () => {
   it('normaliza la respuesta de listProperties', async () => {
     const request = vi.fn(
       (): Promise<HubSpotResponse> =>
@@ -35,7 +35,7 @@ describe('CRM Properties API v3', () => {
     const props = await api.listProperties('contacts');
 
     expect(request).toHaveBeenCalledWith(
-      expect.objectContaining({ method: 'GET', path: '/crm/v3/properties/contacts' }),
+      expect.objectContaining({ method: 'GET', path: '/crm/properties/2026-03/contacts' }),
     );
     expect(props).toHaveLength(2);
     expect(props[0]?.objectType).toBe('contacts');
@@ -62,7 +62,7 @@ describe('CRM Properties API v3', () => {
 
     expect(calls[0]).toMatchObject({
       method: 'POST',
-      path: '/crm/v3/properties/contacts',
+      path: '/crm/properties/2026-03/contacts',
       environment: 'sandbox',
       body: { name: 'x' },
     });
@@ -77,7 +77,22 @@ describe('CRM Properties API v3', () => {
     expect(request).toHaveBeenCalledWith(
       expect.objectContaining({
         method: 'PATCH',
-        path: '/crm/v3/properties/contacts/custom_tier',
+        path: '/crm/properties/2026-03/contacts/custom_tier',
+        environment: 'production',
+      }),
+    );
+  });
+
+  it('deleteProperty hace DELETE a la propiedad (archiva) en 2026-03', async () => {
+    const request = vi.fn(() => Promise.resolve({ status: 204, data: {} }));
+    const api = createPropertiesApi({ request, projectId: 'p1' });
+
+    await api.deleteProperty('contacts', 'custom_tier', 'production');
+
+    expect(request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'DELETE',
+        path: '/crm/properties/2026-03/contacts/custom_tier',
         environment: 'production',
       }),
     );

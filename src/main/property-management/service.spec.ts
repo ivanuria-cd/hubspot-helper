@@ -14,6 +14,7 @@ function fakeProperties(remote: Omit<RemoteProperty, 'objectType'>[] = []): Prop
     ),
     createProperty: vi.fn(() => Promise.resolve({ status: 201, data: {} })),
     patchProperty: vi.fn(() => Promise.resolve({ status: 200, data: {} })),
+    deleteProperty: vi.fn(() => Promise.resolve({ status: 204, data: {} })),
     listGroups: vi.fn(() => Promise.resolve([])),
     createGroup: vi.fn((_objectType: string, g: { name: string; label: string }) => Promise.resolve(g)),
   };
@@ -252,6 +253,49 @@ describe('PropertyService (entradas)', () => {
       { name: 'gym_information', label: 'gym_information' },
       'production',
     );
+  });
+
+  it('requestDelete genera un cambio delete al sincronizar y applyChange archiva en HubSpot', async () => {
+    const store = createMemoryPropertyStore();
+    // La propiedad destino existe en HubSpot (remoto), para que el borrado tenga efecto.
+    const props = fakeProperties([
+      { name: 'custom_tier', label: 'Tier', type: 'string', fieldType: 'text', groupName: 'g' },
+    ]);
+    const service = createPropertyService(deps(store, props, fakeObjects()));
+    const entry = service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'contacts',
+        name: 'Tier',
+        hubspotProperty: { mode: 'existing', hubspotName: 'custom_tier' },
+        sources: [],
+      },
+    });
+
+    expect(service.requestDelete({ projectId: 'p1', entryId: entry.id })).toEqual({ success: true });
+    await service.syncHubspot({ projectId: 'p1' });
+    const change = service
+      .listEntries({ projectId: 'p1' })
+      .flatMap((e) => e.pendingChanges ?? [])
+      .find((c) => c.operation === 'delete');
+    expect(change).toBeTruthy();
+
+    const result = await service.applyChange({
+      projectId: 'p1',
+      changeId: change!.id,
+      environment: 'production',
+    });
+    expect(result.success).toBe(true);
+    expect(props.deleteProperty).toHaveBeenCalledWith('contacts', 'custom_tier', 'production');
+  });
+
+  it('requestDelete devuelve error si la entrada no existe', () => {
+    const store = createMemoryPropertyStore();
+    const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));
+    expect(service.requestDelete({ projectId: 'p1', entryId: 'nope' })).toEqual({
+      success: false,
+      error: 'Entrada no encontrada',
+    });
   });
 
   it('H3: discardChange devuelve error si el changeId no existe', () => {

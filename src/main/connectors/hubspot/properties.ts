@@ -1,7 +1,7 @@
 /**
- * Acceso a la CRM Properties API v3 de HubSpot.
- * Ref: https://developers.hubspot.com/docs/api/crm/properties
- * Se apoya en el `request()` genérico del conector (SPEC-0003).
+ * Acceso a la CRM Properties API de HubSpot, versión por fecha 2026-03 (SPEC-0006 §28).
+ * Ref: https://developers.hubspot.com/docs/api-reference/latest/crm/properties/create-property
+ * Path base: /crm/properties/2026-03/{objectType}. Se apoya en el `request()` genérico del conector (SPEC-0003).
  */
 import type {
   DataSensitivity,
@@ -125,7 +125,7 @@ export function createPropertiesApi(deps: PropertiesApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'GET',
-      path: `/crm/v3/properties/${objectType}`,
+      path: `/crm/properties/2026-03/${objectType}`,
     });
     const data = response.data as { results?: RawProperty[] };
     return (data.results ?? []).map((raw) => toRemoteProperty(raw, objectType));
@@ -140,7 +140,7 @@ export function createPropertiesApi(deps: PropertiesApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'POST',
-      path: `/crm/v3/properties/${objectType}`,
+      path: `/crm/properties/2026-03/${objectType}`,
       body: payload,
     });
   }
@@ -155,8 +155,22 @@ export function createPropertiesApi(deps: PropertiesApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'PATCH',
-      path: `/crm/v3/properties/${objectType}/${propertyName}`,
+      path: `/crm/properties/2026-03/${objectType}/${propertyName}`,
       body: payload,
+    });
+  }
+
+  async function deleteProperty(
+    objectType: string,
+    propertyName: string,
+    environment: HubSpotEnvironment,
+  ): Promise<HubSpotResponse> {
+    // Archiva la propiedad (borrado lógico, recuperable) en el entorno indicado.
+    return deps.request({
+      projectId: deps.projectId,
+      environment,
+      method: 'DELETE',
+      path: `/crm/properties/2026-03/${objectType}/${propertyName}`,
     });
   }
 
@@ -168,7 +182,7 @@ export function createPropertiesApi(deps: PropertiesApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'GET',
-      path: `/crm/v3/properties/${objectType}/groups`,
+      path: `/crm/properties/2026-03/${objectType}/groups`,
     });
     const data = response.data as { results?: RawGroup[] };
     return (data.results ?? []).map((g) => ({ name: g.name, label: g.label }));
@@ -183,14 +197,14 @@ export function createPropertiesApi(deps: PropertiesApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'POST',
-      path: `/crm/v3/properties/${objectType}/groups`,
+      path: `/crm/properties/2026-03/${objectType}/groups`,
       body: group,
     });
     const data = response.data as RawGroup;
     return { name: data.name ?? group.name, label: data.label ?? group.label };
   }
 
-  return { listProperties, createProperty, patchProperty, listGroups, createGroup };
+  return { listProperties, createProperty, patchProperty, deleteProperty, listGroups, createGroup };
 }
 
 export type PropertiesApi = ReturnType<typeof createPropertiesApi>;

@@ -29,6 +29,7 @@ import type {
   GoogleDriveSearchFoldersInput,
   GoogleDriveSetFolderInput,
   GoogleDriveSyncResult,
+  GoogleDriveRefreshResult,
   GoogleDriveWriteFileInput,
   GoogleDriveWriteFileResult,
   LoadSheetsResult,
@@ -129,6 +130,7 @@ export const IpcChannels = {
   gdriveGetCredentials: 'gdrive:get-credentials-status',
   gdriveSetCredentials: 'gdrive:set-credentials',
   gdriveClearCredentials: 'gdrive:clear-credentials',
+  gdriveRefreshProject: 'gdrive:refresh-project',
   mcpGetStatus: 'mcp:get-status',
   mcpToggle: 'mcp:toggle',
   mcpRegenerateToken: 'mcp:regenerate-token',
@@ -215,6 +217,7 @@ export interface RevOpsApi {
   gdriveSetFolder(input: GoogleDriveSetFolderInput): Promise<GoogleDriveFolderResult>;
   gdriveGetStatus(input: GoogleDriveProjectInput): Promise<GoogleDriveConfig | null>;
   gdriveSync(input: GoogleDriveProjectInput): Promise<GoogleDriveSyncResult>;
+  gdriveRefreshProject(input: GoogleDriveProjectInput): Promise<GoogleDriveRefreshResult>;
   gdriveRevoke(input: GoogleDriveProjectInput): Promise<GoogleDriveOperationResult>;
   gdriveWriteFile(input: GoogleDriveWriteFileInput): Promise<GoogleDriveWriteFileResult>;
   gdriveReadFile(input: GoogleDriveReadFileInput): Promise<GoogleDriveReadFileResult>;

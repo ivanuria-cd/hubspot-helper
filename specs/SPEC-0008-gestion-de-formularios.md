@@ -759,3 +759,11 @@ Los asistentes/modales se abren de inmediato con `LoadingState` (variante `form`
 resuelven objetos, campos por origen, tipos de suscripción (consentimiento) o el formulario a editar; el estado
 se resetea en cada apertura (sin arrastrar campos del formulario anterior). Crear/editar/aplicar usan botones en
 estado ocupado accesible. Pendiente de implementación junto al resto de superficies.
+
+## 27. Adopción de la identidad visual de los documentos de Drive (SPEC-0012) (IMPLEMENTADO, 2026-06-23)
+
+El Sheets de formularios hereda automáticamente el estilo de marca de SPEC-0012 vía `sheets-style.ts` (banner
+de portada, cabeceras `#090017` + texto blanco, congelado fila/columna, notas por columna, wrap, anchos fijos)
+y el Doc de estado el estilado de portada de `cover-template.ts`. El layout de hojas (`buildFormsTabs`) no
+cambia estructuralmente (la separación por objeto de SPEC-0012 §2.3 aplica solo al mapa de propiedades), por lo
+que `FORMS_SHEETS_SCHEMA_VERSION` se mantiene. Sin cambios en el round-trip (SPEC-0004 §15.5).

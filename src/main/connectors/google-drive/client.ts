@@ -1,5 +1,5 @@
 import type { DriveFileMimeType, DriveFolder } from '@shared/types/gdrive';
-import { renderCoverText, type CoverContent } from './cover-template';
+import { buildCoverDocStyleRequests, renderCoverText, type CoverContent } from './cover-template';
 import type { RemoteFile } from './sync';
 
 export const MIME_DOCUMENT: DriveFileMimeType = 'application/vnd.google-apps.document';
@@ -51,6 +51,33 @@ export interface DriveApi {
 
 export function buildFullBody(cover: CoverContent, content: string): string {
   return `${renderCoverText(cover)}${CONTENT_DELIMITER}${content}`;
+}
+
+/**
+ * Requests de estilo (SPEC-0012): portada con estilos nativos + el marcador del bloque de datos
+ * gestionados como Heading. Se anexan tras el `insertText`; no modifican el texto, así que el
+ * round-trip de carga (SPEC-0004 §15.5) no cambia.
+ */
+export function buildDocStyleRequests(cover: CoverContent): Array<Record<string, unknown>> {
+  const requests = buildCoverDocStyleRequests(cover, 1);
+  const coverLen = renderCoverText(cover).length;
+  const markerText = CONTENT_DELIMITER.trim();
+  const markerStart = 1 + coverLen + 1;
+  requests.push({
+    updateParagraphStyle: {
+      range: { startIndex: markerStart, endIndex: markerStart + markerText.length + 1 },
+      paragraphStyle: { namedStyleType: 'HEADING_2' },
+      fields: 'namedStyleType',
+    },
+  });
+  requests.push({
+    updateTextStyle: {
+      range: { startIndex: markerStart, endIndex: markerStart + markerText.length },
+      textStyle: { bold: true },
+      fields: 'bold',
+    },
+  });
+  return requests;
 }
 
 export function extractManagedContent(fullText: string): string {
@@ -173,6 +200,7 @@ export function createDriveClient(api: DriveApi) {
       documentId: file.id,
       requests: [
         { insertText: { location: { index: 1 }, text: buildFullBody(input.cover, input.content) } },
+        ...buildDocStyleRequests(input.cover),
       ],
     });
     return { driveId: file.id, modifiedTime: file.modifiedTime ?? '' };
@@ -193,6 +221,7 @@ export function createDriveClient(api: DriveApi) {
     requests.push({
       insertText: { location: { index: 1 }, text: buildFullBody(input.cover, input.content) },
     });
+    requests.push(...buildDocStyleRequests(input.cover));
     await api.docsBatchUpdate({ documentId: input.driveId, requests });
   }
 

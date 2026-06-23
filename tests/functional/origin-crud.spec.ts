@@ -49,5 +49,7 @@ test('crear, ver y eliminar un origen de datos', async () => {
   // Eliminar el origen.
   await window.getByRole('button', { name: /Orígenes \(1\)/ }).click();
   await window.getByRole('dialog').getByLabel('Eliminar').click();
+  // El borrado pide confirmación (ConfirmDialog, SPEC-0006 §23).
+  await window.getByRole('button', { name: 'Aceptar' }).click();
   await expect(window.getByRole('dialog').getByText('No hay orígenes definidos.')).toBeVisible();
 });

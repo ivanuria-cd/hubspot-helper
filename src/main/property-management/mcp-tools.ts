@@ -234,4 +234,19 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
       return Promise.resolve(service.discardChange({ projectId: ctx.projectId, changeId: changeId ?? '' }));
     },
   });
+
+  registry.register({
+    name: 'properties_request_delete',
+    description:
+      'Solicita ARCHIVAR (borrado logico, recuperable) la propiedad destino de una entrada en HubSpot. ' +
+      'No borra al instante: genera un cambio pendiente `delete` que aparece tras properties_sync y se ejecuta ' +
+      'solo al aplicarlo por entorno con properties_apply_change (sandbox/production). Para cancelarlo, descartar el cambio.',
+    inputSchema: { type: 'object', properties: { entryId: { type: 'string' } }, required: ['entryId'] },
+    featureKey: feature,
+    requiredScopes: WRITE_SCOPES,
+    handler: (input, ctx) => {
+      const { entryId } = (input ?? {}) as { entryId?: string };
+      return Promise.resolve(service.requestDelete({ projectId: ctx.projectId, entryId: entryId ?? '' }));
+    },
+  });
 }

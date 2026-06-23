@@ -77,7 +77,8 @@ export type ChangeOperation =
   | 'update_label'
   | 'update_options'
   | 'update_field_type'
-  | 'update_attributes';
+  | 'update_attributes'
+  | 'delete';
 
 export interface HsPropertyChange {
   id: string;
@@ -170,6 +171,8 @@ export interface PropertyEntry {
   sources: EntrySource[];
   hubspotStatus: HsPropertyStatus;
   pendingChanges?: HsPropertyChange[];
+  /** El usuario ha solicitado archivar la propiedad destino en HubSpot (genera un cambio `delete`). */
+  pendingDelete?: boolean;
 }
 
 export interface OriginExport {

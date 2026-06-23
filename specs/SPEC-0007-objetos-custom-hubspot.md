@@ -469,3 +469,12 @@ Implementado 2026-06-19: `ObjectPanel` usa `useConfirm` para archivar y borrar b
 y el panel pintan `LoadingState` (variantes `cards`/`form`) con `aria-busy` mientras resuelven objetos/propiedades;
 el `ObjectWizard` se abre de inmediato con su esqueleto y carga después (catálogo de objetos, grupos), reseteando
 el estado en cada apertura. Sincronizar/aplicar usan botones en estado ocupado. Pendiente de implementación.
+
+## 18. Adopción de la identidad visual de los documentos de Drive (SPEC-0012) (IMPLEMENTADO, 2026-06-23)
+
+El Sheets del catálogo de objetos custom hereda automáticamente el estilo de marca de SPEC-0012 vía el módulo
+compartido `sheets-style.ts` (banner de portada, cabeceras `#090017` + texto blanco, congelado fila/columna,
+notas por columna, wrap, anchos fijos) y el Doc de estado el estilado de portada de `cover-template.ts`. El
+layout de hojas (`buildCustomObjectsTabs`) no cambia estructuralmente (la separación por objeto de SPEC-0012
+§2.3 aplica solo al mapa de propiedades de SPEC-0006), por lo que `CUSTOM_OBJECTS_SHEETS_SCHEMA_VERSION` se
+mantiene. Sin cambios en el round-trip (SPEC-0004 §15.5).

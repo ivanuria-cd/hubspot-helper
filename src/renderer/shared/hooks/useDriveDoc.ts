@@ -5,6 +5,9 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DriveDocMeta } from '@shared/types/gdrive';
+import { driveFileUrl } from '@shared/utils/driveFileUrl';
+
+const SPREADSHEET_MIME = 'application/vnd.google-apps.spreadsheet' as const;
 
 export interface DriveActionResult {
   success: boolean;
@@ -31,6 +34,8 @@ export interface DriveDocController {
   updating: boolean;
   loading: boolean;
   message: DriveDocMessage;
+  /** URL de apertura directa del Sheets legible en Drive; null si aún no existe (SPEC-0004 §18). */
+  fileUrl: string | null;
   update: () => Promise<DriveActionResult>;
   load: () => Promise<DriveActionResult>;
   clearMessage: () => void;
@@ -98,5 +103,7 @@ export function useDriveDoc(args: UseDriveDocArgs): DriveDocController {
     (meta.lastWrittenAt === null ||
       (meta.lastChangedAt !== null && meta.lastChangedAt > meta.lastWrittenAt));
 
-  return { dirty, updating, loading, message, update, load, clearMessage };
+  const fileUrl = meta.fileId ? driveFileUrl(meta.fileId, SPREADSHEET_MIME) : null;
+
+  return { dirty, updating, loading, message, fileUrl, update, load, clearMessage };
 }

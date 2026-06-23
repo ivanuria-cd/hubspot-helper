@@ -53,6 +53,18 @@ export function DriveDocActions({
         >
           {doc.loading ? t('drive.doc.loading') : t('drive.doc.load')}
         </Button>
+        {doc.fileUrl ? (
+          <Button
+            variant="text"
+            component="a"
+            href={doc.fileUrl}
+            target="_blank"
+            rel="noopener"
+            aria-label={t('drive.doc.open')}
+          >
+            {t('drive.doc.open')}
+          </Button>
+        ) : null}
       </Stack>
       {doc.message ? (
         <Alert severity={doc.message.kind} onClose={doc.clearMessage}>

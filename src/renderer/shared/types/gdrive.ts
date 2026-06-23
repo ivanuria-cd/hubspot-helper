@@ -127,6 +127,8 @@ export interface GoogleDriveOperationResult {
 export interface DriveDocMeta {
   lastWrittenAt: string | null;
   lastChangedAt: string | null;
+  /** Id del Sheets legible del feature en Drive (SPEC-0004 §18); null si aún no se ha escrito. */
+  fileId?: string | null;
 }
 
 /** Resultado de cargar el estado local desde el documento Drive de una característica (§15). */
@@ -134,4 +136,19 @@ export interface LoadSheetsResult {
   success: boolean;
   schemaVersion?: number;
   error?: string;
+}
+
+/** Resultado por característica de la revisión al abrir el proyecto (§19). */
+export interface GoogleDriveRefreshItem {
+  featureKey: string;
+  name: string;
+  status: 'updated' | 'error';
+  error?: string;
+}
+
+/** Resultado de `gdrive:refresh-project` (§19). `connected:false` ⇒ la UI no avisa. */
+export interface GoogleDriveRefreshResult {
+  connected: boolean;
+  upToDate: boolean;
+  items: GoogleDriveRefreshItem[];
 }

@@ -33,6 +33,7 @@ const api: RevOpsApi = {
   gdriveSetFolder: (input) => ipcRenderer.invoke(IpcChannels.gdriveSetFolder, input),
   gdriveGetStatus: (input) => ipcRenderer.invoke(IpcChannels.gdriveGetStatus, input),
   gdriveSync: (input) => ipcRenderer.invoke(IpcChannels.gdriveSync, input),
+  gdriveRefreshProject: (input) => ipcRenderer.invoke(IpcChannels.gdriveRefreshProject, input),
   gdriveRevoke: (input) => ipcRenderer.invoke(IpcChannels.gdriveRevoke, input),
   gdriveWriteFile: (input) => ipcRenderer.invoke(IpcChannels.gdriveWriteFile, input),
   gdriveReadFile: (input) => ipcRenderer.invoke(IpcChannels.gdriveReadFile, input),

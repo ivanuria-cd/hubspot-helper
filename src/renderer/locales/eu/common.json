@@ -136,6 +136,7 @@
     "neverSynced": "Oraindik sinkronizatu gabe",
     "conflicts": "{{count}} fitxategi gatazkan: erabaki zein bertsio mantendu.",
     "managedFiles": "Kudeatutako fitxategiak: {{count}}",
+    "openFile": "Ireki {{name}} Driven",
     "status": {
       "synced": "Sinkronizatuta",
       "conflict": "Gatazkan",
@@ -183,6 +184,7 @@
       "updating": "Eguneratzen…",
       "load": "Kargatu Drivetik",
       "loading": "Kargatzen…",
+      "open": "Ireki Driven",
       "updateSuccess": "Fitxategia Driven eguneratu da.",
       "updateError": "Ezin izan da eguneratu: {{error}}",
       "loadSuccess": "Egoera Drivetik kargatu da.",
@@ -191,6 +193,10 @@
       "loadConfirmTitle": "Kargatu Drivetik",
       "loadConfirmBody": "Honek tokiko egoera Drive fitxategiaren edukiarekin ordeztuko du. Jarraitu?",
       "cancel": "Utzi"
+    },
+    "refresh": {
+      "updated": "{{count}} fitxategi eguneratu d(ir)a Driven: {{names}}.",
+      "error": "Ezin izan dira Driven eguneratu: {{names}}."
     },
     "dirtyGuard": {
       "title": "Driven gorde gabeko aldaketak",

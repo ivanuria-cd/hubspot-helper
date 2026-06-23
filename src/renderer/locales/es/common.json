@@ -141,6 +141,7 @@
     "neverSynced": "Aún no sincronizado",
     "conflicts": "{{count}} archivo(s) en conflicto: decide qué versión conservar.",
     "managedFiles": "Archivos gestionados: {{count}}",
+    "openFile": "Abrir {{name}} en Drive",
     "status": {
       "synced": "Sincronizado",
       "conflict": "En conflicto",
@@ -188,6 +189,7 @@
       "updating": "Actualizando…",
       "load": "Cargar desde Drive",
       "loading": "Cargando…",
+      "open": "Abrir en Drive",
       "updateSuccess": "Archivo actualizado en Drive.",
       "updateError": "No se pudo actualizar: {{error}}",
       "loadSuccess": "Estado cargado desde Drive.",
@@ -196,6 +198,10 @@
       "loadConfirmTitle": "Cargar desde Drive",
       "loadConfirmBody": "Esto reemplazará el estado local con el contenido del archivo de Drive. ¿Continuar?",
       "cancel": "Cancelar"
+    },
+    "refresh": {
+      "updated": "Se actualizaron {{count}} archivo(s) en Drive: {{names}}.",
+      "error": "No se pudieron actualizar en Drive: {{names}}."
     },
     "dirtyGuard": {
       "title": "Cambios sin guardar en Drive",

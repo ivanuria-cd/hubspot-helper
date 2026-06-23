@@ -694,3 +694,196 @@ de carpeta es el caso claro: al abrirlo aparece **de inmediato** con un `Loading
 `aria-busy` mientras lista las carpetas de Drive; al navegar a una carpeta se resetea el listado (no se muestran
 carpetas del nivel anterior) y se vuelve a cargar. Las acciones (guardar credenciales, sincronizar) pasan a
 estado ocupado accesible. Pendiente de implementación junto al resto de superficies.
+
+## 18. Hipervínculo «Abrir en Drive» en cada documento generado (IMPLEMENTADO, 2026-06-23)
+
+### 18.1 Motivación
+
+Cuando la app genera o actualiza el Sheets de una característica, la UI confirma el éxito pero no ofrece
+forma de **abrir el archivo** directamente. El usuario debe ir a Google Drive y buscarlo. Se añade un
+hipervínculo «Abrir en Drive» en todos los sitios donde se genera un archivo de Drive.
+
+### 18.2 Decisiones (validadas con el usuario, 2026-06-23)
+
+- **Qué se enlaza: solo el Sheets legible** de cada característica. El Doc de estado companion (JSON,
+  §15.5) **no** se enlaza (es un artefacto técnico).
+- **Dónde aparece:** (a) en `DriveDocActions` (las tres pantallas de feature: Propiedades, Objetos,
+  Formularios) y (b) en la lista «Archivos gestionados» de la pantalla del conector (§3), solo para los
+  ficheros de tipo spreadsheet.
+
+### 18.3 Mecanismo de apertura
+
+No requiere IPC nuevo: `createMainWindow` ya registra `setWindowOpenHandler` → `shell.openExternal`
+(`main/window.ts`), por lo que un enlace del renderer con `target="_blank" rel="noopener"` se abre en el
+navegador del sistema. No se usan `<webview>` ni navegación interna.
+
+### 18.4 Construcción de la URL
+
+Utilidad pura `driveFileUrl(driveId, mimeType)` en `renderer/shared/utils/` que construye:
+
+- spreadsheet → `https://docs.google.com/spreadsheets/d/<driveId>/edit`
+- document → `https://docs.google.com/document/d/<driveId>/edit`
+
+El `driveId` es opaco (lo asigna Google); no hay URL controlada por el usuario. En esta iteración solo se
+renderiza el enlace para `mimeType` spreadsheet (decisión 18.2).
+
+### 18.5 Contrato
+
+- `DriveDocMeta` (§15, `shared/types/gdrive.ts`) añade `fileId: string | null` (el id del Sheets legible
+  del feature) además de los timestamps. `getDriveMeta` de cada servicio (`property-management`,
+  `forms-management`, `custom-objects`) lo rellena buscando en `config.files` la entrada cuyo `featureKey`
+  es el del Sheets (sin sufijo `-state`) y `mimeType` spreadsheet; `null` si aún no se ha escrito.
+- `useDriveDoc` expone `fileUrl: string | null` derivado de `meta.fileId` vía `driveFileUrl`.
+- `DriveDocController` añade `fileUrl`.
+
+### 18.6 Interfaz de usuario
+
+- `DriveDocActions`: cuando `doc.fileUrl` no es `null`, se muestra un enlace/botón terciario **«Abrir en
+  Drive»** (`drive.doc.open`) junto a los botones, con `target="_blank"`, `rel="noopener"` y
+  `aria-label` descriptivo. Si no hay archivo aún (nunca escrito), no se muestra.
+- Pantalla del conector (§3), lista «Archivos gestionados»: cada fichero de tipo spreadsheet muestra su
+  nombre como enlace «Abrir en Drive» (mismo mecanismo). Los ficheros de estado (document) no se enlazan.
+
+### 18.7 i18n
+
+Claves nuevas en los cuatro locales (`es`/`ca`/`eu`/`en`): `drive.doc.open` («Abrir en Drive») y
+`gdrive.openFile` (aria-label de la lista del conector). Autónimos/etiquetas según SPEC-0000 §3.
+
+### 18.8 Tests requeridos
+
+- `driveFileUrl.spec.ts`: construye la URL correcta por mimeType; ids con caracteres especiales se respetan.
+- `useDriveDoc.spec.ts` (ampliado): expone `fileUrl` cuando `meta.fileId` existe y `null` cuando no.
+- Funcional: tras «Actualizar archivo en Drive» aparece el enlace «Abrir en Drive» con el `href` esperado;
+  la lista del conector muestra enlaces solo para spreadsheets (mock de la config con un Sheets y un Doc de
+  estado).
+
+### 18.9 Seguridad
+
+- Enlaces externos vía `setWindowOpenHandler` → `shell.openExternal` (ya en uso para OAuth). `rel="noopener"`.
+- La URL se construye a partir de un id opaco de Drive; sin entrada de texto libre del usuario.
+
+### 18.10 Alcance e impacto
+
+- `shared/types/gdrive.ts` (`DriveDocMeta.fileId`), `shared/utils/driveFileUrl.ts` (nuevo),
+  `shared/hooks/useDriveDoc.ts` (`fileUrl`), `shared/components/DriveDocActions.tsx` (enlace),
+  `features/connector-gdrive/.../GoogleDriveConnectorScreen.tsx` (enlaces en la lista),
+  servicios `getDriveMeta` de las tres features (rellenan `fileId`), i18n `es/ca/eu/en`.
+- No cambia el mecanismo d
+## 19. Revisión y actualización de los archivos de Drive al abrir el proyecto (IMPLEMENTADO, 2026-06-23)
+
+### 19.1 Motivación y enmienda a §15.2
+
+Al abrir un proyecto, los archivos de Drive pueden haber quedado por detrás del estado local (cambios no
+volcados) o no existir aún. El usuario quiere que, al abrir, la app **revise** si están actualizados y, si
+no, **avise y los actualice**.
+
+Esto **enmienda parcialmente §15.2**: se introduce una actualización automática **solo en la dirección
+local → Drive** (exportación) al abrir el proyecto. La dirección Drive → local («Cargar desde Drive») sigue
+siendo **siempre explícita** y nunca automática (sigue requiriendo confirmación, §15.3.2). Drive sigue sin
+ser fuente de verdad.
+
+### 19.2 Decisiones (validadas con el usuario, 2026-06-23)
+
+- **Comportamiento: avisar y actualizar solo.** Al abrir el proyecto se actualizan automáticamente los
+  archivos desactualizados y se informa al usuario del resultado (no se pide confirmación previa).
+- **Criterio de «no actualizado»** (por característica con documento Drive): hay datos y además
+  (a) el archivo no existe aún en Drive (`fileId` nulo), **o** (b) hay cambios locales posteriores a la
+  última escritura (`lastChangedAt > lastWrittenAt`, el flag *dirty* de §15.4).
+- **Best-effort:** si no hay cuenta de Google conectada o no hay carpeta seleccionada, la revisión **no se
+  ejecuta y no molesta** (sin aviso). El estado local sigue siendo válido.
+
+### 19.3 Alcance
+
+- Aplica a las tres características con documento Drive: Propiedades (SPEC-0006), Objetos custom (SPEC-0007)
+  y Formularios (SPEC-0008).
+- Se ejecuta **una vez por apertura de proyecto** (al pasar a estar activo un `projectId`), no en cada
+  render ni navegación.
+
+### 19.4 Contrato / IPC
+
+Nuevo canal único orquestado en el proceso principal (evita acoplar el renderer a las tres features):
+
+| Canal | Dirección | Input | Output |
+|-------|-----------|-------|--------|
+| `gdrive:refresh-project` | renderer → main | `{ projectId }` | `GoogleDriveRefreshResult` |
+
+```typescript
+interface GoogleDriveRefreshItem {
+  featureKey: string;      // 'property-management' | 'custom-objects' | 'forms-management'
+  name: string;            // nombre legible del Sheets
+  status: 'updated' | 'error';
+  error?: string;
+}
+interface GoogleDriveRefreshResult {
+  connected: boolean;      // false si no hay cuenta/carpeta → la UI no avisa
+  upToDate: boolean;       // true si no había nada que actualizar
+  items: GoogleDriveRefreshItem[];  // solo las que se intentaron actualizar
+}
+```
+
+El handler de `main/index.ts`:
+1. Si `gdrive.getStatus(projectId)` no tiene cuenta/carpeta → `{ connected:false, upToDate:true, items:[] }`.
+2. Para cada feature: calcula `hasData` (longitud de su listado) y su `DriveDocMeta` (timestamps + `fileId`).
+   Está desactualizada si `hasData && (fileId == null || lastWrittenAt == null || lastChangedAt > lastWrittenAt)`.
+3. Para cada desactualizada, ejecuta su escritura ya existente (Sheets legible + Doc de estado +
+   `markDriveWritten`), reutilizando la lógica de los handlers `*:write-sheets` (se extrae a una función
+   interna compartida por feature para no duplicar).
+4. Devuelve el resumen.
+
+### 19.5 Interfaz de usuario
+
+- En el App Shell (SPEC-0002), al activarse un `projectId` (efecto con guarda anti-reejecución por
+  proyecto), se llama a `gdrive:refresh-project`.
+- Resultado vía Snackbar global (SPEC-0002 §10):
+  — `connected === false`: **no se muestra nada**.
+  — `items` con `updated` > 0: aviso `success` «Se actualizaron N archivo(s) en Drive: …».
+  — algún `error`: aviso `error` con el detalle (puede convivir con el de éxito de los demás).
+  — `upToDate === true` y conectado: aviso `info` breve opcional «Los archivos de Drive estaban al día»
+    (o silencio; decisión de implementación, por defecto silencioso para no ser intrusivo).
+- La actualización corre en segundo plano (no bloquea la navegación); los botones de `DriveDocActions`
+  reflejan el nuevo `lastWrittenAt` al refrescar su meta.
+
+### 19.6 Tests requeridos
+
+- Unitario del orquestador (main): mock de las tres features + `gdrive`; casos: no conectado → `connected:false`;
+  todas al día → `upToDate:true`, sin escrituras; una *dirty* y otra sin archivo → se actualizan ambas;
+  error de escritura en una → `status:'error'` para esa y `updated` para las demás.
+- Renderer: el efecto llama una sola vez por `projectId` (no se repite en re-render); el Snackbar muestra el
+  mensaje correcto por cada rama; `connected:false` no muestra nada.
+
+### 19.7 i18n
+
+Claves nuevas (`es/ca/eu/en`): `drive.refresh.updated` (con `{{count}}` y `{{names}}`), `drive.refresh.error`
+y (opcional) `drive.refresh.upToDate`.
+
+### 19.8 Seguridad y alcance
+
+- Solo exporta local → Drive (no lee de Drive). Sin nuevos scopes. Reutiliza `writeSpreadsheet`/`writeFile`.
+- No modifica el round-trip §15.5 ni la carga explícita §15.3.2.
+
+### 19.9 Fuera de alcance
+
+- Resolución de conflictos Drive → local o detección de ediciones manuales en Drive (sigue fuera, §15.8).
+- Programación periódica/en segundo plano fuera de la apertura del proyecto.
+
+### 19.10 Notas de implementación (2026-06-23)
+
+- Orquestador puro `src/main/drive-refresh.ts` (`refreshDrive(connected, RefreshFeature[])`) + spec (5 casos:
+  no conectado, todo al día, sin datos, actualiza dirty/faltantes, error sin abortar).
+- `main/index.ts`: se extrajeron `writePropertiesSheets` / `writeCustomObjectsSheets` / `writeFormsSheets`
+  (reutilizadas por los handlers `*:write-sheets` y por la revisión); `isDriveDocStale(meta, fileId)`;
+  `buildRefreshFeatures(projectId)`; handler `gdrive:refresh-project` (no conectado ⇒ `connected:false`).
+- Tipos `GoogleDriveRefreshItem` / `GoogleDriveRefreshResult` en `shared/types/gdrive.ts`; canal
+  `gdriveRefreshProject` en `ipc.ts` + `preload`.
+- `MainLayout` llama a `gdriveRefreshProject` una vez por `projectId` (guarda `refreshedProjectRef`) tras
+  resolver el proyecto; Snackbar `success`/`error`; `connected:false` no muestra nada. La llamada es
+  **best-effort y defensiva**: si `window.api.gdriveRefreshProject` no es una función (build de `out/`
+  anterior al método, o bridge parcial), el efecto no hace nada y no rompe la app. Para los e2e hay que
+  reconstruir (`npm run build`) antes de `npm run test:e2e`.
+- e2e `origin-crud.spec.ts`: al arreglar el crash afloró que el test no confirmaba el borrado (el origen se
+  elimina vía `ConfirmDialog`, SPEC-0006 §23). Se actualizó para pulsar «Aceptar» antes de comprobar el
+  estado vacío. Es corrección del test funcional (no test unitario), ajena a §19 salvo por haber quedado
+  enmascarada tras el error de aplicación.
+- i18n `drive.refresh.updated` / `drive.refresh.error` en `es/ca/eu/en`.
+- Verificación (sandbox): `drive-refresh.spec.ts` 5/5; suites de `connectors/google-drive` + `shared` 72/72;
+  `tsc --noEmit` 0 errores. Suite completa + e2e + PR en la máquina del usuario.
