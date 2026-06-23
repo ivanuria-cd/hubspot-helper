@@ -478,3 +478,18 @@ notas por columna, wrap, anchos fijos) y el Doc de estado el estilado de portada
 layout de hojas (`buildCustomObjectsTabs`) no cambia estructuralmente (la separación por objeto de SPEC-0012
 §2.3 aplica solo al mapa de propiedades de SPEC-0006), por lo que `CUSTOM_OBJECTS_SHEETS_SCHEMA_VERSION` se
 mantiene. Sin cambios en el round-trip (SPEC-0004 §15.5).
+
+---
+
+## 19. Adopción de tooltips i18n en campos rellenables (SPEC-0002 §18) (IMPLEMENTADO, 2026-06-23)
+
+`ObjectWizard` adopta el patrón de **[SPEC-0002 §18](SPEC-0002-app-shell.md)** (norma en
+**[SPEC-0000 §3](SPEC-0000-normas-del-proyecto.md)**): cada campo rellenable lleva un `FieldTooltip` con texto
+i18n, asociado por `aria-describedby` (en las filas de propiedades dentro de `.map` se usa `FieldTooltip` directo).
+Campos: nombre interno, etiqueta singular/plural, descripción; por propiedad inicial: nombre interno, etiqueta,
+tipo, tipo de campo y único; y visualización: propiedad principal, requeridas, secundarias, búsqueda y
+asociaciones. Claves `customObjects.wizard.fieldHelp.*` en `es`/`ca`/`eu`/`en`. typecheck/test en máquina.
+
+> Nota: existen dos secciones numeradas «§18» en este SPEC (estados de carga, BORRADOR; e identidad visual,
+> IMPLEMENTADO). Es una errata de numeración preexistente; se mantiene y solo se señala. Esta sección continúa
+> como §19.

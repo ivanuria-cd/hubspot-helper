@@ -257,3 +257,13 @@ inmediato un `LoadingState` (variante `form`) con `aria-busy` mientras resuelve 
 el botón «Guardar token» y la validación pasan a estado ocupado (deshabilitado + `CircularProgress`, sin perder
 nombre accesible). El estado previo se resetea al cambiar de entorno para no mostrar datos de otra pestaña.
 Pendiente de implementación junto al resto de superficies.
+
+---
+
+## 15. Adopción de tooltips i18n en campos rellenables (SPEC-0002 §18) (IMPLEMENTADO, 2026-06-23)
+
+`HubSpotConnectorScreen` adopta el patrón de **[SPEC-0002 §18](SPEC-0002-app-shell.md)** (norma en
+**[SPEC-0000 §3](SPEC-0000-normas-del-proyecto.md)**): cada campo rellenable lleva un `FieldTooltip` con texto
+i18n que describe su función, asociado por `aria-describedby`. Campos: token PAT (`hubspot.fieldHelp.token`) y
+selector de entorno production/sandbox (`hubspot.fieldHelp.environment`), en `es`/`ca`/`eu`/`en`. typecheck/test en
+máquina.

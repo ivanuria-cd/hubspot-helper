@@ -10,6 +10,7 @@ import {
   FormControlLabel,
   FormGroup,
   IconButton,
+  InputAdornment,
   MenuItem,
   Stack,
   Table,
@@ -24,6 +25,7 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useTranslation } from 'react-i18next';
+import { FieldTooltip, useFieldHelp } from '@shared/components/feedback';
 import type {
   FormChange,
   FormEditsInput,
@@ -178,6 +180,14 @@ export function EditFormWizard({
   onSubmit,
 }: EditFormWizardProps): JSX.Element {
   const { t } = useTranslation('common');
+  const nameHelp = useFieldHelp('forms.editWizard.fieldHelp.name');
+  const consentTypeHelp = useFieldHelp('forms.editWizard.fieldHelp.consentType');
+  const submitButtonHelp = useFieldHelp('forms.editWizard.fieldHelp.submitButton');
+  const privacyTextHelp = useFieldHelp('forms.editWizard.fieldHelp.privacyText');
+  const consentToProcessHelp = useFieldHelp('forms.editWizard.fieldHelp.consentToProcessText');
+  const communicationConsentHelp = useFieldHelp(
+    'forms.editWizard.fieldHelp.communicationConsentText',
+  );
   const [name, setName] = useState('');
   const [submitButtonText, setSubmitButtonText] = useState('');
   const [consentType, setConsentType] = useState('none');
@@ -307,6 +317,10 @@ export function EditFormWizard({
               value={name}
               onChange={(event) => setName(event.target.value)}
               fullWidth
+              inputProps={{ 'aria-describedby': nameHelp.describedById }}
+              InputProps={{
+                endAdornment: <InputAdornment position="end">{nameHelp.tooltip}</InputAdornment>,
+              }}
             />
           ) : null}
 
@@ -314,11 +328,36 @@ export function EditFormWizard({
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>{t('forms.editWizard.fieldName')}</TableCell>
-                <TableCell>{t('forms.editWizard.label')}</TableCell>
-                <TableCell>{t('forms.editWizard.fieldType')}</TableCell>
-                <TableCell align="center">{t('forms.editWizard.required')}</TableCell>
-                <TableCell align="center">{t('forms.editWizard.hidden')}</TableCell>
+                <TableCell>
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    {t('forms.editWizard.fieldName')}
+                    <FieldTooltip helpKey="forms.editWizard.fieldHelp.fieldName" />
+                  </Stack>
+                </TableCell>
+                <TableCell>
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    {t('forms.editWizard.label')}
+                    <FieldTooltip helpKey="forms.editWizard.fieldHelp.label" />
+                  </Stack>
+                </TableCell>
+                <TableCell>
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    {t('forms.editWizard.fieldType')}
+                    <FieldTooltip helpKey="forms.editWizard.fieldHelp.fieldType" />
+                  </Stack>
+                </TableCell>
+                <TableCell align="center">
+                  <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
+                    {t('forms.editWizard.required')}
+                    <FieldTooltip helpKey="forms.editWizard.fieldHelp.required" />
+                  </Stack>
+                </TableCell>
+                <TableCell align="center">
+                  <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
+                    {t('forms.editWizard.hidden')}
+                    <FieldTooltip helpKey="forms.editWizard.fieldHelp.hidden" />
+                  </Stack>
+                </TableCell>
                 <TableCell align="right">{t('forms.editWizard.actions')}</TableCell>
               </TableRow>
             </TableHead>
@@ -436,6 +475,12 @@ export function EditFormWizard({
                 value={submitButtonText}
                 onChange={(event) => setSubmitButtonText(event.target.value)}
                 fullWidth
+                inputProps={{ 'aria-describedby': submitButtonHelp.describedById }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">{submitButtonHelp.tooltip}</InputAdornment>
+                  ),
+                }}
               />
               <TextField
                 select
@@ -443,6 +488,14 @@ export function EditFormWizard({
                 value={consentType}
                 onChange={(event) => setConsentType(event.target.value)}
                 fullWidth
+                inputProps={{ 'aria-describedby': consentTypeHelp.describedById }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end" sx={{ mr: 2 }}>
+                      {consentTypeHelp.tooltip}
+                    </InputAdornment>
+                  ),
+                }}
               >
                 {CONSENT_TYPES.map((type) => (
                   <MenuItem key={type} value={type}>
@@ -460,18 +513,38 @@ export function EditFormWizard({
                     multiline
                     minRows={2}
                     fullWidth
+                    inputProps={{ 'aria-describedby': privacyTextHelp.describedById }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">{privacyTextHelp.tooltip}</InputAdornment>
+                      ),
+                    }}
                   />
                   <TextField
                     label={t('forms.editWizard.consentToProcessText')}
                     value={consentToProcessText}
                     onChange={(event) => setConsentToProcessText(event.target.value)}
                     fullWidth
+                    inputProps={{ 'aria-describedby': consentToProcessHelp.describedById }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">{consentToProcessHelp.tooltip}</InputAdornment>
+                      ),
+                    }}
                   />
                   <TextField
                     label={t('forms.editWizard.communicationConsentText')}
                     value={communicationConsentText}
                     onChange={(event) => setCommunicationConsentText(event.target.value)}
                     fullWidth
+                    inputProps={{ 'aria-describedby': communicationConsentHelp.describedById }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          {communicationConsentHelp.tooltip}
+                        </InputAdornment>
+                      ),
+                    }}
                   />
                   <Typography variant="body2" color="text.secondary">
                     {t('forms.editWizard.checkboxes')}
@@ -494,6 +567,7 @@ export function EditFormWizard({
                           </MenuItem>
                         ))}
                       </TextField>
+                      <FieldTooltip helpKey="forms.editWizard.fieldHelp.subscriptionType" />
                       <TextField
                         size="small"
                         label={t('forms.editWizard.label')}

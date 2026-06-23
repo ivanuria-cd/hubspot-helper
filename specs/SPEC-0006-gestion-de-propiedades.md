@@ -1162,3 +1162,23 @@ hojas globales `00_Portada`/`01_Indice`/`02_Origenes` y un **bloque por objeto c
 wrap, anchos fijos) lo aporta `buildStyleRequests` (`sheets-style.ts`, SPEC-0012 §3.1). El documento de estado
 companion y su round-trip (SPEC-0004 §15.5) no cambian. Tests: `sheets-model.spec.ts` y `sheets-writer.spec.ts`
 actualizados (autorizado por SPEC-0012 §6/§11).
+
+---
+
+## 31. Adopción de tooltips i18n en campos rellenables (SPEC-0002 §18) (IMPLEMENTADO, 2026-06-23)
+
+Las superficies con campos rellenables adoptan el patrón de **[SPEC-0002 §18](SPEC-0002-app-shell.md)** (norma en
+**[SPEC-0000 §3](SPEC-0000-normas-del-proyecto.md)**): cada campo lleva un `FieldTooltip` con texto i18n,
+asociado por `aria-describedby` (en campos repetidos dentro de `.map` se usa `FieldTooltip` directo, sin el hook,
+por las reglas de hooks). Cobertura:
+
+- **`EntryWizard`** — nombre, modo HubSpot, selector de propiedad, grupo, origen, objeto/campo de origen, tipología,
+  valor verdadero/falso, notas, y «Opciones avanzadas» (§25.7): formato de número (moneda/porcentaje/duración),
+  símbolo de moneda, propiedad de moneda, formato de texto, fórmula de cálculo, valor único y sensibilidad. Claves
+  `properties.wizard.fieldHelp.*` y `properties.advanced.fieldHelp.*`.
+- **`OptionsDialog`** (§25.8) — etiqueta/valor de cada opción (`properties.wizard.fieldHelp.optionLabel/optionValue`).
+- **`SourceOptionsDialog`** — valor origen/HubSpot del mapeo (reutiliza `optionValue`/`optionLabel`).
+- **`OriginsModal`** — nombre, tipo, descripción y nombre de objeto (`properties.originsModal.fieldHelp.*`).
+- **`EntryPanel`** — sin cambios: es de solo lectura (no tiene campos rellenables).
+
+Claves en `es`/`ca`/`eu`/`en`. typecheck/test en máquina.

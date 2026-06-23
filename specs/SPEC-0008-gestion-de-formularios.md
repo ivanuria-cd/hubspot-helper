@@ -767,3 +767,25 @@ de portada, cabeceras `#090017` + texto blanco, congelado fila/columna, notas po
 y el Doc de estado el estilado de portada de `cover-template.ts`. El layout de hojas (`buildFormsTabs`) no
 cambia estructuralmente (la separación por objeto de SPEC-0012 §2.3 aplica solo al mapa de propiedades), por lo
 que `FORMS_SHEETS_SCHEMA_VERSION` se mantiene. Sin cambios en el round-trip (SPEC-0004 §15.5).
+
+---
+
+## 28. Adopción de tooltips i18n en campos rellenables (SPEC-0002 §18) (IMPLEMENTADO, 2026-06-23)
+
+Las superficies con campos rellenables adoptan el patrón de **[SPEC-0002 §18](SPEC-0002-app-shell.md)** (norma en
+**[SPEC-0000 §3](SPEC-0000-normas-del-proyecto.md)**): cada campo lleva un `FieldTooltip` con texto i18n,
+asociado por `aria-describedby`. En las tablas de campos repetidos el `FieldTooltip` se coloca en la **cabecera de
+columna** (se renderiza una vez y cubre la columna), respetando las reglas de hooks. Cobertura:
+
+- **`NewFormWizard`** — nombre, objeto, orígenes y columnas de campos (etiqueta, tipo, requerido, oculto).
+  Claves `forms.wizard.fieldHelp.*`.
+- **`EditFormWizard`** (§21) — nombre, columnas de campos (nombre interno, etiqueta, tipo, requerido, oculto), texto
+  del botón de envío, y consentimiento legal (§24: tipo de consentimiento, privacidad, consentimiento de
+  tratamiento/comunicaciones, tipo de suscripción). Claves `forms.editWizard.fieldHelp.*`.
+- **`LinkOriginModal`** (§22) — objeto y orígenes (`forms.linkModal.fieldHelp.*`).
+
+Claves en `es`/`ca`/`eu`/`en`. typecheck/test en máquina.
+
+> Nota: existen dos secciones numeradas «§27» en este SPEC (estados de carga, BORRADOR; e identidad visual,
+> IMPLEMENTADO). Es una errata de numeración preexistente; se mantiene y solo se señala. Esta sección continúa
+> como §28.

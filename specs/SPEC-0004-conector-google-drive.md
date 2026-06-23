@@ -887,3 +887,14 @@ y (opcional) `drive.refresh.upToDate`.
 - i18n `drive.refresh.updated` / `drive.refresh.error` en `es/ca/eu/en`.
 - Verificación (sandbox): `drive-refresh.spec.ts` 5/5; suites de `connectors/google-drive` + `shared` 72/72;
   `tsc --noEmit` 0 errores. Suite completa + e2e + PR en la máquina del usuario.
+
+---
+
+## 20. Adopción de tooltips i18n en campos rellenables (SPEC-0002 §18) (IMPLEMENTADO, 2026-06-23)
+
+`GoogleCredentialsCard` (en `GoogleDriveConnectorScreen`) adopta el patrón de
+**[SPEC-0002 §18](SPEC-0002-app-shell.md)** (norma en **[SPEC-0000 §3](SPEC-0000-normas-del-proyecto.md)**): cada
+campo rellenable lleva un `FieldTooltip` con texto i18n, asociado por `aria-describedby`. Campos: Client ID
+(`gdrive.credentials.fieldHelp.clientId`) y Client Secret (`gdrive.credentials.fieldHelp.clientSecret`) — qué son
+y de dónde se obtienen en Google Cloud Console —, en `es`/`ca`/`eu`/`en`. El selector de carpeta (§14) no es un
+campo de texto rellenable. typecheck/test en máquina.

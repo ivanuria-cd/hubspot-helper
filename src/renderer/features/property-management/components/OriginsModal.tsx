@@ -9,6 +9,7 @@ import {
   DialogTitle,
   Divider,
   IconButton,
+  InputAdornment,
   MenuItem,
   Stack,
   TextField,
@@ -17,7 +18,7 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useTranslation } from 'react-i18next';
 import type { DataOrigin, OriginType } from '@shared/types/properties';
-import { useConfirm } from '@shared/components/feedback';
+import { useConfirm, useFieldHelp } from '@shared/components/feedback';
 
 const ORIGIN_TYPES: OriginType[] = ['integration', 'migration', 'user', 'workflow'];
 
@@ -38,6 +39,7 @@ function OriginObjects({
   onUpdate: (origin: DataOrigin) => Promise<void>;
 }): JSX.Element {
   const { t } = useTranslation('common');
+  const objectNameHelp = useFieldHelp('properties.originsModal.fieldHelp.objectName');
   const [objectName, setObjectName] = useState('');
   const objects = origin.objects ?? [];
 
@@ -77,6 +79,8 @@ function OriginObjects({
           label={t('properties.originsModal.objectName')}
           value={objectName}
           onChange={(event) => setObjectName(event.target.value)}
+          inputProps={{ 'aria-describedby': objectNameHelp.describedById }}
+          InputProps={{ endAdornment: <InputAdornment position="end">{objectNameHelp.tooltip}</InputAdornment> }}
         />
         <Button size="small" variant="outlined" onClick={addObject} disabled={!objectName.trim()}>
           {t('properties.originsModal.addObject')}
@@ -96,6 +100,9 @@ export function OriginsModal({
 }: OriginsModalProps): JSX.Element {
   const { t } = useTranslation('common');
   const askConfirm = useConfirm();
+  const nameHelp = useFieldHelp('properties.originsModal.fieldHelp.name');
+  const typeHelp = useFieldHelp('properties.originsModal.fieldHelp.type');
+  const descriptionHelp = useFieldHelp('properties.originsModal.fieldHelp.description');
   const [name, setName] = useState('');
   const [type, setType] = useState<OriginType>('integration');
   const [description, setDescription] = useState('');
@@ -150,15 +157,36 @@ export function OriginsModal({
           {t('properties.originsModal.add')}
         </Typography>
         <Stack spacing={2}>
-          <TextField label={t('properties.originsModal.name')} value={name} onChange={(e) => setName(e.target.value)} fullWidth />
-          <TextField select label={t('properties.originsModal.type')} value={type} onChange={(e) => setType(e.target.value as OriginType)} fullWidth>
+          <TextField
+            label={t('properties.originsModal.name')}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            fullWidth
+            inputProps={{ 'aria-describedby': nameHelp.describedById }}
+            InputProps={{ endAdornment: <InputAdornment position="end">{nameHelp.tooltip}</InputAdornment> }}
+          />
+          <TextField
+            select
+            label={t('properties.originsModal.type')}
+            value={type}
+            onChange={(e) => setType(e.target.value as OriginType)}
+            fullWidth
+            InputProps={{ endAdornment: <InputAdornment position="end" sx={{ mr: 2 }}>{typeHelp.tooltip}</InputAdornment> }}
+          >
             {ORIGIN_TYPES.map((value) => (
               <MenuItem key={value} value={value}>
                 {t(`properties.originsModal.types.${value}`)}
               </MenuItem>
             ))}
           </TextField>
-          <TextField label={t('properties.originsModal.description')} value={description} onChange={(e) => setDescription(e.target.value)} fullWidth />
+          <TextField
+            label={t('properties.originsModal.description')}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            fullWidth
+            inputProps={{ 'aria-describedby': descriptionHelp.describedById }}
+            InputProps={{ endAdornment: <InputAdornment position="end">{descriptionHelp.tooltip}</InputAdornment> }}
+          />
           <Button variant="outlined" onClick={handleAdd} disabled={!name.trim()}>
             {t('properties.originsModal.add')}
           </Button>

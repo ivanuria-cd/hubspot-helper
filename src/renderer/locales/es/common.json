@@ -98,7 +98,10 @@
     "copyConfig": "Copiar configuración",
     "regenerateTitle": "Regenerar token",
     "regenerateBody": "Al regenerar el token se invalidará el actual y se cerrará toda sesión MCP activa. ¿Continuar?",
-    "tokenRegenerated": "Token regenerado."
+    "tokenRegenerated": "Token regenerado.",
+    "fieldHelp": {
+      "token": "Token local que los clientes MCP (Claude Desktop, Cursor) usan para autenticarse contra este servidor. Mantenlo privado; regéneralo si se filtra."
+    }
   },
   "hubspot": {
     "title": "Conectores / HubSpot",
@@ -118,7 +121,11 @@
     "loading": "Comprobando conexión…",
     "saveSuccess": "Conectado correctamente a {{portal}}.",
     "saveError": "No se pudo conectar: {{error}}",
-    "tokenSaved": "Conexión guardada."
+    "tokenSaved": "Conexión guardada.",
+    "fieldHelp": {
+      "token": "Token de la Private App de HubSpot. Requiere los scopes de CRM (propiedades, objetos y formularios). Se obtiene en Configuración → Integraciones → Private Apps. Se guarda cifrado y nunca se muestra.",
+      "environment": "Elige el portal a conectar: Producción o Sandbox. Cada entorno guarda su propio token de forma independiente."
+    }
   },
   "gdrive": {
     "title": "Conectores / Google Drive",
@@ -161,6 +168,10 @@
       "saved": "Credenciales guardadas.",
       "cleared": "Credenciales borradas; se usará el .env si existe.",
       "error": "No se pudieron guardar las credenciales.",
+      "fieldHelp": {
+        "clientId": "ID de cliente OAuth del proyecto en Google Cloud Console (APIs y servicios → Credenciales). Es obligatorio para autorizar el acceso a Drive.",
+        "clientSecret": "Secreto de cliente OAuth. Solo es necesario en apps de escritorio que lo exijan; déjalo vacío si no aplica."
+      },
       "source": {
         "app": "App",
         "env": ".env"
@@ -315,7 +326,13 @@
       "objects": "Objetos del origen",
       "addObject": "Añadir objeto",
       "objectName": "Nombre del objeto",
-      "noObjects": "Sin objetos"
+      "noObjects": "Sin objetos",
+      "fieldHelp": {
+        "name": "Nombre identificativo del origen de datos.",
+        "type": "Naturaleza del origen: integración, migración, usuario o workflow.",
+        "description": "Descripción del origen y de qué datos aporta.",
+        "objectName": "Objeto de HubSpot al que afecta este origen."
+      }
     },
     "changes": {
       "title": "Propiedades / Cambios pendientes",
@@ -386,7 +403,22 @@
       "pasteHint": "Un valor por línea (valor = etiqueta). Para «etiqueta + valor», indica el separador.",
       "separator": "Separador (opcional)",
       "bulkList": "Listado",
-      "bulkApply": "Añadir al listado"
+      "bulkApply": "Añadir al listado",
+      "fieldHelp": {
+        "name": "Nombre descriptivo de la entrada en el mapa de propiedades. Solo identifica la entrada localmente; no se envía a HubSpot.",
+        "hubspotMode": "Indica si la propiedad ya existe en HubSpot o si es nueva y se creará al aplicar el cambio.",
+        "selectProperty": "Propiedad de HubSpot a la que apunta esta entrada. Filtra por nombre para localizarla.",
+        "group": "Grupo de propiedades de HubSpot donde se ubicará. Puedes crear uno nuevo si no existe.",
+        "origin": "Sistema o proceso del que proviene el dato (integración, migración, usuario o workflow).",
+        "sourceField": "Nombre del campo en el origen que alimenta esta propiedad.",
+        "kind": "Tipología del dato (número, texto, booleano, opciones limitadas o memo); condiciona el tipo en HubSpot.",
+        "sourceObject": "Objeto del origen al que pertenece el campo de procedencia.",
+        "truthy": "Valor del origen que se interpreta como verdadero.",
+        "falsy": "Valor del origen que se interpreta como falso.",
+        "optionLabel": "Texto visible de la opción para el usuario final.",
+        "optionValue": "Valor interno almacenado en HubSpot para la opción.",
+        "notes": "Anotaciones internas sobre el mapeo. No se envían a HubSpot."
+      }
     },
     "newProp": {
       "hubspotName": "Nombre técnico (HubSpot)",
@@ -427,7 +459,17 @@
       "calculationHelp": "Sintaxis de la API de HubSpot (p. ej. closed - started).",
       "dataSensitivity": "Sensibilidad del dato",
       "hasUniqueValue": "Valor único (no editable tras crear)",
-      "none": "(sin formato)"
+      "none": "(sin formato)",
+      "fieldHelp": {
+        "description": "Descripción de la propiedad que se mostrará en HubSpot.",
+        "numberDisplayHint": "Cómo se presenta el número en HubSpot (sin formato, moneda, porcentaje, duración, etc.).",
+        "showCurrencySymbol": "Muestra el símbolo de moneda junto al valor cuando el formato es monetario.",
+        "currencyPropertyName": "Propiedad de moneda relacionada que determina la divisa a mostrar.",
+        "textDisplayHint": "Formato del texto en HubSpot (simple, multilínea, email, teléfono, etc.).",
+        "calculationFormula": "Fórmula de cálculo con la sintaxis de la API de HubSpot (p. ej. closed - started).",
+        "dataSensitivity": "Nivel de sensibilidad del dato; afecta a su tratamiento y visibilidad en HubSpot.",
+        "hasUniqueValue": "Obliga a que el valor sea único entre registros. No se puede modificar tras crear la propiedad."
+      }
     },
     "numberHints": {
       "unformatted": "Sin formato",
@@ -527,7 +569,23 @@
       "searchable": "Búsqueda",
       "associations": "Asociaciones",
       "cancel": "Cancelar",
-      "save": "Guardar"
+      "save": "Guardar",
+      "fieldHelp": {
+        "name": "Nombre interno del objeto: solo minúsculas, números y guiones bajos; empieza por letra. No se puede cambiar tras crearlo.",
+        "singular": "Etiqueta en singular que verá el usuario (p. ej. «Pedido»).",
+        "plural": "Etiqueta en plural que verá el usuario (p. ej. «Pedidos»).",
+        "description": "Descripción del objeto custom y su propósito.",
+        "propName": "Nombre interno de la propiedad: minúsculas, números y guiones bajos.",
+        "propLabel": "Etiqueta visible de la propiedad.",
+        "propType": "Tipología del dato de la propiedad.",
+        "propFieldType": "Tipo de campo con que se introduce el dato en HubSpot.",
+        "unique": "La propiedad debe tener un valor único entre registros.",
+        "primary": "Propiedad principal que identifica y muestra cada registro del objeto.",
+        "required": "Propiedades de obligado relleno al crear un registro.",
+        "secondary": "Propiedades secundarias mostradas en las vistas del objeto.",
+        "searchable": "Propiedades por las que se podrá buscar registros.",
+        "associations": "Otros objetos con los que este objeto puede asociarse."
+      }
     },
     "archiveConfirmTitle": "Archivar objeto",
     "archiveConfirmBody": "Archivar requiere borrar antes los registros y propiedades del objeto en HubSpot. ¿Continuar?",
@@ -604,7 +662,21 @@
       "addCheckbox": "Añadir casilla",
       "noSubscriptions": "No hay tipos de suscripción de Email en el portal.",
       "cancel": "Cancelar",
-      "save": "Guardar cambios"
+      "save": "Guardar cambios",
+      "fieldHelp": {
+        "name": "Nombre del formulario en HubSpot.",
+        "fieldName": "Nombre interno del campo (propiedad de HubSpot asociada).",
+        "label": "Texto visible de la etiqueta del campo.",
+        "fieldType": "Tipo de campo (texto, desplegable, fecha, casilla, etc.).",
+        "required": "Marca el campo como de obligado relleno.",
+        "hidden": "Oculta el campo en el formulario (se envía pero no se muestra).",
+        "consentType": "Tipo de base legal para el tratamiento de datos del formulario (sin consentimiento, interés legítimo o consentimiento explícito).",
+        "submitButton": "Texto del botón con el que el usuario envía el formulario.",
+        "privacyText": "Texto legal de privacidad mostrado en el formulario.",
+        "consentToProcessText": "Texto del consentimiento para el tratamiento de los datos.",
+        "communicationConsentText": "Texto del consentimiento para recibir comunicaciones.",
+        "subscriptionType": "Tipo de suscripción de Email asociado a la casilla de comunicación."
+      }
     },
     "linkModal": {
       "title": "Asociar a origen",
@@ -612,7 +684,11 @@
       "origins": "Orígenes",
       "noOrigins": "No hay orígenes definidos.",
       "cancel": "Cancelar",
-      "save": "Guardar"
+      "save": "Guardar",
+      "fieldHelp": {
+        "object": "Objeto de HubSpot al que pertenece el origen que se va a asociar.",
+        "origins": "Orígenes que se asocian al formulario para evaluar la cobertura de campos."
+      }
     },
     "wizard": {
       "title": "Crear formulario",
@@ -627,7 +703,16 @@
       "required": "Obligatorio",
       "hidden": "Oculto",
       "cancel": "Cancelar",
-      "create": "Crear"
+      "create": "Crear",
+      "fieldHelp": {
+        "name": "Nombre del formulario para identificarlo en HubSpot.",
+        "object": "Objeto de HubSpot sobre el que el formulario crea o actualiza registros.",
+        "origins": "Orígenes que preseleccionan los campos esperados del formulario.",
+        "label": "Texto visible de la etiqueta del campo para el usuario.",
+        "fieldType": "Tipo de campo (texto, desplegable, fecha, casilla, etc.).",
+        "required": "Marca el campo como de obligado relleno para enviar el formulario.",
+        "hidden": "Oculta el campo en el formulario (se envía pero no se muestra)."
+      }
     },
     "changes": {
       "title": "Formularios / Cambios pendientes",

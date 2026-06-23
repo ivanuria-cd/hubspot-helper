@@ -522,3 +522,64 @@ abrir; por tanto abren al instante y no requieren indicador de carga. Las única
 carga asíncrona eran las 8 pantallas + `FolderPickerDialog` + `EntryWizard`, todas cubiertas. Queda como mejora
 opcional el estado «ocupado» en submits asíncronos de `OriginsModal`/`EntryPanel`/`NewProjectDialog` (el
 feedback de resultado ya lo da el Snackbar de la pantalla). typecheck/test en máquina.
+
+---
+
+## 18. Tooltip de ayuda en campos rellenables (IMPLEMENTADO, 2026-06-23)
+
+**Origen:** norma transversal de i18n/a11y — todo campo que el usuario deba rellenar debe explicar su función.
+Regla en **[SPEC-0000 §3](SPEC-0000-normas-del-proyecto.md)**. Patrón y componente compartido definidos aquí
+(App Shell, hogar de los componentes compartidos junto a Snackbar §10, ConfirmDialog §11 y `LoadingState` §17);
+cada SPEC de característica lo **adopta** en sus formularios y asistentes.
+
+### 18.1 Principio
+
+Cada campo de entrada de datos lleva un tooltip que describe **para qué sirve** (no repite la etiqueta). El texto
+vive en i18n por `locale/feature` en los cuatro idiomas (`es` canónico, `ca`, `eu`, `en`); **prohibido texto
+literal**. La etiqueta del campo y el tooltip son claves distintas (p. ej. `…​.field.label` y `…​.field.help`).
+
+### 18.2 Componente compartido (`renderer/shared/components/feedback/`)
+
+- **`<FieldTooltip helpKey=… />`** — icono de ayuda (MUI `HelpOutline` dentro de `Tooltip`) que resuelve el texto
+  con `react-i18next` a partir de `helpKey`. Pensado para colocarse en el `label`/`InputAdornment`/`FormLabel` del
+  campo. No introduce texto literal: solo recibe la clave.
+- **`useFieldHelp(helpKey)`** (opcional) — helper que devuelve `{ 'aria-describedby', tooltipProps }` para enlazar
+  el tooltip con el control vía un `id` estable, de modo que el campo quede asociado por `aria-describedby`.
+
+### 18.3 Accesibilidad (refuerza SPEC-0000 §3)
+
+- El control se asocia a la descripción con `aria-describedby` (o el campo expone `aria-label`/`title` cuando no
+  haya icono visible). El lector de pantalla anuncia la ayuda junto al campo.
+- El disparador del tooltip es **operable por teclado**: recibe foco, abre con foco/hover y cierra con `Esc`; no
+  depende solo del puntero. Contraste e iconografía cumplen AA.
+- El tooltip es complementario: la información esencial no queda **solo** dentro del tooltip si es necesaria para
+  completar el campo correctamente.
+
+### 18.4 Inventario de superficies a cubrir
+
+Formularios y asistentes con campos rellenables: `HubSpotConnectorScreen` (SPEC-0003), `GoogleDriveConnectorScreen`
+(SPEC-0004), `McpSettingsScreen` (SPEC-0005); `EntryWizard`, `OptionsDialog`, `SourceOptionsDialog`, `OriginsModal`,
+`EntryPanel` (SPEC-0006); `ObjectWizard` (SPEC-0007); `NewFormWizard`, `EditFormWizard`, `LinkOriginModal`
+(SPEC-0008); `NewProjectDialog` (SPEC-0002). Cada uno se marca como adoptado en su SPEC propietario.
+
+### 18.5 Tests
+
+- `FieldTooltip.spec.tsx`: renderiza el texto resuelto por i18n (no literal), expone el `aria-describedby` al
+  control y es operable por teclado. Nota jsdom: el `Tooltip` de MUI no se abre con `focus` programático
+  (detección `focus-visible`), por lo que el test comprueba el foco por teclado y abre el tooltip con `mouseOver`
+  verificando el elemento con rol `tooltip`.
+- Por superficie: cada campo rellenable tiene `helpKey` y el control queda asociado por `aria-describedby`. A11y
+  con `@axe-core/playwright`.
+
+### 18.6 Estado
+
+IMPLEMENTADO (2026-06-23). Componente compartido `FieldTooltip` + hook `useFieldHelp` en
+`renderer/shared/components/feedback/` (icono `HelpOutline` en `Tooltip`, operable por teclado, descripción oculta
+enlazable por `aria-describedby`), exportados en `feedback/index.ts`; test `FieldTooltip.spec.tsx` (resuelve i18n,
+expone `aria-describedby`, abre con foco). Claves i18n bajo `<superficie>.fieldHelp.<campo>` en los cuatro idiomas
+(`es` canónico; `ca`/`eu`/`en` traducidos). Adoptado en las superficies de §18.4. Verificación: JSON de los cuatro
+locales validado (parseo correcto). typecheck/test/e2e + PR en máquina.
+
+> Nota de convención: las claves usan el contenedor `fieldHelp` (no `help`) para evitar colisión con el `help`
+> de tutoriales (top-level) y con `gdrive.credentials.help` ya existente. Esto matiza la nomenclatura
+> `…​.<campo>.help` que anticipaban los registros de adopción de las features.

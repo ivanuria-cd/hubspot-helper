@@ -93,7 +93,10 @@
     "copyConfig": "Copy configuration",
     "regenerateTitle": "Regenerate token",
     "regenerateBody": "Regenerating the token invalidates the current one and ends every active MCP session. Continue?",
-    "tokenRegenerated": "Token regenerated."
+    "tokenRegenerated": "Token regenerated.",
+    "fieldHelp": {
+      "token": "Local token that MCP clients (Claude Desktop, Cursor) use to authenticate against this server. Keep it private; regenerate it if it leaks."
+    }
   },
   "hubspot": {
     "title": "Connectors / HubSpot",
@@ -113,7 +116,11 @@
     "loading": "Checking connection…",
     "saveSuccess": "Successfully connected to {{portal}}.",
     "saveError": "Could not connect: {{error}}",
-    "tokenSaved": "Connection saved."
+    "tokenSaved": "Connection saved.",
+    "fieldHelp": {
+      "token": "HubSpot Private App token. It requires the CRM scopes (properties, objects and forms). You get it in Settings → Integrations → Private Apps. It is stored encrypted and never shown.",
+      "environment": "Choose the portal to connect: Production or Sandbox. Each environment stores its own token independently."
+    }
   },
   "gdrive": {
     "title": "Connectors / Google Drive",
@@ -156,6 +163,10 @@
       "saved": "Credentials saved.",
       "cleared": "Credentials cleared; .env will be used if present.",
       "error": "Could not save credentials.",
+      "fieldHelp": {
+        "clientId": "OAuth client ID of the project in Google Cloud Console (APIs & Services → Credentials). It is required to authorize access to Drive.",
+        "clientSecret": "OAuth client secret. Only needed for desktop apps that require it; leave it empty if it does not apply."
+      },
       "source": {
         "app": "App",
         "env": ".env"
@@ -303,6 +314,12 @@
         "migration": "Migration",
         "user": "User",
         "workflow": "Workflow"
+      },
+      "fieldHelp": {
+        "name": "Identifying name of the data origin.",
+        "type": "Nature of the origin: integration, migration, user or workflow.",
+        "description": "Description of the origin and which data it provides.",
+        "objectName": "HubSpot object affected by this origin."
       }
     },
     "changes": {
@@ -331,6 +348,23 @@
     "fieldTypes": {
       "calculation_equation": "Calculation (formula)"
     },
+    "wizard": {
+      "fieldHelp": {
+        "name": "Descriptive name of the entry in the property map. It only identifies the entry locally; it is not sent to HubSpot.",
+        "hubspotMode": "Indicates whether the property already exists in HubSpot or whether it is new and will be created when the change is applied.",
+        "selectProperty": "HubSpot property this entry points to. Filter by name to locate it.",
+        "group": "HubSpot property group where it will be placed. You can create a new one if it does not exist.",
+        "origin": "System or process the data comes from (integration, migration, user or workflow).",
+        "sourceField": "Name of the field in the origin that feeds this property.",
+        "kind": "Data type (number, text, boolean, limited options or memo); it determines the type in HubSpot.",
+        "sourceObject": "Origin object the source field belongs to.",
+        "truthy": "Origin value interpreted as true.",
+        "falsy": "Origin value interpreted as false.",
+        "optionLabel": "Visible text of the option for the end user.",
+        "optionValue": "Internal value stored in HubSpot for the option.",
+        "notes": "Internal notes about the mapping. They are not sent to HubSpot."
+      }
+    },
     "advanced": {
       "section": "Advanced options",
       "description": "Description",
@@ -342,7 +376,17 @@
       "calculationHelp": "HubSpot API syntax (e.g. closed - started).",
       "dataSensitivity": "Data sensitivity",
       "hasUniqueValue": "Unique value (cannot be changed after creation)",
-      "none": "(no format)"
+      "none": "(no format)",
+      "fieldHelp": {
+        "description": "Description of the property that will be shown in HubSpot.",
+        "numberDisplayHint": "How the number is presented in HubSpot (unformatted, currency, percentage, duration, etc.).",
+        "showCurrencySymbol": "Shows the currency symbol next to the value when the format is monetary.",
+        "currencyPropertyName": "Related currency property that determines the currency to display.",
+        "textDisplayHint": "Text format in HubSpot (plain, multi-line, email, phone, etc.).",
+        "calculationFormula": "Calculation formula using the HubSpot API syntax (e.g. closed - started).",
+        "dataSensitivity": "Sensitivity level of the data; it affects its handling and visibility in HubSpot.",
+        "hasUniqueValue": "Forces the value to be unique across records. It cannot be changed after the property is created."
+      }
     },
     "numberHints": {
       "unformatted": "Unformatted",
@@ -442,7 +486,23 @@
       "searchable": "Searchable",
       "associations": "Associations",
       "cancel": "Cancel",
-      "save": "Save"
+      "save": "Save",
+      "fieldHelp": {
+        "name": "Internal name of the object: lowercase letters, numbers and underscores only; must start with a letter. Cannot be changed after it is created.",
+        "singular": "Singular label the user will see (e.g. \"Order\").",
+        "plural": "Plural label the user will see (e.g. \"Orders\").",
+        "description": "Description of the custom object and its purpose.",
+        "propName": "Internal name of the property: lowercase letters, numbers and underscores.",
+        "propLabel": "Visible label of the property.",
+        "propType": "Data type of the property.",
+        "propFieldType": "Field type used to enter the data in HubSpot.",
+        "unique": "The property must have a unique value across records.",
+        "primary": "Main property that identifies and displays each record of the object.",
+        "required": "Properties that are mandatory when creating a record.",
+        "secondary": "Secondary properties shown in the object's views.",
+        "searchable": "Properties that records can be searched by.",
+        "associations": "Other objects this object can be associated with."
+      }
     },
     "archiveConfirmTitle": "Archive object",
     "archiveConfirmBody": "Archiving requires first deleting the object's records and properties in HubSpot. Continue?",
@@ -519,7 +579,21 @@
       "addCheckbox": "Add checkbox",
       "noSubscriptions": "No Email subscription types in the portal.",
       "cancel": "Cancel",
-      "save": "Save changes"
+      "save": "Save changes",
+      "fieldHelp": {
+        "name": "Name of the form in HubSpot.",
+        "fieldName": "Internal name of the field (associated HubSpot property).",
+        "label": "Visible text of the field's label.",
+        "fieldType": "Field type (text, dropdown, date, checkbox, etc.).",
+        "required": "Marks the field as mandatory.",
+        "hidden": "Hides the field in the form (it is submitted but not shown).",
+        "consentType": "Legal basis for processing the form's data (no consent, legitimate interest, or explicit consent).",
+        "submitButton": "Text of the button the user submits the form with.",
+        "privacyText": "Legal privacy text shown in the form.",
+        "consentToProcessText": "Text of the consent to process the data.",
+        "communicationConsentText": "Text of the consent to receive communications.",
+        "subscriptionType": "Email subscription type associated with the communication checkbox."
+      }
     },
     "linkModal": {
       "title": "Link to origin",
@@ -527,7 +601,11 @@
       "origins": "Origins",
       "noOrigins": "No origins defined.",
       "cancel": "Cancel",
-      "save": "Save"
+      "save": "Save",
+      "fieldHelp": {
+        "object": "HubSpot object the origin to be linked belongs to.",
+        "origins": "Origins linked to the form to evaluate field coverage."
+      }
     },
     "wizard": {
       "title": "Create form",
@@ -542,7 +620,16 @@
       "required": "Required",
       "hidden": "Hidden",
       "cancel": "Cancel",
-      "create": "Create"
+      "create": "Create",
+      "fieldHelp": {
+        "name": "Name of the form to identify it in HubSpot.",
+        "object": "HubSpot object the form creates or updates records on.",
+        "origins": "Origins that preselect the form's expected fields.",
+        "label": "Visible text of the field's label for the user.",
+        "fieldType": "Field type (text, dropdown, date, checkbox, etc.).",
+        "required": "Marks the field as mandatory to submit the form.",
+        "hidden": "Hides the field in the form (it is submitted but not shown)."
+      }
     },
     "changes": {
       "title": "Forms / Pending changes",

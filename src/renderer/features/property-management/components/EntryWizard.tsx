@@ -12,6 +12,7 @@ import {
   Divider,
   FormControlLabel,
   IconButton,
+  InputAdornment,
   LinearProgress,
   MenuItem,
   Stack,
@@ -25,6 +26,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { OptionsDialog } from './OptionsDialog';
 import { SourceOptionsDialog } from './SourceOptionsDialog';
+import { FieldTooltip, useFieldHelp } from '@shared/components/feedback';
 import { useTranslation } from 'react-i18next';
 import type {
   DataOrigin,
@@ -118,6 +120,7 @@ export function EntryWizard({
   onSubmit,
 }: EntryWizardProps): JSX.Element {
   const { t } = useTranslation('common');
+  const nameHelp = useFieldHelp('properties.wizard.fieldHelp.name');
   const [name, setName] = useState('');
   const [mode, setMode] = useState<'existing' | 'new'>('existing');
   const [existingName, setExistingName] = useState('');
@@ -238,9 +241,19 @@ export function EntryWizard({
   const definitionEditor = (editableName: boolean): JSX.Element => (
     <Stack spacing={1.5}>
       {editableName ? (
-        <TextField label={t('properties.newProp.hubspotName')} value={def.hubspotName} onChange={(e) => setDef({ ...def, hubspotName: e.target.value })} />
+        <TextField
+          label={t('properties.newProp.hubspotName')}
+          value={def.hubspotName}
+          onChange={(e) => setDef({ ...def, hubspotName: e.target.value })}
+          InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.wizard.fieldHelp.selectProperty" /></InputAdornment> }}
+        />
       ) : null}
-      <TextField label={t('properties.newProp.label')} value={def.label} onChange={(e) => setDef({ ...def, label: e.target.value })} />
+      <TextField
+        label={t('properties.newProp.label')}
+        value={def.label}
+        onChange={(e) => setDef({ ...def, label: e.target.value })}
+        InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.wizard.fieldHelp.selectProperty" /></InputAdornment> }}
+      />
       <TextField
         select
         label={t('properties.newProp.type')}
@@ -249,6 +262,7 @@ export function EntryWizard({
           const type = e.target.value as HsPropertyType;
           setDef({ ...def, type, fieldType: defaultFieldType(type) });
         }}
+        InputProps={{ endAdornment: <InputAdornment position="end" sx={{ mr: 2 }}><FieldTooltip helpKey="properties.wizard.fieldHelp.kind" /></InputAdornment> }}
       >
         {HS_TYPES.map((tp) => (
           <MenuItem key={tp} value={tp}>{tp}</MenuItem>
@@ -262,6 +276,7 @@ export function EntryWizard({
           setDef({ ...def, fieldType: e.target.value });
           if (e.target.value === 'calculation_equation') setAdvOpen(true);
         }}
+        InputProps={{ endAdornment: <InputAdornment position="end" sx={{ mr: 2 }}><FieldTooltip helpKey="properties.wizard.fieldHelp.kind" /></InputAdornment> }}
       >
         {fieldTypeOptions.map((ft) => (
           <MenuItem key={ft} value={ft}>{t(`properties.fieldTypes.${ft}`, { defaultValue: ft })}</MenuItem>
@@ -290,13 +305,14 @@ export function EntryWizard({
         label={t('properties.wizard.group')}
         value={groups.some((g) => g.name === def.groupName) ? def.groupName : ''}
         onChange={(e) => setDef({ ...def, groupName: e.target.value })}
+        InputProps={{ endAdornment: <InputAdornment position="end" sx={{ mr: 2 }}><FieldTooltip helpKey="properties.wizard.fieldHelp.group" /></InputAdornment> }}
       >
         {groups.map((g) => (
           <MenuItem key={g.name} value={g.name}>{g.label}</MenuItem>
         ))}
       </TextField>
       <Stack direction="row" spacing={1}>
-        <TextField size="small" label={t('properties.wizard.newGroupLabel')} value={newGroupLabel} onChange={(e) => setNewGroupLabel(e.target.value)} />
+        <TextField size="small" label={t('properties.wizard.newGroupLabel')} value={newGroupLabel} onChange={(e) => setNewGroupLabel(e.target.value)} InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.wizard.fieldHelp.group" /></InputAdornment> }} />
         <Button size="small" variant="outlined" onClick={createGroup} disabled={!newGroupLabel.trim()}>
           {t('properties.wizard.createGroup')}
         </Button>
@@ -314,6 +330,7 @@ export function EntryWizard({
               onChange={(e) => setDef({ ...def, description: e.target.value || undefined })}
               multiline
               minRows={2}
+              InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.advanced.fieldHelp.description" /></InputAdornment> }}
             />
 
             {def.type === 'number' ? (
@@ -330,6 +347,7 @@ export function EntryWizard({
                       ...(hint === 'currency' ? {} : { showCurrencySymbol: undefined, currencyPropertyName: undefined }),
                     });
                   }}
+                  InputProps={{ endAdornment: <InputAdornment position="end" sx={{ mr: 2 }}><FieldTooltip helpKey="properties.advanced.fieldHelp.numberDisplayHint" /></InputAdornment> }}
                 >
                   <MenuItem value="">{t('properties.advanced.none')}</MenuItem>
                   {NUMBER_DISPLAY_HINTS.map((h) => (
@@ -338,19 +356,23 @@ export function EntryWizard({
                 </TextField>
                 {def.numberDisplayHint === 'currency' ? (
                   <>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={Boolean(def.showCurrencySymbol)}
-                          onChange={(e) => setDef({ ...def, showCurrencySymbol: e.target.checked })}
-                        />
-                      }
-                      label={t('properties.advanced.showCurrencySymbol')}
-                    />
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={Boolean(def.showCurrencySymbol)}
+                            onChange={(e) => setDef({ ...def, showCurrencySymbol: e.target.checked })}
+                          />
+                        }
+                        label={t('properties.advanced.showCurrencySymbol')}
+                      />
+                      <FieldTooltip helpKey="properties.advanced.fieldHelp.showCurrencySymbol" />
+                    </Stack>
                     <TextField
                       label={t('properties.advanced.currencyPropertyName')}
                       value={def.currencyPropertyName ?? ''}
                       onChange={(e) => setDef({ ...def, currencyPropertyName: e.target.value || undefined })}
+                      InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.advanced.fieldHelp.currencyPropertyName" /></InputAdornment> }}
                     />
                   </>
                 ) : null}
@@ -365,6 +387,7 @@ export function EntryWizard({
                 onChange={(e) =>
                   setDef({ ...def, textDisplayHint: (e.target.value || undefined) as HubSpotPropertyDef['textDisplayHint'] })
                 }
+                InputProps={{ endAdornment: <InputAdornment position="end" sx={{ mr: 2 }}><FieldTooltip helpKey="properties.advanced.fieldHelp.textDisplayHint" /></InputAdornment> }}
               >
                 <MenuItem value="">{t('properties.advanced.none')}</MenuItem>
                 {TEXT_DISPLAY_HINTS.map((h) => (
@@ -381,6 +404,7 @@ export function EntryWizard({
                 multiline
                 minRows={2}
                 helperText={t('properties.advanced.calculationHelp')}
+                InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.advanced.fieldHelp.calculationFormula" /></InputAdornment> }}
               />
             ) : null}
 
@@ -391,6 +415,7 @@ export function EntryWizard({
               onChange={(e) =>
                 setDef({ ...def, dataSensitivity: (e.target.value || undefined) as HubSpotPropertyDef['dataSensitivity'] })
               }
+              InputProps={{ endAdornment: <InputAdornment position="end" sx={{ mr: 2 }}><FieldTooltip helpKey="properties.advanced.fieldHelp.dataSensitivity" /></InputAdornment> }}
             >
               <MenuItem value="">{t('properties.advanced.none')}</MenuItem>
               {DATA_SENSITIVITIES.map((s) => (
@@ -399,15 +424,18 @@ export function EntryWizard({
             </TextField>
 
             {editableName ? (
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={Boolean(def.hasUniqueValue)}
-                    onChange={(e) => setDef({ ...def, hasUniqueValue: e.target.checked })}
-                  />
-                }
-                label={t('properties.advanced.hasUniqueValue')}
-              />
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={Boolean(def.hasUniqueValue)}
+                      onChange={(e) => setDef({ ...def, hasUniqueValue: e.target.checked })}
+                    />
+                  }
+                  label={t('properties.advanced.hasUniqueValue')}
+                />
+                <FieldTooltip helpKey="properties.advanced.fieldHelp.hasUniqueValue" />
+              </Stack>
             ) : null}
           </Stack>
         </AccordionDetails>
@@ -424,9 +452,19 @@ export function EntryWizard({
           <LinearProgress aria-label={t('common.loading', { defaultValue: 'Cargando…' })} sx={{ mb: 2 }} />
         ) : null}
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField label={t('properties.wizard.name')} value={name} onChange={(e) => setName(e.target.value)} fullWidth />
+          <TextField
+            label={t('properties.wizard.name')}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            fullWidth
+            inputProps={{ 'aria-describedby': nameHelp.describedById }}
+            InputProps={{ endAdornment: <InputAdornment position="end">{nameHelp.tooltip}</InputAdornment> }}
+          />
 
-          <Typography variant="subtitle2">{t('properties.wizard.hubspotMode')}</Typography>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Typography variant="subtitle2">{t('properties.wizard.hubspotMode')}</Typography>
+            <FieldTooltip helpKey="properties.wizard.fieldHelp.hubspotMode" />
+          </Stack>
           <ToggleButtonGroup exclusive size="small" value={mode} onChange={(_e, v) => v && setMode(v)}>
             <ToggleButton value="existing">{t('properties.wizard.existing')}</ToggleButton>
             <ToggleButton value="new">{t('properties.wizard.new')}</ToggleButton>
@@ -441,7 +479,20 @@ export function EntryWizard({
                 value={hsProps.find((p) => p.hubspotName === existingName) ?? null}
                 onChange={(_e, v) => selectExisting(v)}
                 renderInput={(params) => (
-                  <TextField {...params} label={t('properties.wizard.selectProperty')} placeholder={t('properties.wizard.searchProperty')} />
+                  <TextField
+                    {...params}
+                    label={t('properties.wizard.selectProperty')}
+                    placeholder={t('properties.wizard.searchProperty')}
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <Stack direction="row" spacing={0.5} alignItems="center">
+                          {params.InputProps.endAdornment}
+                          <FieldTooltip helpKey="properties.wizard.fieldHelp.selectProperty" />
+                        </Stack>
+                      ),
+                    }}
+                  />
                 )}
                 fullWidth
               />
@@ -477,17 +528,30 @@ export function EntryWizard({
                     value={origins.find((o) => o.id === s.originId) ?? null}
                     onChange={(_e, v) => updateSource(s.id, { originId: v?.id ?? '', originObjectId: '' })}
                     renderInput={(params) => (
-                      <TextField {...params} label={t('properties.wizard.origin')} placeholder={t('properties.wizard.searchOrigin')} />
+                      <TextField
+                        {...params}
+                        label={t('properties.wizard.origin')}
+                        placeholder={t('properties.wizard.searchOrigin')}
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <Stack direction="row" spacing={0.5} alignItems="center">
+                              {params.InputProps.endAdornment}
+                              <FieldTooltip helpKey="properties.wizard.fieldHelp.origin" />
+                            </Stack>
+                          ),
+                        }}
+                      />
                     )}
                     sx={{ minWidth: 180 }}
                   />
-                  <TextField select size="small" label={t('properties.wizard.sourceObject')} value={s.originObjectId} onChange={(e) => updateSource(s.id, { originObjectId: e.target.value })} sx={{ minWidth: 150 }} disabled={originObjects.length === 0}>
+                  <TextField select size="small" label={t('properties.wizard.sourceObject')} value={s.originObjectId} onChange={(e) => updateSource(s.id, { originObjectId: e.target.value })} sx={{ minWidth: 150 }} disabled={originObjects.length === 0} InputProps={{ endAdornment: <InputAdornment position="end" sx={{ mr: 2 }}><FieldTooltip helpKey="properties.wizard.fieldHelp.sourceObject" /></InputAdornment> }}>
                     {originObjects.map((obj) => (
                       <MenuItem key={obj.id} value={obj.id}>{obj.name}</MenuItem>
                     ))}
                   </TextField>
-                  <TextField size="small" label={t('properties.wizard.sourceField')} value={s.sourceField} onChange={(e) => updateSource(s.id, { sourceField: e.target.value })} />
-                  <TextField select size="small" label={t('properties.wizard.kind')} value={s.kind} onChange={(e) => updateSource(s.id, { kind: e.target.value as SourceFieldKind })} sx={{ minWidth: 130 }}>
+                  <TextField size="small" label={t('properties.wizard.sourceField')} value={s.sourceField} onChange={(e) => updateSource(s.id, { sourceField: e.target.value })} InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.wizard.fieldHelp.sourceField" /></InputAdornment> }} />
+                  <TextField select size="small" label={t('properties.wizard.kind')} value={s.kind} onChange={(e) => updateSource(s.id, { kind: e.target.value as SourceFieldKind })} sx={{ minWidth: 130 }} InputProps={{ endAdornment: <InputAdornment position="end" sx={{ mr: 2 }}><FieldTooltip helpKey="properties.wizard.fieldHelp.kind" /></InputAdornment> }}>
                     {KINDS.map((k) => (
                       <MenuItem key={k} value={k}>{t(`properties.kinds.${k}`)}</MenuItem>
                     ))}
@@ -499,8 +563,8 @@ export function EntryWizard({
 
                 {s.kind === 'boolean' ? (
                   <Stack direction="row" spacing={1}>
-                    <TextField size="small" label={t('properties.wizard.truthy')} value={s.truthy} onChange={(e) => updateSource(s.id, { truthy: e.target.value })} />
-                    <TextField size="small" label={t('properties.wizard.falsy')} value={s.falsy} onChange={(e) => updateSource(s.id, { falsy: e.target.value })} />
+                    <TextField size="small" label={t('properties.wizard.truthy')} value={s.truthy} onChange={(e) => updateSource(s.id, { truthy: e.target.value })} InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.wizard.fieldHelp.truthy" /></InputAdornment> }} />
+                    <TextField size="small" label={t('properties.wizard.falsy')} value={s.falsy} onChange={(e) => updateSource(s.id, { falsy: e.target.value })} InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.wizard.fieldHelp.falsy" /></InputAdornment> }} />
                   </Stack>
                 ) : null}
 
@@ -515,7 +579,7 @@ export function EntryWizard({
                   </Stack>
                 ) : null}
 
-                <TextField size="small" label={t('properties.wizard.notes')} value={s.notes} onChange={(e) => updateSource(s.id, { notes: e.target.value })} />
+                <TextField size="small" label={t('properties.wizard.notes')} value={s.notes} onChange={(e) => updateSource(s.id, { notes: e.target.value })} InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.wizard.fieldHelp.notes" /></InputAdornment> }} />
               </Stack>
             );
           })}

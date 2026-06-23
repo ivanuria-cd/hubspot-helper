@@ -93,7 +93,10 @@
     "copyConfig": "Kopiatu konfigurazioa",
     "regenerateTitle": "Tokena birsortu",
     "regenerateBody": "Tokena birsortzean, oraingoa baliogabetu egingo da eta MCP saio aktibo guztiak itxiko dira. Jarraitu nahi duzu?",
-    "tokenRegenerated": "Tokena birsortu da."
+    "tokenRegenerated": "Tokena birsortu da.",
+    "fieldHelp": {
+      "token": "MCP bezeroek (Claude Desktop, Cursor) zerbitzari honetan autentikatzeko erabiltzen duten tokiko tokena. Mantendu pribatu; birsortu filtratzen bada."
+    }
   },
   "hubspot": {
     "title": "Konektoreak / HubSpot",
@@ -113,7 +116,11 @@
     "loading": "Konexioa egiaztatzen…",
     "saveSuccess": "{{portal}} atarira behar bezala konektatuta.",
     "saveError": "Ezin izan da konektatu: {{error}}",
-    "tokenSaved": "Konexioa gordeta."
+    "tokenSaved": "Konexioa gordeta.",
+    "fieldHelp": {
+      "token": "HubSpoteko Private App-aren tokena. CRMeko scope-ak behar ditu (propietateak, objektuak eta inprimakiak). Konfigurazioa → Integrazioak → Private Apps atalean lortzen da. Zifratuta gordetzen da eta ez da inoiz erakusten.",
+      "environment": "Aukeratu konektatu beharreko ataria: Produkzioa edo Sandbox. Ingurune bakoitzak bere tokena modu independentean gordetzen du."
+    }
   },
   "gdrive": {
     "title": "Konektoreak / Google Drive",
@@ -156,6 +163,10 @@
       "saved": "Kredentzialak gordeta.",
       "cleared": "Kredentzialak ezabatuta; .env erabiliko da existitzen bada.",
       "error": "Ezin izan dira kredentzialak gorde.",
+      "fieldHelp": {
+        "clientId": "Google Cloud Console-ko proiektuaren OAuth bezero-IDa (APIak eta zerbitzuak → Kredentzialak). Nahitaezkoa da Driverako sarbidea baimentzeko.",
+        "clientSecret": "OAuth bezero-sekretua. Eskatzen duten mahaigaineko aplikazioetan soilik behar da; utzi hutsik aplikatzen ez bada."
+      },
       "source": {
         "app": "App",
         "env": ".env"
@@ -303,6 +314,12 @@
         "migration": "Migrazioa",
         "user": "Erabiltzailea",
         "workflow": "Workflow"
+      },
+      "fieldHelp": {
+        "name": "Datu-jatorria identifikatzeko izena.",
+        "type": "Jatorriaren izaera: integrazioa, migrazioa, erabiltzailea edo workflow.",
+        "description": "Jatorriaren deskribapena eta zer datu ekartzen dituen.",
+        "objectName": "Jatorri honek eragiten dion HubSpot-eko objektua."
       }
     },
     "changes": {
@@ -342,7 +359,34 @@
       "calculationHelp": "HubSpot APIaren sintaxia (adib. closed - started).",
       "dataSensitivity": "Datuaren sentikortasuna",
       "hasUniqueValue": "Balio bakarra (ezin da aldatu sortu ondoren)",
-      "none": "(formaturik gabe)"
+      "none": "(formaturik gabe)",
+      "fieldHelp": {
+        "description": "HubSpot-en erakutsiko den propietatearen deskribapena.",
+        "numberDisplayHint": "Zenbakia HubSpot-en nola aurkezten den (formaturik gabe, moneta, ehunekoa, iraupena, etab.).",
+        "showCurrencySymbol": "Moneta ikurra balioaren ondoan erakusten du formatua monetarioa denean.",
+        "currencyPropertyName": "Erakutsi beharreko dibisa zehazten duen lotutako moneta-propietatea.",
+        "textDisplayHint": "Testuaren formatua HubSpot-en (soila, lerro anitzekoa, posta elektronikoa, telefonoa, etab.).",
+        "calculationFormula": "HubSpot APIaren sintaxiarekin idatzitako kalkulu-formula (adib. closed - started).",
+        "dataSensitivity": "Datuaren sentikortasun-maila; HubSpot-en haren tratamenduari eta ikusgaitasunari eragiten dio.",
+        "hasUniqueValue": "Balioak erregistroen artean bakarra izatera behartzen du. Ezin da aldatu propietatea sortu ondoren."
+      }
+    },
+    "wizard": {
+      "fieldHelp": {
+        "name": "Propietateen mapako sarreraren izen deskribatzailea. Sarrera lokalki soilik identifikatzen du; ez zaio HubSpot-i bidaltzen.",
+        "hubspotMode": "Adierazten du propietatea HubSpot-en dagoeneko existitzen den ala berria den eta aldaketa aplikatzean sortuko den.",
+        "selectProperty": "Sarrera honek seinalatzen duen HubSpot-eko propietatea. Iragazi izenez aurkitzeko.",
+        "group": "Propietatea kokatuko den HubSpot-eko propietate-taldea. Berri bat sor dezakezu existitzen ez bada.",
+        "origin": "Datuaren jatorria den sistema edo prozesua (integrazioa, migrazioa, erabiltzailea edo workflow).",
+        "sourceField": "Propietate hau elikatzen duen jatorriko eremuaren izena.",
+        "kind": "Datuaren tipologia (zenbakia, testua, boolearra, aukera mugatuak edo memo); HubSpot-eko mota baldintzatzen du.",
+        "sourceObject": "Jatorrizko eremua zein jatorriko objektuari dagokion.",
+        "truthy": "Egiazko gisa interpretatzen den jatorriko balioa.",
+        "falsy": "Faltsu gisa interpretatzen den jatorriko balioa.",
+        "optionLabel": "Azken erabiltzailearentzat ikusgai dagoen aukeraren testua.",
+        "optionValue": "Aukerarako HubSpot-en gordetzen den barne-balioa.",
+        "notes": "Mapatzeari buruzko barne-oharrak. Ez zaizkio HubSpot-i bidaltzen."
+      }
     },
     "numberHints": {
       "unformatted": "Formaturik gabe",
@@ -442,7 +486,23 @@
       "searchable": "Bilaketa",
       "associations": "Elkarteak",
       "cancel": "Utzi",
-      "save": "Gorde"
+      "save": "Gorde",
+      "fieldHelp": {
+        "name": "Objektuaren barne-izena: minuskulak, zenbakiak eta azpimarrak soilik; letraz hasi. Ezin da aldatu sortu ondoren.",
+        "singular": "Erabiltzaileak ikusiko duen etiketa singularra (adib. «Eskaera»).",
+        "plural": "Erabiltzaileak ikusiko duen etiketa plurala (adib. «Eskaerak»).",
+        "description": "Objektu pertsonalizatuaren eta haren helburuaren deskribapena.",
+        "propName": "Propietatearen barne-izena: minuskulak, zenbakiak eta azpimarrak.",
+        "propLabel": "Propietatearen etiketa ikusgaia.",
+        "propType": "Propietatearen datuaren tipologia.",
+        "propFieldType": "Datua HubSpot-en sartzeko erabiltzen den eremu mota.",
+        "unique": "Propietateak balio bakarra izan behar du erregistroen artean.",
+        "primary": "Objektuaren erregistro bakoitza identifikatu eta erakusten duen propietate nagusia.",
+        "required": "Erregistro bat sortzean nahitaez bete beharreko propietateak.",
+        "secondary": "Objektuaren ikuspegietan erakusten diren bigarren mailako propietateak.",
+        "searchable": "Erregistroak bilatzeko erabil daitezkeen propietateak.",
+        "associations": "Objektu hau elkartu daitekeen beste objektuak."
+      }
     },
     "archiveConfirmTitle": "Artxibatu objektua",
     "archiveConfirmBody": "Artxibatzeko, lehenik objektuaren erregistroak eta propietateak ezabatu behar dira HubSpot-en. Jarraitu nahi duzu?",
@@ -519,7 +579,21 @@
       "addCheckbox": "Gehitu laukia",
       "noSubscriptions": "Ez dago Email harpidetza motarik atarian.",
       "cancel": "Utzi",
-      "save": "Gorde aldaketak"
+      "save": "Gorde aldaketak",
+      "fieldHelp": {
+        "name": "Inprimakiaren izena HubSpot-en.",
+        "fieldName": "Eremuaren barne-izena (lotutako HubSpot-eko propietatea).",
+        "label": "Eremuaren etiketaren testu ikusgaia.",
+        "fieldType": "Eremu mota (testua, goitibeherakoa, data, laukia, etab.).",
+        "required": "Eremua nahitaez bete beharrekotzat markatzen du.",
+        "hidden": "Eremua inprimakian ezkutatzen du (bidaltzen da baina ez da erakusten).",
+        "consentType": "Inprimakiaren datuak tratatzeko oinarri legalaren mota (baimenik gabe, interes legitimoa edo baimen esplizitua).",
+        "submitButton": "Erabiltzaileak inprimakia bidaltzeko erabiltzen duen botoiaren testua.",
+        "privacyText": "Inprimakian erakusten den pribatutasunari buruzko lege-testua.",
+        "consentToProcessText": "Datuen tratamendurako baimenaren testua.",
+        "communicationConsentText": "Komunikazioak jasotzeko baimenaren testua.",
+        "subscriptionType": "Komunikazio-laukiari lotutako Email harpidetza mota."
+      }
     },
     "linkModal": {
       "title": "Lotu jatorrira",
@@ -527,7 +601,11 @@
       "origins": "Jatorriak",
       "noOrigins": "Ez dago jatorririk definituta.",
       "cancel": "Utzi",
-      "save": "Gorde"
+      "save": "Gorde",
+      "fieldHelp": {
+        "object": "Lotuko den jatorria zein HubSpot-eko objektuari dagokion.",
+        "origins": "Eremuen estaldura ebaluatzeko inprimakiari lotzen zaizkion jatorriak."
+      }
     },
     "wizard": {
       "title": "Sortu inprimakia",
@@ -542,7 +620,16 @@
       "required": "Beharrezkoa",
       "hidden": "Ezkutua",
       "cancel": "Utzi",
-      "create": "Sortu"
+      "create": "Sortu",
+      "fieldHelp": {
+        "name": "Inprimakia HubSpot-en identifikatzeko izena.",
+        "object": "Inprimakiak erregistroak sortzen edo eguneratzen dituen HubSpot-eko objektua.",
+        "origins": "Inprimakiaren espero diren eremuak aurrehautatzen dituzten jatorriak.",
+        "label": "Eremuaren etiketaren testu ikusgaia erabiltzailearentzat.",
+        "fieldType": "Eremu mota (testua, goitibeherakoa, data, laukia, etab.).",
+        "required": "Inprimakia bidaltzeko eremua nahitaez bete beharrekotzat markatzen du.",
+        "hidden": "Eremua inprimakian ezkutatzen du (bidaltzen da baina ez da erakusten)."
+      }
     },
     "changes": {
       "title": "Inprimakiak / Aldaketa zain",

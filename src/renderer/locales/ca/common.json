@@ -93,7 +93,10 @@
     "copyConfig": "Copia la configuració",
     "regenerateTitle": "Regenerar el testimoni",
     "regenerateBody": "En regenerar el testimoni s'invalidarà l'actual i es tancarà tota sessió MCP activa. Vols continuar?",
-    "tokenRegenerated": "Testimoni regenerat."
+    "tokenRegenerated": "Testimoni regenerat.",
+    "fieldHelp": {
+      "token": "Token local que els clients MCP (Claude Desktop, Cursor) fan servir per autenticar-se contra aquest servidor. Mantén-lo privat; regenera'l si es filtra."
+    }
   },
   "hubspot": {
     "title": "Connectors / HubSpot",
@@ -113,7 +116,11 @@
     "loading": "Comprovant la connexió…",
     "saveSuccess": "Connectat correctament a {{portal}}.",
     "saveError": "No s'ha pogut connectar: {{error}}",
-    "tokenSaved": "Connexió desada."
+    "tokenSaved": "Connexió desada.",
+    "fieldHelp": {
+      "token": "Token de la Private App de HubSpot. Requereix els scopes de CRM (propietats, objectes i formularis). S'obté a Configuració → Integracions → Private Apps. Es desa xifrat i mai no es mostra.",
+      "environment": "Tria el portal que vols connectar: Producció o Sandbox. Cada entorn desa el seu propi token de manera independent."
+    }
   },
   "gdrive": {
     "title": "Connectors / Google Drive",
@@ -156,6 +163,10 @@
       "saved": "Credencials desades.",
       "cleared": "Credencials esborrades; s'usarà el .env si existeix.",
       "error": "No s'han pogut desar les credencials.",
+      "fieldHelp": {
+        "clientId": "ID de client d'OAuth del projecte a Google Cloud Console (API i serveis → Credencials). És obligatori per autoritzar l'accés a Drive.",
+        "clientSecret": "Secret de client d'OAuth. Només cal en apps d'escriptori que ho exigeixin; deixa'l buit si no aplica."
+      },
       "source": {
         "app": "App",
         "env": ".env"
@@ -303,6 +314,12 @@
         "migration": "Migració",
         "user": "Usuari",
         "workflow": "Workflow"
+      },
+      "fieldHelp": {
+        "name": "Nom identificatiu de l'origen de dades.",
+        "type": "Naturalesa de l'origen: integració, migració, usuari o workflow.",
+        "description": "Descripció de l'origen i de quines dades aporta.",
+        "objectName": "Objecte de HubSpot al qual afecta aquest origen."
       }
     },
     "changes": {
@@ -328,6 +345,23 @@
       "cancel": "Cancel·la",
       "save": "Desa"
     },
+    "wizard": {
+      "fieldHelp": {
+        "name": "Nom descriptiu de l'entrada al mapa de propietats. Només identifica l'entrada localment; no s'envia a HubSpot.",
+        "hubspotMode": "Indica si la propietat ja existeix a HubSpot o si és nova i es crearà en aplicar el canvi.",
+        "selectProperty": "Propietat de HubSpot a la qual apunta aquesta entrada. Filtra pel nom per localitzar-la.",
+        "group": "Grup de propietats de HubSpot on s'ubicarà. Pots crear-ne un de nou si no existeix.",
+        "origin": "Sistema o procés del qual prové la dada (integració, migració, usuari o workflow).",
+        "sourceField": "Nom del camp a l'origen que alimenta aquesta propietat.",
+        "kind": "Tipologia de la dada (número, text, booleà, opcions limitades o memo); condiciona el tipus a HubSpot.",
+        "sourceObject": "Objecte de l'origen al qual pertany el camp de procedència.",
+        "truthy": "Valor de l'origen que s'interpreta com a verdader.",
+        "falsy": "Valor de l'origen que s'interpreta com a fals.",
+        "optionLabel": "Text visible de l'opció per a l'usuari final.",
+        "optionValue": "Valor intern emmagatzemat a HubSpot per a l'opció.",
+        "notes": "Anotacions internes sobre el mapatge. No s'envien a HubSpot."
+      }
+    },
     "fieldTypes": {
       "calculation_equation": "Càlcul (fórmula)"
     },
@@ -342,7 +376,17 @@
       "calculationHelp": "Sintaxi de l'API de HubSpot (p. ex. closed - started).",
       "dataSensitivity": "Sensibilitat de la dada",
       "hasUniqueValue": "Valor únic (no es pot canviar després de crear)",
-      "none": "(sense format)"
+      "none": "(sense format)",
+      "fieldHelp": {
+        "description": "Descripció de la propietat que es mostrarà a HubSpot.",
+        "numberDisplayHint": "Com es presenta el número a HubSpot (sense format, moneda, percentatge, durada, etc.).",
+        "showCurrencySymbol": "Mostra el símbol de moneda al costat del valor quan el format és monetari.",
+        "currencyPropertyName": "Propietat de moneda relacionada que determina la divisa a mostrar.",
+        "textDisplayHint": "Format del text a HubSpot (simple, multilínia, correu electrònic, telèfon, etc.).",
+        "calculationFormula": "Fórmula de càlcul amb la sintaxi de l'API de HubSpot (p. ex. closed - started).",
+        "dataSensitivity": "Nivell de sensibilitat de la dada; afecta el seu tractament i visibilitat a HubSpot.",
+        "hasUniqueValue": "Obliga que el valor sigui únic entre registres. No es pot modificar després de crear la propietat."
+      }
     },
     "numberHints": {
       "unformatted": "Sense format",
@@ -442,7 +486,23 @@
       "searchable": "Cerca",
       "associations": "Associacions",
       "cancel": "Cancel·la",
-      "save": "Desa"
+      "save": "Desa",
+      "fieldHelp": {
+        "name": "Nom intern de l'objecte: només minúscules, números i guions baixos; comença per lletra. No es pot canviar després de crear-lo.",
+        "singular": "Etiqueta en singular que veurà l'usuari (p. ex. «Comanda»).",
+        "plural": "Etiqueta en plural que veurà l'usuari (p. ex. «Comandes»).",
+        "description": "Descripció de l'objecte personalitzat i el seu propòsit.",
+        "propName": "Nom intern de la propietat: minúscules, números i guions baixos.",
+        "propLabel": "Etiqueta visible de la propietat.",
+        "propType": "Tipologia de la dada de la propietat.",
+        "propFieldType": "Tipus de camp amb què s'introdueix la dada a HubSpot.",
+        "unique": "La propietat ha de tenir un valor únic entre registres.",
+        "primary": "Propietat principal que identifica i mostra cada registre de l'objecte.",
+        "required": "Propietats d'emplenament obligatori en crear un registre.",
+        "secondary": "Propietats secundàries mostrades a les vistes de l'objecte.",
+        "searchable": "Propietats per les quals es podran cercar registres.",
+        "associations": "Altres objectes amb què aquest objecte es pot associar."
+      }
     },
     "archiveConfirmTitle": "Arxiva l'objecte",
     "archiveConfirmBody": "Arxivar requereix esborrar abans els registres i propietats de l'objecte a HubSpot. Vols continuar?",
@@ -519,7 +579,21 @@
       "addCheckbox": "Afegeix casella",
       "noSubscriptions": "No hi ha tipus de subscripció d'Email al portal.",
       "cancel": "Cancel·la",
-      "save": "Desa els canvis"
+      "save": "Desa els canvis",
+      "fieldHelp": {
+        "name": "Nom del formulari a HubSpot.",
+        "fieldName": "Nom intern del camp (propietat de HubSpot associada).",
+        "label": "Text visible de l'etiqueta del camp.",
+        "fieldType": "Tipus de camp (text, desplegable, data, casella, etc.).",
+        "required": "Marca el camp com a d'emplenament obligatori.",
+        "hidden": "Amaga el camp al formulari (s'envia però no es mostra).",
+        "consentType": "Tipus de base legal per al tractament de dades del formulari (sense consentiment, interès legítim o consentiment explícit).",
+        "submitButton": "Text del botó amb què l'usuari envia el formulari.",
+        "privacyText": "Text legal de privacitat mostrat al formulari.",
+        "consentToProcessText": "Text del consentiment per al tractament de les dades.",
+        "communicationConsentText": "Text del consentiment per rebre comunicacions.",
+        "subscriptionType": "Tipus de subscripció d'Email associat a la casella de comunicació."
+      }
     },
     "linkModal": {
       "title": "Associa a origen",
@@ -527,7 +601,11 @@
       "origins": "Orígens",
       "noOrigins": "No hi ha orígens definits.",
       "cancel": "Cancel·la",
-      "save": "Desa"
+      "save": "Desa",
+      "fieldHelp": {
+        "object": "Objecte de HubSpot al qual pertany l'origen que s'associarà.",
+        "origins": "Orígens que s'associen al formulari per avaluar la cobertura de camps."
+      }
     },
     "wizard": {
       "title": "Crea formulari",
@@ -542,7 +620,16 @@
       "required": "Obligatori",
       "hidden": "Ocult",
       "cancel": "Cancel·la",
-      "create": "Crea"
+      "create": "Crea",
+      "fieldHelp": {
+        "name": "Nom del formulari per identificar-lo a HubSpot.",
+        "object": "Objecte de HubSpot sobre el qual el formulari crea o actualitza registres.",
+        "origins": "Orígens que preseleccionen els camps esperats del formulari.",
+        "label": "Text visible de l'etiqueta del camp per a l'usuari.",
+        "fieldType": "Tipus de camp (text, desplegable, data, casella, etc.).",
+        "required": "Marca el camp com a d'emplenament obligatori per enviar el formulari.",
+        "hidden": "Amaga el camp al formulari (s'envia però no es mostra)."
+      }
     },
     "changes": {
       "title": "Formularis / Canvis pendents",

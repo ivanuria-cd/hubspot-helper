@@ -6,13 +6,14 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  InputAdornment,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useTranslation } from 'react-i18next';
-import { LoadingState } from '@shared/components/feedback';
+import { FieldTooltip, LoadingState } from '@shared/components/feedback';
 import type { HsPropertyOption } from '@shared/types/properties';
 
 function parseBulkOptions(text: string, sep: string): Array<{ label: string; value: string }> {
@@ -120,12 +121,14 @@ export function OptionsDialog({ open, title, options, onChange, onClose }: Optio
                     label={t('properties.wizard.optionLabel')}
                     value={o.label}
                     onChange={(e) => updateOption(i, { label: e.target.value })}
+                    InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.wizard.fieldHelp.optionLabel" /></InputAdornment> }}
                   />
                   <TextField
                     size="small"
                     label={t('properties.wizard.optionValue')}
                     value={o.value}
                     onChange={(e) => updateOption(i, { value: e.target.value })}
+                    InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.wizard.fieldHelp.optionValue" /></InputAdornment> }}
                   />
                   <IconButton size="small" aria-label={t('properties.panel.delete')} onClick={() => removeOption(i)}>
                     <DeleteIcon fontSize="small" />

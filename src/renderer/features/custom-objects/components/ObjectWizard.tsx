@@ -10,6 +10,7 @@ import {
   Divider,
   FormControlLabel,
   IconButton,
+  InputAdornment,
   ListItemText,
   MenuItem,
   OutlinedInput,
@@ -27,7 +28,7 @@ import type {
 } from '@shared/types/custom-objects';
 import type { HubSpotObject } from '@shared/types/properties';
 import { HS_TYPES, fieldTypesFor } from '@shared/constants/hubspotPropertyTypes';
-import { BusyButton } from '@shared/components/feedback';
+import { BusyButton, FieldTooltip, useFieldHelp } from '@shared/components/feedback';
 
 interface ObjectWizardProps {
   open: boolean;
@@ -56,6 +57,11 @@ export function ObjectWizard({
 }: ObjectWizardProps): JSX.Element {
   const { t } = useTranslation('common');
   const editing = Boolean(definition);
+
+  const nameHelp = useFieldHelp('customObjects.wizard.fieldHelp.name');
+  const singularHelp = useFieldHelp('customObjects.wizard.fieldHelp.singular');
+  const pluralHelp = useFieldHelp('customObjects.wizard.fieldHelp.plural');
+  const descriptionHelp = useFieldHelp('customObjects.wizard.fieldHelp.description');
 
   const [name, setName] = useState('');
   const [singular, setSingular] = useState('');
@@ -171,6 +177,10 @@ export function ObjectWizard({
             error={Boolean(name) && !nameValid}
             helperText={t('customObjects.wizard.nameHelp')}
             onChange={(e) => setName(e.target.value)}
+            inputProps={{ 'aria-describedby': nameHelp.describedById }}
+            InputProps={{
+              endAdornment: <InputAdornment position="end">{nameHelp.tooltip}</InputAdornment>,
+            }}
           />
           <Stack direction="row" spacing={2}>
             <TextField
@@ -179,6 +189,12 @@ export function ObjectWizard({
               label={t('customObjects.wizard.singular')}
               value={singular}
               onChange={(e) => setSingular(e.target.value)}
+              inputProps={{ 'aria-describedby': singularHelp.describedById }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">{singularHelp.tooltip}</InputAdornment>
+                ),
+              }}
             />
             <TextField
               size="small"
@@ -186,6 +202,10 @@ export function ObjectWizard({
               label={t('customObjects.wizard.plural')}
               value={plural}
               onChange={(e) => setPlural(e.target.value)}
+              inputProps={{ 'aria-describedby': pluralHelp.describedById }}
+              InputProps={{
+                endAdornment: <InputAdornment position="end">{pluralHelp.tooltip}</InputAdornment>,
+              }}
             />
           </Stack>
           <TextField
@@ -194,6 +214,12 @@ export function ObjectWizard({
             value={description}
             multiline
             onChange={(e) => setDescription(e.target.value)}
+            inputProps={{ 'aria-describedby': descriptionHelp.describedById }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">{descriptionHelp.tooltip}</InputAdornment>
+              ),
+            }}
           />
 
           <Divider />
@@ -205,59 +231,82 @@ export function ObjectWizard({
                 label={t('customObjects.wizard.propName')}
                 value={prop.name}
                 onChange={(e) => updateProperty(index, { name: e.target.value })}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <FieldTooltip helpKey="customObjects.wizard.fieldHelp.propName" />
+                    </InputAdornment>
+                  ),
+                }}
               />
               <TextField
                 size="small"
                 label={t('customObjects.wizard.propLabel')}
                 value={prop.label}
                 onChange={(e) => updateProperty(index, { label: e.target.value })}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <FieldTooltip helpKey="customObjects.wizard.fieldHelp.propLabel" />
+                    </InputAdornment>
+                  ),
+                }}
               />
-              <TextField
-                select
-                size="small"
-                label={t('customObjects.wizard.propType')}
-                value={prop.type}
-                sx={{ minWidth: 140 }}
-                onChange={(e) =>
-                  updateProperty(index, {
-                    type: e.target.value,
-                    fieldType: defaultFieldType(e.target.value),
-                  })
-                }
-              >
-                {HS_TYPES.map((opt) => (
-                  <MenuItem key={opt} value={opt}>
-                    {opt}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                size="small"
-                label={t('customObjects.wizard.propFieldType')}
-                value={
-                  fieldTypesFor(prop.type).includes(prop.fieldType)
-                    ? prop.fieldType
-                    : fieldTypesFor(prop.type)[0]
-                }
-                sx={{ minWidth: 160 }}
-                onChange={(e) => updateProperty(index, { fieldType: e.target.value })}
-              >
-                {fieldTypesFor(prop.type).map((ft) => (
-                  <MenuItem key={ft} value={ft}>
-                    {t(`properties.fieldTypes.${ft}`, { defaultValue: ft })}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={Boolean(prop.hasUniqueValue)}
-                    onChange={(e) => updateProperty(index, { hasUniqueValue: e.target.checked })}
-                  />
-                }
-                label={t('customObjects.wizard.unique')}
-              />
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                <TextField
+                  select
+                  size="small"
+                  label={t('customObjects.wizard.propType')}
+                  value={prop.type}
+                  sx={{ minWidth: 140 }}
+                  onChange={(e) =>
+                    updateProperty(index, {
+                      type: e.target.value,
+                      fieldType: defaultFieldType(e.target.value),
+                    })
+                  }
+                >
+                  {HS_TYPES.map((opt) => (
+                    <MenuItem key={opt} value={opt}>
+                      {opt}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <FieldTooltip helpKey="customObjects.wizard.fieldHelp.propType" />
+              </Stack>
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                <TextField
+                  select
+                  size="small"
+                  label={t('customObjects.wizard.propFieldType')}
+                  value={
+                    fieldTypesFor(prop.type).includes(prop.fieldType)
+                      ? prop.fieldType
+                      : fieldTypesFor(prop.type)[0]
+                  }
+                  sx={{ minWidth: 160 }}
+                  onChange={(e) => updateProperty(index, { fieldType: e.target.value })}
+                >
+                  {fieldTypesFor(prop.type).map((ft) => (
+                    <MenuItem key={ft} value={ft}>
+                      {t(`properties.fieldTypes.${ft}`, { defaultValue: ft })}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <FieldTooltip helpKey="customObjects.wizard.fieldHelp.propFieldType" />
+              </Stack>
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={Boolean(prop.hasUniqueValue)}
+                      onChange={(e) => updateProperty(index, { hasUniqueValue: e.target.checked })}
+                    />
+                  }
+                  label={t('customObjects.wizard.unique')}
+                />
+                <FieldTooltip helpKey="customObjects.wizard.fieldHelp.unique" />
+              </Stack>
               <IconButton
                 size="small"
                 aria-label={t('customObjects.wizard.removeProperty')}
@@ -276,28 +325,43 @@ export function ObjectWizard({
 
           <Divider />
           <Typography variant="subtitle2">{t('customObjects.wizard.display')}</Typography>
-          <TextField
-            select
-            size="small"
-            label={t('customObjects.wizard.primary')}
-            value={primary}
-            sx={{ minWidth: 220 }}
-            onChange={(e) => setPrimary(e.target.value)}
-          >
-            {propNames.map((propName) => (
-              <MenuItem key={propName} value={propName}>
-                {labelFor(propName)}
-              </MenuItem>
-            ))}
-          </TextField>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <TextField
+              select
+              size="small"
+              label={t('customObjects.wizard.primary')}
+              value={primary}
+              sx={{ minWidth: 220 }}
+              onChange={(e) => setPrimary(e.target.value)}
+            >
+              {propNames.map((propName) => (
+                <MenuItem key={propName} value={propName}>
+                  {labelFor(propName)}
+                </MenuItem>
+              ))}
+            </TextField>
+            <FieldTooltip helpKey="customObjects.wizard.fieldHelp.primary" />
+          </Stack>
           <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
-            {renderMultiSelect(t('customObjects.wizard.required'), required, setRequired)}
-            {renderMultiSelect(t('customObjects.wizard.secondary'), secondary, setSecondary)}
-            {renderMultiSelect(t('customObjects.wizard.searchable'), searchable, setSearchable)}
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              {renderMultiSelect(t('customObjects.wizard.required'), required, setRequired)}
+              <FieldTooltip helpKey="customObjects.wizard.fieldHelp.required" />
+            </Stack>
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              {renderMultiSelect(t('customObjects.wizard.secondary'), secondary, setSecondary)}
+              <FieldTooltip helpKey="customObjects.wizard.fieldHelp.secondary" />
+            </Stack>
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              {renderMultiSelect(t('customObjects.wizard.searchable'), searchable, setSearchable)}
+              <FieldTooltip helpKey="customObjects.wizard.fieldHelp.searchable" />
+            </Stack>
           </Stack>
 
           <Divider />
-          <Typography variant="subtitle2">{t('customObjects.wizard.associations')}</Typography>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Typography variant="subtitle2">{t('customObjects.wizard.associations')}</Typography>
+            <FieldTooltip helpKey="customObjects.wizard.fieldHelp.associations" />
+          </Stack>
           <Select
             multiple
             size="small"

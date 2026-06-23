@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Box, Button, Chip, Stack, TextField, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import type { GoogleCredentialsStatus, GoogleCredentialSource } from '@shared/types/gdrive';
-import { useSnackbar } from '@shared/components/feedback';
+import { useFieldHelp, useSnackbar } from '@shared/components/feedback';
 
 interface Props {
   credentials: GoogleCredentialsStatus | null;
@@ -29,6 +29,8 @@ export function GoogleCredentialsCard({ credentials, working, onSave, onClear }:
   const { notify } = useSnackbar();
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');
+  const clientIdHelp = useFieldHelp('gdrive.credentials.fieldHelp.clientId');
+  const clientSecretHelp = useFieldHelp('gdrive.credentials.fieldHelp.clientSecret');
 
   const handleSave = async (): Promise<void> => {
     const input: { clientId?: string; clientSecret?: string } = {};
@@ -71,7 +73,15 @@ export function GoogleCredentialsCard({ credentials, working, onSave, onClear }:
           placeholder={idPlaceholder}
           value={clientId}
           onChange={(event) => setClientId(event.target.value)}
-          InputProps={{ endAdornment: <SourceChip source={credentials?.clientId.source ?? 'none'} /> }}
+          inputProps={{ 'aria-describedby': clientIdHelp.describedById }}
+          InputProps={{
+            endAdornment: (
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                <SourceChip source={credentials?.clientId.source ?? 'none'} />
+                {clientIdHelp.tooltip}
+              </Stack>
+            ),
+          }}
           fullWidth
         />
         <TextField
@@ -81,7 +91,15 @@ export function GoogleCredentialsCard({ credentials, working, onSave, onClear }:
           placeholder={secretPlaceholder}
           value={clientSecret}
           onChange={(event) => setClientSecret(event.target.value)}
-          InputProps={{ endAdornment: <SourceChip source={credentials?.clientSecret.source ?? 'none'} /> }}
+          inputProps={{ 'aria-describedby': clientSecretHelp.describedById }}
+          InputProps={{
+            endAdornment: (
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                <SourceChip source={credentials?.clientSecret.source ?? 'none'} />
+                {clientSecretHelp.tooltip}
+              </Stack>
+            ),
+          }}
           helperText={t('gdrive.credentials.help')}
           fullWidth
         />

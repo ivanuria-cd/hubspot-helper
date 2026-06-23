@@ -7,12 +7,14 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
+  InputAdornment,
   MenuItem,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { FieldTooltip, useFieldHelp } from '@shared/components/feedback';
 import type { HubSpotForm, FormOriginLink } from '@shared/types/forms';
 import type { DataOrigin, HubSpotObject } from '@shared/types/properties';
 
@@ -41,6 +43,7 @@ export function LinkOriginModal({
   onSubmit,
 }: LinkOriginModalProps): JSX.Element {
   const { t } = useTranslation('common');
+  const objectHelp = useFieldHelp('forms.linkModal.fieldHelp.object');
   const [objectType, setObjectType] = useState('contacts');
   const [originIds, setOriginIds] = useState<string[]>([]);
 
@@ -71,6 +74,10 @@ export function LinkOriginModal({
             value={objectType}
             onChange={(event) => setObjectType(event.target.value)}
             size="small"
+            inputProps={{ 'aria-describedby': objectHelp.describedById }}
+            InputProps={{
+              endAdornment: <InputAdornment position="end">{objectHelp.tooltip}</InputAdornment>,
+            }}
           >
             {objects.map((object) => (
               <MenuItem key={object.objectType} value={object.objectType}>
@@ -79,7 +86,10 @@ export function LinkOriginModal({
               </MenuItem>
             ))}
           </TextField>
-          <Typography variant="subtitle2">{t('forms.linkModal.origins')}</Typography>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Typography variant="subtitle2">{t('forms.linkModal.origins')}</Typography>
+            <FieldTooltip helpKey="forms.linkModal.fieldHelp.origins" />
+          </Stack>
           {origins.length === 0 ? (
             <Typography color="text.primary">{t('forms.linkModal.noOrigins')}</Typography>
           ) : (

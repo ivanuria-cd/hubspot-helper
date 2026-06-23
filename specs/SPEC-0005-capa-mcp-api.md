@@ -256,3 +256,13 @@ Claves i18n nuevas: `mcp.regenerateTitle`, `mcp.regenerateBody`, `mcp.tokenCopie
 estado del servidor MCP y el token; las acciones (copiar token/config, regenerar, toggle del servidor) pasan a
 estado ocupado accesible mientras se ejecutan (sin doble disparo). Estado reseteado al cambiar de proyecto.
 Pendiente de implementación junto al resto de superficies.
+
+---
+
+## 14. Adopción de tooltips i18n en campos rellenables (SPEC-0002 §18) (IMPLEMENTADO, 2026-06-23)
+
+`McpSettingsScreen` adopta el patrón de **[SPEC-0002 §18](SPEC-0002-app-shell.md)** (norma en
+**[SPEC-0000 §3](SPEC-0000-normas-del-proyecto.md)**): el token local de autenticación MCP lleva un `FieldTooltip`
+(`mcp.fieldHelp.token`) que explica para qué sirve y la advertencia de regenerarlo si se filtra, en
+`es`/`ca`/`eu`/`en`. El token es de solo lectura (generado); el resto de controles de la pantalla son acciones, no
+campos rellenables. typecheck/test en máquina.

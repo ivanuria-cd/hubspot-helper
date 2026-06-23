@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
+  InputAdornment,
   MenuItem,
   Stack,
   Table,
@@ -18,6 +19,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { FieldTooltip, useFieldHelp } from '@shared/components/feedback';
 import type { NewFormDefinition } from '@shared/types/forms';
 import type { DataOrigin, HubSpotObject, PropertyEntry } from '@shared/types/properties';
 
@@ -76,6 +78,8 @@ export function NewFormWizard({
   onSubmit,
 }: NewFormWizardProps): JSX.Element {
   const { t } = useTranslation('common');
+  const nameHelp = useFieldHelp('forms.wizard.fieldHelp.name');
+  const objectHelp = useFieldHelp('forms.wizard.fieldHelp.object');
   const [name, setName] = useState('');
   const [objectType, setObjectType] = useState('contacts');
   const [originIds, setOriginIds] = useState<string[]>([]);
@@ -143,6 +147,10 @@ export function NewFormWizard({
             onChange={(event) => setName(event.target.value)}
             size="small"
             fullWidth
+            inputProps={{ 'aria-describedby': nameHelp.describedById }}
+            InputProps={{
+              endAdornment: <InputAdornment position="end">{nameHelp.tooltip}</InputAdornment>,
+            }}
           />
           <TextField
             select
@@ -150,6 +158,10 @@ export function NewFormWizard({
             value={objectType}
             onChange={(event) => setObjectType(event.target.value)}
             size="small"
+            inputProps={{ 'aria-describedby': objectHelp.describedById }}
+            InputProps={{
+              endAdornment: <InputAdornment position="end">{objectHelp.tooltip}</InputAdornment>,
+            }}
           >
             {objects.map((object) => (
               <MenuItem key={object.objectType} value={object.objectType}>
@@ -159,7 +171,10 @@ export function NewFormWizard({
             ))}
           </TextField>
 
-          <Typography variant="subtitle2">{t('forms.wizard.origins')}</Typography>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Typography variant="subtitle2">{t('forms.wizard.origins')}</Typography>
+            <FieldTooltip helpKey="forms.wizard.fieldHelp.origins" />
+          </Stack>
           <Stack direction="row" flexWrap="wrap" useFlexGap spacing={1}>
             {origins.map((origin) => (
               <FormControlLabel
@@ -184,10 +199,30 @@ export function NewFormWizard({
                 <TableRow>
                   <TableCell padding="checkbox" />
                   <TableCell>{t('forms.wizard.field')}</TableCell>
-                  <TableCell>{t('forms.wizard.label')}</TableCell>
-                  <TableCell>{t('forms.wizard.fieldType')}</TableCell>
-                  <TableCell>{t('forms.wizard.required')}</TableCell>
-                  <TableCell>{t('forms.wizard.hidden')}</TableCell>
+                  <TableCell>
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      {t('forms.wizard.label')}
+                      <FieldTooltip helpKey="forms.wizard.fieldHelp.label" />
+                    </Stack>
+                  </TableCell>
+                  <TableCell>
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      {t('forms.wizard.fieldType')}
+                      <FieldTooltip helpKey="forms.wizard.fieldHelp.fieldType" />
+                    </Stack>
+                  </TableCell>
+                  <TableCell>
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      {t('forms.wizard.required')}
+                      <FieldTooltip helpKey="forms.wizard.fieldHelp.required" />
+                    </Stack>
+                  </TableCell>
+                  <TableCell>
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      {t('forms.wizard.hidden')}
+                      <FieldTooltip helpKey="forms.wizard.fieldHelp.hidden" />
+                    </Stack>
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

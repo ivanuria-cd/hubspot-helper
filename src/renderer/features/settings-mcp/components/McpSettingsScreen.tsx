@@ -19,7 +19,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { useTranslation } from 'react-i18next';
-import { BusyButton, LoadingState, useConfirm, useSnackbar } from '@shared/components/feedback';
+import { BusyButton, FieldTooltip, LoadingState, useConfirm, useSnackbar } from '@shared/components/feedback';
 import { useMcpSettings } from '../hooks/useMcpSettings';
 
 function buildConfigSnippet(port: number, token: string): string {
@@ -106,9 +106,12 @@ export function McpSettingsScreen(): JSX.Element {
         <Divider />
 
         <Box>
-          <Typography variant="subtitle2" gutterBottom>
-            {t('mcp.tokenLabel')}
-          </Typography>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Typography variant="subtitle2" gutterBottom>
+              {t('mcp.tokenLabel')}
+            </Typography>
+            <FieldTooltip helpKey="mcp.fieldHelp.token" />
+          </Stack>
           <Stack direction="row" spacing={1} alignItems="center">
             <TextField
               fullWidth

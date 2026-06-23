@@ -4,6 +4,7 @@ import {
   Button,
   Chip,
   Divider,
+  InputAdornment,
   Stack,
   Tab,
   Tabs,
@@ -12,7 +13,13 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
-import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
+import {
+  BusyButton,
+  FieldTooltip,
+  LoadingState,
+  useFieldHelp,
+  useSnackbar,
+} from '@shared/components/feedback';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
 import { useHubSpotConnector } from '../hooks/useHubSpotConnector';
 
@@ -28,6 +35,7 @@ export function HubSpotConnectorScreen(): JSX.Element | null {
 
   const [environment, setEnvironment] = useState<HubSpotEnvironment>('production');
   const [token, setToken] = useState('');
+  const tokenHelp = useFieldHelp('hubspot.fieldHelp.token');
 
   if (!activeProject) return null;
 
@@ -50,18 +58,20 @@ export function HubSpotConnectorScreen(): JSX.Element | null {
         {t('hubspot.title')}
       </Typography>
 
-      <Tabs
-        value={environment}
-        onChange={(_event, value: HubSpotEnvironment) => {
-          setEnvironment(value);
-        }}
-        aria-label={t('hubspot.environmentTabs')}
-        sx={{ mb: 3 }}
-      >
-        {ENVIRONMENTS.map((env) => (
-          <Tab key={env} value={env} label={t(`environment.${env}`)} />
-        ))}
-      </Tabs>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+        <Tabs
+          value={environment}
+          onChange={(_event, value: HubSpotEnvironment) => {
+            setEnvironment(value);
+          }}
+          aria-label={t('hubspot.environmentTabs')}
+        >
+          {ENVIRONMENTS.map((env) => (
+            <Tab key={env} value={env} label={t(`environment.${env}`)} />
+          ))}
+        </Tabs>
+        <FieldTooltip helpKey="hubspot.fieldHelp.environment" />
+      </Stack>
 
       <Stack spacing={3} sx={{ maxWidth: 560 }}>
         <Box>
@@ -72,7 +82,10 @@ export function HubSpotConnectorScreen(): JSX.Element | null {
             helperText={t('hubspot.tokenHelp')}
             value={token}
             onChange={(event) => setToken(event.target.value)}
-            inputProps={{ 'aria-label': t('hubspot.tokenLabel') }}
+            inputProps={{ 'aria-label': t('hubspot.tokenLabel'), 'aria-describedby': tokenHelp.describedById }}
+            InputProps={{
+              endAdornment: <InputAdornment position="end">{tokenHelp.tooltip}</InputAdornment>,
+            }}
           />
           <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
             <BusyButton

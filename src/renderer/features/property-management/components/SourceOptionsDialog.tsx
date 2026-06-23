@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  InputAdornment,
   MenuItem,
   Stack,
   TextField,
@@ -13,7 +14,7 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useTranslation } from 'react-i18next';
-import { LoadingState } from '@shared/components/feedback';
+import { FieldTooltip, LoadingState } from '@shared/components/feedback';
 import type { HsPropertyOption, SourceEnumOption } from '@shared/types/properties';
 
 interface SourceOptionsDialogProps {
@@ -109,6 +110,7 @@ export function SourceOptionsDialog({
                     label={t('properties.wizard.sourceValue')}
                     value={o.sourceValue}
                     onChange={(e) => update(i, { sourceValue: e.target.value })}
+                    InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.wizard.fieldHelp.optionValue" /></InputAdornment> }}
                   />
                   <Typography>→</Typography>
                   {hubspotOptions.length > 0 ? (
@@ -119,6 +121,7 @@ export function SourceOptionsDialog({
                       value={o.hubspotValue ?? ''}
                       onChange={(e) => update(i, { hubspotValue: e.target.value })}
                       sx={{ minWidth: 160 }}
+                      InputProps={{ endAdornment: <InputAdornment position="end" sx={{ mr: 2 }}><FieldTooltip helpKey="properties.wizard.fieldHelp.optionLabel" /></InputAdornment> }}
                     >
                       {hubspotOptions.map((d) => (
                         <MenuItem key={d.value} value={d.value}>{d.label || d.value}</MenuItem>
@@ -130,6 +133,7 @@ export function SourceOptionsDialog({
                       label={t('properties.wizard.hubspotValue')}
                       value={o.hubspotValue ?? ''}
                       onChange={(e) => update(i, { hubspotValue: e.target.value })}
+                      InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.wizard.fieldHelp.optionLabel" /></InputAdornment> }}
                     />
                   )}
                   <IconButton size="small" aria-label={t('properties.panel.delete')} onClick={() => remove(i)}>
