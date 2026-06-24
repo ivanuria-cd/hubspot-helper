@@ -13,6 +13,10 @@ import {
   Typography,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import { useTranslation } from 'react-i18next';
 import { FieldTooltip, LoadingState } from '@shared/components/feedback';
 import type { HsPropertyOption, SourceEnumOption } from '@shared/types/properties';
@@ -144,10 +148,10 @@ export function SourceOptionsDialog({
             )}
           </Stack>
           <Stack direction="row" spacing={1}>
-            <Button size="small" variant="text" onClick={() => setBulkOpen((o) => !o)}>
+            <Button size="small" variant="text" startIcon={<ContentPasteIcon />} onClick={() => setBulkOpen((o) => !o)}>
               {t('properties.wizard.pasteOptions')}
             </Button>
-            <Button size="small" variant="contained" onClick={add}>
+            <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={add}>
               {t('properties.wizard.addOption')}
             </Button>
           </Stack>
@@ -162,7 +166,7 @@ export function SourceOptionsDialog({
                 minRows={3}
                 helperText={t('properties.wizard.pasteSourceHint')}
               />
-              <Button size="small" variant="outlined" onClick={applyBulk} disabled={!bulkText.trim()}>
+              <Button size="small" variant="outlined" startIcon={<CheckIcon />} onClick={applyBulk} disabled={!bulkText.trim()}>
                 {t('properties.wizard.bulkApply')}
               </Button>
             </Stack>
@@ -170,7 +174,7 @@ export function SourceOptionsDialog({
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button variant="contained" onClick={onClose}>
+        <Button variant="contained" startIcon={<CloseIcon />} onClick={onClose}>
           {t('properties.wizard.cancel')}
         </Button>
       </DialogActions>

@@ -10,12 +10,18 @@ import esCommon from '@renderer/locales/es/common.json';
 import caCommon from '@renderer/locales/ca/common.json';
 import euCommon from '@renderer/locales/eu/common.json';
 import enCommon from '@renderer/locales/en/common.json';
+import glCommon from '@renderer/locales/gl/common.json';
+import ptCommon from '@renderer/locales/pt/common.json';
+import frCommon from '@renderer/locales/fr/common.json';
 
 export const resources = {
   es: { common: esCommon },
   ca: { common: caCommon },
   eu: { common: euCommon },
   en: { common: enCommon },
+  gl: { common: glCommon },
+  pt: { common: ptCommon },
+  fr: { common: frCommon },
 } as const;
 
 export function createI18n(initialLanguage?: SupportedLanguage): I18nInstance {

@@ -19,6 +19,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useTranslation } from 'react-i18next';
 import type { DataOrigin, HsPropertyChange, PropertyEntry } from '@shared/types/properties';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
@@ -137,6 +138,7 @@ export function EntryPanel({ entry, origins, busy, onClose, onEdit, onDelete, on
                       <Button
                         variant="outlined"
                         size="small"
+                        startIcon={<CheckCircleIcon />}
                         disabled={busy}
                         onClick={() => setConfirm(change)}
                         sx={{ justifyContent: 'flex-start', textTransform: 'none' }}
@@ -168,11 +170,23 @@ export function EntryPanel({ entry, origins, busy, onClose, onEdit, onDelete, on
           <DialogContentText variant="body2">{t('properties.panel.applyHint')}</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirm(null)}>{t('properties.wizard.cancel')}</Button>
-          <Button variant="outlined" disabled={busy} onClick={() => apply('sandbox')}>
+          <Button startIcon={<CloseIcon />} onClick={() => setConfirm(null)}>
+            {t('properties.wizard.cancel')}
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<CheckCircleIcon />}
+            disabled={busy}
+            onClick={() => apply('sandbox')}
+          >
             {t('properties.changes.applySandbox')}
           </Button>
-          <Button variant="contained" disabled={busy} onClick={() => apply('production')}>
+          <Button
+            variant="contained"
+            startIcon={<CheckCircleIcon />}
+            disabled={busy}
+            onClick={() => apply('production')}
+          >
             {t('properties.changes.applyProduction')}
           </Button>
         </DialogActions>

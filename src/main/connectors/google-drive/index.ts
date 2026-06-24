@@ -282,29 +282,58 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
         driveId = existing.driveId;
       } else {
         const subfolderId = await client.ensureFeatureFolder(config.folderId, input.featureKey);
-        const created = await client.createManagedDocument({
-          folderId: subfolderId,
-          name: input.featureKey,
-          featureKey: input.featureKey,
-          schemaVersion: SCHEMA_VERSION,
-          cover,
-          content: input.content,
-        });
-        driveId = created.driveId;
-        const file: DriveFile = {
-          driveId,
-          name: input.featureKey,
-          mimeType: 'application/vnd.google-apps.document',
-          featureKey: input.featureKey,
-          lastModifiedDrive: created.modifiedTime,
-          lastModifiedLocal: isoNow(),
-          syncStatus: 'pending',
-        };
-        files.push(file);
+        // SPEC-0004 §21: si la config perdió la referencia, reutiliza un Doc gestionado existente del
+        // mismo featureKey en la subcarpeta (en vez de crear otro) y envía a la papelera los duplicados.
+        const managed = (await client.listManagedFiles(subfolderId)).filter(
+          (file) => file.featureKey === input.featureKey,
+        );
+        if (managed.length > 0) {
+          const [reused, ...duplicates] = managed;
+          await client.replaceDocumentBody({ driveId: reused.driveId, cover, content: input.content });
+          for (const duplicate of duplicates) {
+            try {
+              await client.deleteFile(duplicate.driveId);
+            } catch {
+              // best-effort: un duplicado no borrable no debe impedir la escritura.
+            }
+          }
+          driveId = reused.driveId;
+          files.push({
+            driveId,
+            name: input.featureKey,
+            mimeType: 'application/vnd.google-apps.document',
+            featureKey: input.featureKey,
+            lastModifiedDrive: reused.modifiedTime,
+            lastModifiedLocal: isoNow(),
+            syncStatus: 'pending',
+          });
+        } else {
+          const created = await client.createManagedDocument({
+            folderId: subfolderId,
+            name: input.featureKey,
+            featureKey: input.featureKey,
+            schemaVersion: SCHEMA_VERSION,
+            cover,
+            content: input.content,
+          });
+          driveId = created.driveId;
+          files.push({
+            driveId,
+            name: input.featureKey,
+            mimeType: 'application/vnd.google-apps.document',
+            featureKey: input.featureKey,
+            lastModifiedDrive: created.modifiedTime,
+            lastModifiedLocal: isoNow(),
+            syncStatus: 'pending',
+          });
+        }
       }
       deps.configs.set(input.projectId, { ...config, files });
       return { success: true, driveId };
     } catch (error) {
+      // SPEC-0004 §21.3.5: registra el error real (p. ej. de docsBatchUpdate) para diagnosticar la causa
+      // del documento de estado vacío.
+      console.error(`[gdrive] writeFile falló para featureKey="${input.featureKey}":`, error);
       return { success: false, error: error instanceof Error ? error.message : 'Error al escribir' };
     }
   }

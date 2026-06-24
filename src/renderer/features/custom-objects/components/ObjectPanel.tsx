@@ -7,6 +7,11 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import EditIcon from '@mui/icons-material/Edit';
+import ArchiveIcon from '@mui/icons-material/Archive';
+import DeleteIcon from '@mui/icons-material/Delete';
+import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 import type { CustomObjectDefinition } from '@shared/types/custom-objects';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
@@ -105,6 +110,7 @@ export function ObjectPanel({
                     <Button
                       size="small"
                       variant="outlined"
+                      startIcon={<CheckCircleIcon />}
                       disabled={busy || change.appliedToSandbox}
                       onClick={() => onApply(change.id, 'sandbox')}
                     >
@@ -113,6 +119,7 @@ export function ObjectPanel({
                     <Button
                       size="small"
                       variant="contained"
+                      startIcon={<CheckCircleIcon />}
                       disabled={busy || change.appliedToProduction}
                       onClick={() => onApply(change.id, 'production')}
                     >
@@ -125,22 +132,25 @@ export function ObjectPanel({
 
             <Divider />
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              <Button variant="outlined" onClick={() => onEdit(definition)}>
+              <Button variant="outlined" startIcon={<EditIcon />} onClick={() => onEdit(definition)}>
                 {t('customObjects.panel.edit')}
               </Button>
               <Button
                 color="error"
                 variant="outlined"
+                startIcon={<ArchiveIcon />}
                 disabled={busy}
                 onClick={() => void handleArchive(definition)}
               >
                 {t('customObjects.panel.archive')}
               </Button>
               <Box sx={{ flexGrow: 1 }} />
-              <Button color="inherit" onClick={() => void handleDelete(definition.id)}>
+              <Button color="inherit" startIcon={<DeleteIcon />} onClick={() => void handleDelete(definition.id)}>
                 {t('customObjects.panel.deleteDraft')}
               </Button>
-              <Button onClick={onClose}>{t('customObjects.panel.close')}</Button>
+              <Button startIcon={<CloseIcon />} onClick={onClose}>
+                {t('customObjects.panel.close')}
+              </Button>
             </Stack>
           </Stack>
         ) : null}

@@ -4,11 +4,13 @@
  * (lastWrittenAt / lastChangedAt, SPEC-0004 §15) para detectar cambios sin actualizar.
  */
 import Store from 'electron-store';
-import type { DataOrigin, PropertyEntry } from '@shared/types/properties';
+import type { DataOrigin, GroupDeleteChange, PropertyEntry } from '@shared/types/properties';
 
 export interface PropertyState {
   origins: DataOrigin[];
   entries: PropertyEntry[];
+  /** Cambios pendientes de borrado de grupos (SPEC-0006 §33). A nivel de proyecto, no por entrada. */
+  groupChanges: GroupDeleteChange[];
 }
 
 export interface PropertyDriveTimestamps {
@@ -39,7 +41,11 @@ export class ElectronPropertyStore implements PropertyStore {
   get(projectId: string): PropertyState {
     // Coalesce por campo: descarta estado v1 (properties/mappings) y garantiza arrays.
     const stored = this.store.get('states', {})[projectId] as Partial<PropertyState> | undefined;
-    return { origins: stored?.origins ?? [], entries: stored?.entries ?? [] };
+    return {
+      origins: stored?.origins ?? [],
+      entries: stored?.entries ?? [],
+      groupChanges: stored?.groupChanges ?? [],
+    };
   }
 
   set(projectId: string, state: PropertyState): void {
@@ -69,7 +75,7 @@ export function createMemoryPropertyStore(): PropertyStore {
   const data = new Map<string, PropertyState>();
   const stamps = new Map<string, PropertyDriveTimestamps>();
   return {
-    get: (projectId) => data.get(projectId) ?? { origins: [], entries: [] },
+    get: (projectId) => data.get(projectId) ?? { origins: [], entries: [], groupChanges: [] },
     set: (projectId, state) => void data.set(projectId, state),
     getTimestamps: (projectId) => stamps.get(projectId) ?? { ...EMPTY_TIMESTAMPS },
     setTimestamps: (projectId, timestamps) => void stamps.set(projectId, timestamps),

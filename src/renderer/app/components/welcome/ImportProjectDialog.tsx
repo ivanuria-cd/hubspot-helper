@@ -15,6 +15,8 @@ import {
   Typography,
 } from '@mui/material';
 import Button from '@mui/material/Button';
+import CloseIcon from '@mui/icons-material/Close';
+import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
 import { useTranslation } from 'react-i18next';
 import type { ImportStrategy, ImportSummary } from '@shared/types/project-file';
 
@@ -118,9 +120,12 @@ export function ImportProjectDialog({
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel}>{t('projectFile.cancel')}</Button>
+        <Button startIcon={<CloseIcon />} onClick={onCancel}>
+          {t('projectFile.cancel')}
+        </Button>
         <Button
           variant="contained"
+          startIcon={<FileUploadOutlinedIcon />}
           disabled={!summary}
           onClick={() => onImport(summary?.collidesWithExistingId ? strategy : 'overwrite')}
         >

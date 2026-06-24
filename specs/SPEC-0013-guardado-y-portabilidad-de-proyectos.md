@@ -1,6 +1,6 @@
 # SPEC-0013 — Guardado y Portabilidad de Proyectos
 
-**Estado:** BORRADOR
+**Estado:** IMPLEMENTADO (conciliado 2026-06-24; ver detalle en CLAUDE.md y §11)
 **Branch:** feat/spec-0013-guardado-portabilidad-proyectos
 **Fecha:** 2026-06-23
 **Depende de:** SPEC-0002 (App Shell — modelo `Project`, IPC `projects:*`), SPEC-0004 (Conector Google Drive — documento de estado companion §15.5)

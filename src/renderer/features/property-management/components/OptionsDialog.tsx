@@ -12,6 +12,10 @@ import {
   Typography,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import { useTranslation } from 'react-i18next';
 import { FieldTooltip, LoadingState } from '@shared/components/feedback';
 import type { HsPropertyOption } from '@shared/types/properties';
@@ -138,10 +142,10 @@ export function OptionsDialog({ open, title, options, onChange, onClose }: Optio
             )}
           </Stack>
           <Stack direction="row" spacing={1}>
-            <Button size="small" variant="text" onClick={() => setBulkOpen((o) => !o)}>
+            <Button size="small" variant="text" startIcon={<ContentPasteIcon />} onClick={() => setBulkOpen((o) => !o)}>
               {t('properties.wizard.pasteOptions')}
             </Button>
-            <Button size="small" variant="contained" onClick={addOption}>
+            <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={addOption}>
               {t('properties.wizard.addPropOption')}
             </Button>
           </Stack>
@@ -163,7 +167,7 @@ export function OptionsDialog({ open, title, options, onChange, onClose }: Optio
                 minRows={3}
                 helperText={t('properties.wizard.pasteHint')}
               />
-              <Button size="small" variant="outlined" onClick={applyBulk} disabled={!bulkText.trim()}>
+              <Button size="small" variant="outlined" startIcon={<CheckIcon />} onClick={applyBulk} disabled={!bulkText.trim()}>
                 {t('properties.wizard.bulkApply')}
               </Button>
             </Stack>
@@ -171,7 +175,7 @@ export function OptionsDialog({ open, title, options, onChange, onClose }: Optio
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button variant="contained" onClick={onClose}>
+        <Button variant="contained" startIcon={<CloseIcon />} onClick={onClose}>
           {t('properties.wizard.cancel')}
         </Button>
       </DialogActions>

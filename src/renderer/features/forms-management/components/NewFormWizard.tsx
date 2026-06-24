@@ -18,6 +18,8 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 import { FieldTooltip, useFieldHelp } from '@shared/components/feedback';
 import type { NewFormDefinition } from '@shared/types/forms';
@@ -267,9 +269,12 @@ export function NewFormWizard({
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>{t('forms.wizard.cancel')}</Button>
+        <Button startIcon={<CloseIcon />} onClick={onClose}>
+          {t('forms.wizard.cancel')}
+        </Button>
         <Button
           variant="contained"
+          startIcon={<AddIcon />}
           disabled={!name.trim() || rows.filter((r) => r.selected).length === 0}
           onClick={handleSubmit}
         >

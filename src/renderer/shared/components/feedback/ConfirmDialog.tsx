@@ -7,6 +7,8 @@ import {
   DialogContentText,
   DialogTitle,
 } from '@mui/material';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 
 export interface ConfirmOptions {
@@ -53,11 +55,12 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }): JS
           <DialogContentText id="confirm-dialog-body">{options?.body}</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button autoFocus onClick={() => settle(false)}>
+          <Button autoFocus startIcon={<CloseIcon />} onClick={() => settle(false)}>
             {options?.cancelLabel ?? t('confirm.cancel')}
           </Button>
           <Button
             variant="contained"
+            startIcon={<CheckIcon />}
             color={options?.tone === 'danger' ? 'error' : 'primary'}
             onClick={() => settle(true)}
           >

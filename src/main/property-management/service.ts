@@ -13,7 +13,12 @@ import type {
   EntryDeleteInput,
   EntryUpsertInput,
   ExportJsonInput,
+  GroupApplyChangeInput,
+  GroupChangesListInput,
   GroupCreateInput,
+  GroupDeleteChange,
+  GroupDeleteRequestInput,
+  GroupDiscardChangeInput,
   GroupsListInput,
   HubSpotGroup,
   HubSpotObject,
@@ -287,6 +292,79 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     return { success: true };
   }
 
+  // --- Borrado de grupos de propiedades (SPEC-0006 §33): destructivo, cambio pendiente por proyecto. ---
+
+  /** Solicita borrar un grupo: crea un cambio pendiente (no borra al instante). */
+  function requestGroupDelete(input: GroupDeleteRequestInput): OperationResult {
+    const state = deps.store.get(input.projectId);
+    const exists = state.groupChanges.some(
+      (c) => c.objectType === input.objectType && c.groupName === input.groupName,
+    );
+    if (exists) return { success: false, error: 'Ya hay un borrado pendiente para ese grupo' };
+    const change: GroupDeleteChange = {
+      id: deps.newId(),
+      objectType: input.objectType,
+      groupName: input.groupName,
+      label: input.label,
+      summary: `Borrar grupo «${input.label ?? input.groupName}» en ${input.objectType}`,
+      appliedToSandbox: false,
+      appliedToProduction: false,
+      createdAt: deps.now(),
+    };
+    deps.store.set(input.projectId, { ...state, groupChanges: [...state.groupChanges, change] });
+    markChanged(input.projectId);
+    return { success: true };
+  }
+
+  function listGroupChanges(input: GroupChangesListInput): GroupDeleteChange[] {
+    return deps.store.get(input.projectId).groupChanges;
+  }
+
+  /** Aplica un borrado de grupo en el entorno indicado. Precondición: el grupo debe estar vacío. */
+  async function applyGroupChange(input: GroupApplyChangeInput): Promise<ApplyChangeResult> {
+    const state = deps.store.get(input.projectId);
+    const change = state.groupChanges.find((c) => c.id === input.changeId);
+    if (!change) return { success: false, error: 'Cambio no encontrado' };
+
+    const api = deps.propertiesApiFor(input.projectId);
+    try {
+      const remotes = await api.listProperties(change.objectType, input.environment);
+      const stillUsed = remotes.some((p) => p.groupName === change.groupName);
+      if (stillUsed) {
+        return {
+          success: false,
+          error: 'El grupo no está vacío: mueve o archiva sus propiedades antes de borrarlo.',
+        };
+      }
+      await api.deleteGroup(change.objectType, change.groupName, input.environment);
+    } catch (error) {
+      return { success: false, error: hubspotErrorMessage(error) };
+    }
+
+    // Aplicado a producción ⇒ completado: se retira. En sandbox ⇒ se marca el flag.
+    const groupChanges =
+      input.environment === 'production'
+        ? state.groupChanges.filter((c) => c.id !== input.changeId)
+        : state.groupChanges.map((c) =>
+            c.id === input.changeId ? { ...c, appliedToSandbox: true } : c,
+          );
+    deps.store.set(input.projectId, { ...state, groupChanges });
+    markChanged(input.projectId);
+    return { success: true };
+  }
+
+  function discardGroupChange(input: GroupDiscardChangeInput): OperationResult {
+    const state = deps.store.get(input.projectId);
+    const exists = state.groupChanges.some((c) => c.id === input.changeId);
+    if (!exists) return { success: false, error: 'Cambio no encontrado' };
+    deps.store.set(input.projectId, {
+      ...state,
+      groupChanges: state.groupChanges.filter((c) => c.id !== input.changeId),
+    });
+    markChanged(input.projectId);
+    return { success: true };
+  }
+
   function listOrigins(input: ProjectScopedInput): DataOrigin[] {
     return deps.store.get(input.projectId).origins;
   }
@@ -373,6 +451,10 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     applyChange,
     discardChange,
     requestDelete,
+    requestGroupDelete,
+    listGroupChanges,
+    applyGroupChange,
+    discardGroupChange,
     listOrigins,
     createOrigin,
     updateOrigin,

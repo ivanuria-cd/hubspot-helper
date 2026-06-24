@@ -21,6 +21,8 @@ import FolderIcon from '@mui/icons-material/Folder';
 import FolderSharedIcon from '@mui/icons-material/FolderShared';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 import { BusyButton, LoadingState } from '@shared/components/feedback';
 import type { DriveFolder } from '@shared/types/gdrive';
@@ -219,10 +221,16 @@ export function FolderPickerDialog({
       </DialogContent>
       <DialogActions>
         <Box sx={{ flexGrow: 1 }} />
-        <Button color="inherit" onClick={onClose}>
+        <Button color="inherit" startIcon={<CloseIcon />} onClick={onClose}>
           {t('gdrive.folderPicker.cancel')}
         </Button>
-        <BusyButton variant="contained" busy={working} onClick={() => void confirm()} disabled={!isSelectable}>
+        <BusyButton
+          variant="contained"
+          busy={working}
+          startIcon={<CheckIcon />}
+          onClick={() => void confirm()}
+          disabled={!isSelectable}
+        >
           {t('gdrive.folderPicker.selectThis')}
         </BusyButton>
       </DialogActions>

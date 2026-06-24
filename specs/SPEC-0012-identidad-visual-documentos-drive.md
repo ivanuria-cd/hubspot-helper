@@ -98,6 +98,10 @@ Reglas de construcción:
 - **Estilo y protección**: `buildStyleRequests` ya itera por las hojas recibidas; cada hoja de datos por
   objeto recibe el mismo tratamiento de marca, congelado, notas, validación y formato condicional que §3.1.
 
+> **Enmienda (§12, 2026-06-24):** el bloque por objeto se amplía con una cuarta hoja `<NN>_<Obj>_Definicion`
+> (y una quinta opcional `<NN>_<Obj>_DefOpciones`) para reflejar la definición completa de la propiedad
+> destino. Bump `schema_version` 3 → 4. Ver §12.
+
 ---
 
 ## 3. Interfaz de usuario
@@ -296,3 +300,99 @@ tutoriales nuevos.
 - **Verificación**: ejecutado en el sandbox `npx vitest run` (directorios `connectors/google-drive`,
   `property-management`, `forms-management`, `custom-objects`) → 172/172; `npx tsc --noEmit` → 0 errores.
   Pendiente la ejecución de la suite completa + e2e en la máquina del usuario.
+
+---
+
+## 12. Enmienda — Hoja de definición completa por objeto (IMPLEMENTADO, 2026-06-24)
+
+### 12.1 Motivación
+
+Diagnóstico (verificación 2026-06-24): la hoja `<NN>_<Obj>_Campos` es una vista de **resumen**, no una
+serialización fiel de la definición. De los ~19 campos que `HubSpotPropertyDef`
+(`shared/types/properties.ts`) admite al crear una propiedad, la hoja `Campos` solo refleja `hubspotName`
+(col «Propiedad HubSpot»), `type` (col «Tipo HubSpot») y, de forma derivada, `mode` (col «¿Nueva?»). No
+expone `label`, `fieldType`, `groupName`, `description`, `numberDisplayHint`, `showCurrencySymbol`,
+`currencyPropertyName`, `textDisplayHint`, `calculationFormula`, `hasUniqueValue`, `dataSensitivity`,
+`externalOptions`, `referencedObjectType`, `displayOrder`, `hidden` ni `formField`. Además, la hoja
+`Opciones` solo contiene el **mapeo origen→HubSpot** (`SourceEnumOption`), no el catálogo de opciones
+de una propiedad nueva (`HsPropertyOption`: `label`/`value`/`displayOrder`/`hidden`).
+
+La recuperación íntegra **no se ve afectada**: la vía de carga es el Doc de estado companion (JSON íntegro,
+`drive-state.ts`, SPEC-0004 §15.5), que sigue serializando `PropertyEntry[]` completo. Esta enmienda mejora
+la **auditabilidad humana** del Sheets, no introduce una segunda fuente de verdad.
+
+### 12.2 Cambio en la estructura del bloque (enmienda §2.3)
+
+El bloque por objeto pasa de 2–3 a 3–5 hojas:
+
+```
+<NN>_<Obj>_Campos        (resumen — sin cambios)
+<NN>_<Obj>_Definicion    (NUEVA — definición completa de la propiedad destino, una fila por entrada)
+<NN>_<Obj>_Fuentes       (sin cambios)
+<NN>_<Obj>_Opciones      (mapeo origen→HubSpot — sin cambios; se omite sin fuentes `enum`)
+<NN>_<Obj>_DefOpciones   (NUEVA opcional — catálogo de opciones de propiedades nuevas de enumeración)
+```
+
+Reglas: `Definicion` se genera siempre que el objeto tenga entradas. `DefOpciones` se genera solo si el
+objeto tiene al menos una propiedad **nueva** (`mode: 'new'`) de tipo `enumeration` con `options`. El orden
+dentro del bloque queda: Campos → Definicion → Fuentes → Opciones → DefOpciones. Saneado de nombre y
+resolución de colisiones idénticos a §2.3.
+
+### 12.3 Columnas (ver mapeo a `HubSpotPropertyDef` en SPEC-0006 §32)
+
+`Definicion`: `ID`, `Nombre`, `Propiedad HubSpot`, `Etiqueta`, `Tipo`, `Field type`, `Grupo`, `Descripción`,
+`Formato número`, `Símbolo moneda`, `Propiedad moneda`, `Formato texto`, `Fórmula cálculo`, `Valor único`,
+`Sensibilidad`, `Opciones externas`, `Objeto referenciado`, `Orden`, `Oculta`, `Campo de formulario`.
+
+`DefOpciones`: `ID`, `Nombre`, `Propiedad HubSpot`, `Valor`, `Etiqueta`, `Orden`, `Oculta`.
+
+Para entradas con `mode: 'existing'` sin `definition` cacheada, las columnas de definición van vacías (refleja
+el estado de sincronización, no es errata).
+
+### 12.4 Cambios en generadores
+
+- **`property-management/sheets-model.ts`** (`buildPropertyMapTabs`): emite las hojas `Definicion` y
+  (condicional) `DefOpciones` por bloque, con funciones puras `definicionRow`/`defOpcionRows` análogas a las
+  existentes. `SHEETS_SCHEMA_VERSION` 3 → 4.
+- **`connectors/google-drive/sheets-style.ts`** (`buildStyleRequests`): ya itera por las hojas recibidas; las
+  nuevas hojas reciben el mismo tratamiento de marca/congelado/notas. La regla de ocultar `ID`/`Objeto` y
+  congelar hasta `Nombre` se extiende a las hojas que terminan en `_Definicion`.
+- **`01_Indice`**: la fila por objeto añade el recuento de la hoja `Definicion` (y `DefOpciones` si existe) y
+  sus nombres en la lista de hojas.
+
+### 12.5 Migración
+
+Bump `SHEETS_SCHEMA_VERSION` 3 → 4 (cambio de layout). Documentos previos siguen siendo legibles; se reescriben
+con la estructura nueva en la siguiente acción «Actualizar archivo en Drive». El Doc de estado companion y su
+round-trip (SPEC-0004 §15.5) no cambian.
+
+### 12.6 Tests
+
+Ampliar `sheets-model.spec.ts`: el bloque incluye `Definicion` con las 20 columnas y una fila por entrada;
+`DefOpciones` solo aparece con propiedades nuevas de enumeración con opciones; `01_Indice` refleja los nuevos
+recuentos; `SHEETS_SCHEMA_VERSION` === 4. Actualizar `sheets-writer.spec.ts` (aserción de versión 3 → 4).
+Autorizado por este SPEC (SPEC-0000 §8).
+
+### 12.7 Estado (Definicion / DefOpciones)
+
+IMPLEMENTADO (2026-06-24). Hojas `Definicion` + `DefOpciones` por bloque en `buildPropertyMapTabs`,
+`SHEETS_SCHEMA_VERSION` 3 → 4, índice ampliado, y regla de ocultar/congelar extendida a `_Definicion` en
+`buildStyleRequests`. Adopción registrada en SPEC-0006 §32. Verificación (sandbox): `sheets-model.spec.ts`
+11/11, `sheets-writer.spec.ts` 1/1; `sheets-style.spec.ts` no ejecutable en sandbox por truncación del espejo
+(original sano, 172 líneas). typecheck/suite completa + e2e + PR en la máquina del usuario.
+
+---
+
+## 13. `numberFormat` por columna (IMPLEMENTADO, 2026-06-24)
+
+Retira el diferido de §11 («`numberFormat` por columna diferido»). En `buildStyleRequests` (`sheets-style.ts`),
+para cada hoja de datos y cada columna, **dirigido por datos**: si todas las celdas no vacías del cuerpo son
+`number`, se aplica `numberFormat` (`type: NUMBER`) con patrón `'0'` si todos son enteros o `'0.######'` si hay
+algún decimal. No se infiere por nombre de columna ni se modela el tipo; columnas de texto quedan intactas.
+
+El **formato de fecha** sigue sin aplicarse: los Sheets actuales no contienen valores de fecha tipados (las
+fechas viajan como texto en las celdas), así que no hay columna a la que aplicar patrón de fecha sin un cambio
+de modelo. Queda fuera de alcance hasta que exista un valor de fecha tipado.
+
+Test: `sheets-style.spec.ts` «aplica numberFormat solo a columnas cuyo cuerpo es numérico» (no ejecutable en
+sandbox por la truncación del espejo; se verifica en la máquina). typecheck en máquina.

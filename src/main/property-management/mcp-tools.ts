@@ -249,4 +249,86 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
       return Promise.resolve(service.requestDelete({ projectId: ctx.projectId, entryId: entryId ?? '' }));
     },
   });
+
+  registry.register({
+    name: 'properties_groups_request_delete',
+    description:
+      'Solicita BORRAR (archivado PERMANENTE) un grupo de propiedades en HubSpot. DESTRUCTIVO. ' +
+      'No borra al instante: genera un cambio pendiente de grupo que se ejecuta solo al aplicarlo por entorno ' +
+      'con properties_groups_apply_change (sandbox/production). Al aplicarlo, el grupo debe estar VACÍO o se rechaza. ' +
+      'Para cancelarlo, usar properties_groups_discard_change.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        objectType: { type: 'string' },
+        groupName: { type: 'string' },
+        label: { type: 'string' },
+      },
+      required: ['objectType', 'groupName'],
+    },
+    featureKey: feature,
+    requiredScopes: WRITE_SCOPES,
+    handler: (input, ctx) => {
+      const { objectType, groupName, label } = (input ?? {}) as {
+        objectType?: string;
+        groupName?: string;
+        label?: string;
+      };
+      return Promise.resolve(
+        service.requestGroupDelete({
+          projectId: ctx.projectId,
+          objectType: objectType ?? '',
+          groupName: groupName ?? '',
+          label,
+        }),
+      );
+    },
+  });
+
+  registry.register({
+    name: 'properties_group_pending_changes',
+    description: 'Lista los borrados de grupo pendientes del proyecto.',
+    inputSchema: { type: 'object', properties: {} },
+    featureKey: feature,
+    requiredScopes: SCOPES,
+    handler: (_input, ctx) => Promise.resolve(service.listGroupChanges({ projectId: ctx.projectId })),
+  });
+
+  registry.register({
+    name: 'properties_groups_apply_change',
+    description:
+      'Aplica un borrado de grupo pendiente en el entorno indicado (sandbox o production). DESTRUCTIVO. ' +
+      'Rechaza si el grupo no está vacío.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        changeId: { type: 'string' },
+        environment: { type: 'string', enum: ['sandbox', 'production'] },
+      },
+      required: ['changeId', 'environment'],
+    },
+    featureKey: feature,
+    requiredScopes: WRITE_SCOPES,
+    handler: (input, ctx) => {
+      const { changeId, environment } = (input ?? {}) as {
+        changeId: string;
+        environment: HubSpotEnvironment;
+      };
+      return service.applyGroupChange({ projectId: ctx.projectId, changeId, environment });
+    },
+  });
+
+  registry.register({
+    name: 'properties_groups_discard_change',
+    description: 'Descarta un borrado de grupo pendiente del proyecto.',
+    inputSchema: { type: 'object', properties: { changeId: { type: 'string' } }, required: ['changeId'] },
+    featureKey: feature,
+    requiredScopes: WRITE_SCOPES,
+    handler: (input, ctx) => {
+      const { changeId } = (input ?? {}) as { changeId?: string };
+      return Promise.resolve(
+        service.discardGroupChange({ projectId: ctx.projectId, changeId: changeId ?? '' }),
+      );
+    },
+  });
 }

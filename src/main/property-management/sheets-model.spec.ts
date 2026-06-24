@@ -55,6 +55,7 @@ describe('buildPropertyMapTabs', () => {
       '01_Indice',
       '02_Origenes',
       '03_contacts_Campos',
+      '03_contacts_Definicion',
       '03_contacts_Fuentes',
       '03_contacts_Opciones',
     ]);
@@ -79,16 +80,91 @@ describe('buildPropertyMapTabs', () => {
     expect(opciones?.rows[1]).toEqual(['Grado', 'Salesforce', 'bach', 'Bachelor', 'bachelor']);
   });
 
+  it('la hoja Definicion vuelca la definición completa de la propiedad destino', () => {
+    const def = buildPropertyMapTabs(entries, origins).find((t) => t.title === '03_contacts_Definicion');
+    expect(def?.rows[0]).toEqual([
+      'ID',
+      'Nombre',
+      'Propiedad HubSpot',
+      'Etiqueta',
+      'Tipo',
+      'Field type',
+      'Grupo',
+      'Descripción',
+      'Formato número',
+      'Símbolo moneda',
+      'Propiedad moneda',
+      'Formato texto',
+      'Fórmula cálculo',
+      'Valor único',
+      'Sensibilidad',
+      'Opciones externas',
+      'Objeto referenciado',
+      'Orden',
+      'Oculta',
+      'Campo de formulario',
+    ]);
+    expect(def?.rows.find((row) => row[0] === 'e2')).toEqual([
+      'e2',
+      'Activo',
+      'is_active',
+      'Activo',
+      'bool',
+      'booleancheckbox',
+      'x',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+    ]);
+  });
+
+  it('la hoja DefOpciones vuelca el catálogo de opciones de propiedades nuevas de enumeración', () => {
+    const enumEntry: PropertyEntry = {
+      id: 'e4',
+      objectType: 'contacts',
+      name: 'Nivel',
+      hubspotProperty: {
+        mode: 'new',
+        definition: {
+          hubspotName: 'level',
+          label: 'Nivel',
+          type: 'enumeration',
+          fieldType: 'select',
+          groupName: 'g',
+          options: [{ label: 'Alto', value: 'high', displayOrder: 0, hidden: false }],
+        },
+      },
+      sources: [],
+      hubspotStatus: 'missing',
+    };
+    const tabs = buildPropertyMapTabs([enumEntry], origins);
+    const defOpc = tabs.find((t) => t.title === '03_contacts_DefOpciones');
+    expect(defOpc?.rows[0]).toEqual(['ID', 'Nombre', 'Propiedad HubSpot', 'Valor', 'Etiqueta', 'Orden', 'Oculta']);
+    expect(defOpc?.rows[1]).toEqual(['e4', 'Nivel', 'level', 'high', 'Alto', 0, false]);
+  });
+
   it('01_Indice resume recuentos y hojas por objeto', () => {
     const indice = buildPropertyMapTabs(entries, origins)[1];
     expect(indice.title).toBe('01_Indice');
-    expect(indice.rows[0]).toEqual(['Objeto', 'Campos', 'Fuentes', 'Opciones', 'Hojas']);
+    expect(indice.rows[0]).toEqual(['Objeto', 'Campos', 'Definicion', 'Fuentes', 'Opciones', 'DefOpciones', 'Hojas']);
     expect(indice.rows[1]).toEqual([
       'contacts',
       2,
       2,
+      2,
       1,
-      '03_contacts_Campos, 03_contacts_Fuentes, 03_contacts_Opciones',
+      0,
+      '03_contacts_Campos, 03_contacts_Definicion, 03_contacts_Fuentes, 03_contacts_Opciones',
     ]);
   });
 
@@ -110,8 +186,10 @@ describe('buildPropertyMapTabs', () => {
       '01_Indice',
       '02_Origenes',
       '03_companies_Campos',
+      '03_companies_Definicion',
       '03_companies_Fuentes',
       '04_contacts_Campos',
+      '04_contacts_Definicion',
       '04_contacts_Fuentes',
       '04_contacts_Opciones',
     ]);

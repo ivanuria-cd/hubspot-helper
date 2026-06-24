@@ -10,6 +10,9 @@ import {
   Typography,
 } from '@mui/material';
 import SyncIcon from '@mui/icons-material/Sync';
+import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
 import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
@@ -114,7 +117,7 @@ export function CustomObjectsScreen(): JSX.Element | null {
             {t('customObjects.syncHs')}
           </BusyButton>
         ) : (
-          <Button variant="outlined" onClick={() => setView('list')}>
+          <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => setView('list')}>
             {t('customObjects.changes.back')}
           </Button>
         )}
@@ -143,6 +146,7 @@ export function CustomObjectsScreen(): JSX.Element | null {
           <Stack direction="row" spacing={1} sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
             <Button
               variant="contained"
+              startIcon={<AddIcon />}
               onClick={() => {
                 setEditing(null);
                 setWizardOpen(true);
@@ -150,7 +154,12 @@ export function CustomObjectsScreen(): JSX.Element | null {
             >
               {t('customObjects.addObject')}
             </Button>
-            <Button variant="text" disabled={pendingCount === 0} onClick={() => setView('changes')}>
+            <Button
+              variant="text"
+              startIcon={<PendingActionsIcon />}
+              disabled={pendingCount === 0}
+              onClick={() => setView('changes')}
+            >
               {t('customObjects.pendingChanges', { count: pendingCount })}
             </Button>
             <Box sx={{ flexGrow: 1 }} />

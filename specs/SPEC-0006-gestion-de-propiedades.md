@@ -1071,7 +1071,7 @@ campos de §25 en los payloads `create`. Hallazgos pendientes de corrección:
   conector.
 - **Requiere rebuild del MCP** para que el binario en ejecución tome estos fixes. typecheck/test en máquina.
 
-## 27. Adopción del patrón de estados de carga (SPEC-0002 §17) (BORRADOR, 2026-06-22)
+## 27. Adopción del patrón de estados de carga (SPEC-0002 §17) (IMPLEMENTADO, 2026-06-22)
 
 Las superficies de propiedades adoptan el patrón de SPEC-0002 §17: `PropertyManagementScreen` pinta
 `LoadingState` mientras resuelve entradas/objetos; `EntryWizard` se abre de inmediato con su esqueleto y carga
@@ -1182,3 +1182,156 @@ por las reglas de hooks). Cobertura:
 - **`EntryPanel`** — sin cambios: es de solo lectura (no tiene campos rellenables).
 
 Claves en `es`/`ca`/`eu`/`en`. typecheck/test en máquina.
+
+---
+
+## 32. Hoja de definición completa por objeto (SPEC-0012 §12) (IMPLEMENTADO, 2026-06-24)
+
+### 32.1 Diagnóstico
+
+La hoja `<NN>_<Obj>_Campos` (cabecera `ENTRADAS_HEADER` en `sheets-model.ts`) es una vista de **resumen** con
+9 columnas (`ID`, `Objeto`, `Nombre`, `Propiedad HubSpot`, `¿Nueva?`, `Tipo HubSpot`, `Estado`, `Nº orígenes`,
+`Cambios pendientes`). De la definición real de la propiedad destino (`HubSpotPropertyDef`, §3 /
+`shared/types/properties.ts`) solo refleja `hubspotName` y `type` (y `mode` de forma derivada). Quedan fuera
+16 campos de definición y el catálogo de opciones de las propiedades nuevas de enumeración. La hoja
+`Opciones` solo guarda el mapeo origen→HubSpot (`SourceEnumOption`), no `HsPropertyOption`.
+
+La recuperación íntegra del estado **no depende del Sheets**: se carga desde el Doc de estado companion (JSON
+íntegro, `drive-state.ts`, SPEC-0004 §15.5). Esta enmienda solo mejora la legibilidad/auditoría del Sheets.
+
+### 32.2 Hoja `<NN>_<Obj>_Definicion` (nueva)
+
+Una fila por entrada del objeto. Mapeo columna → campo de `HubSpotPropertyDef`:
+
+| Columna | Campo |
+|---------|-------|
+| `ID` | `entry.id` |
+| `Nombre` | `entry.name` |
+| `Propiedad HubSpot` | `hubspotName` |
+| `Etiqueta` | `label` |
+| `Tipo` | `type` |
+| `Field type` | `fieldType` |
+| `Grupo` | `groupName` |
+| `Descripción` | `description` |
+| `Formato número` | `numberDisplayHint` |
+| `Símbolo moneda` | `showCurrencySymbol` |
+| `Propiedad moneda` | `currencyPropertyName` |
+| `Formato texto` | `textDisplayHint` |
+| `Fórmula cálculo` | `calculationFormula` |
+| `Valor único` | `hasUniqueValue` |
+| `Sensibilidad` | `dataSensitivity` |
+| `Opciones externas` | `externalOptions` |
+| `Objeto referenciado` | `referencedObjectType` |
+| `Orden` | `displayOrder` |
+| `Oculta` | `hidden` |
+| `Campo de formulario` | `formField` |
+
+Para entradas `mode: 'existing'` sin `definition` cacheada, las columnas de definición van vacías (refleja el
+estado de sincronización, no es errata — coherente con la norma de no corregir erratas, solo reflejarlas).
+
+### 32.3 Hoja `<NN>_<Obj>_DefOpciones` (nueva, opcional)
+
+Catálogo de opciones de las propiedades **nuevas** (`mode: 'new'`) de tipo `enumeration` con `options`
+(`HsPropertyOption`). Se omite si el objeto no tiene ninguna. Columnas: `ID`, `Nombre`, `Propiedad HubSpot`,
+`Valor` (`value`), `Etiqueta` (`label`), `Orden` (`displayOrder`), `Oculta` (`hidden`).
+
+### 32.4 Implementación
+
+`buildPropertyMapTabs` emite `Definicion` (siempre que el objeto tenga entradas) y `DefOpciones` (condicional)
+en el orden Campos → Definicion → Fuentes → Opciones → DefOpciones, con funciones puras `definicionRow` /
+`defOpcionRows`. `SHEETS_SCHEMA_VERSION` 3 → 4. La estructura, migración, estilo y tests se rigen por
+**[SPEC-0012 §12](SPEC-0012-identidad-visual-documentos-drive.md)**. No cambia ningún contrato IPC ni tipo
+compartido; `HubSpotPropertyDef` ya contiene todos los campos volcados.
+
+### 32.5 Estado
+
+IMPLEMENTADO (2026-06-24). `buildPropertyMapTabs` (`sheets-model.ts`) emite `Definicion` (siempre) y
+`DefOpciones` (condicional) por bloque; `definicionRow`/`defOpcionRows` puras; `SHEETS_SCHEMA_VERSION` 3 → 4;
+índice ampliado con columnas `Definicion`/`DefOpciones`. Estilo en `sheets-style.ts` (ocultar/congelar
+extendido a `_Definicion`). Verificación (sandbox): `sheets-model.spec.ts` 11/11 (incluye Definicion y
+DefOpciones), `sheets-writer.spec.ts` 1/1. typecheck/suite completa + PR en la máquina del usuario.
+
+---
+
+## 33. Borrado de grupos de propiedades (BORRADOR, 2026-06-24)
+
+Retira el diferido de §22.3. **No implementar hasta validación**: es una escritura **destructiva en
+producción** de HubSpot.
+
+### 33.1 Motivación y riesgo
+
+§22.3 dejó el borrado de grupos fuera por ser destructivo y no estar expuesto en la UI. Se especifica aquí
+para poder retomarlo de forma controlada. Riesgos: el borrado de un grupo es **permanente** (no hay archivado
+como en propiedades). Según la Property Groups API, un grupo **con propiedades** no puede borrarse sin más; hay
+que vaciarlo antes (mover/archivar sus propiedades). El alcance debe confirmarse contra la API real.
+
+### 33.2 API
+
+Versión más alta disponible para grupos (prioridad CLAUDE.md): `DELETE
+/crm/properties/2026-03/{objectType}/groups/{groupName}` (o `v3` si `2026-03` no expone grupos). A confirmar:
+comportamiento con grupo no vacío (¿409/400?), y si existe operación de archivado.
+
+### 33.3 Modelo — cambio pendiente destructivo
+
+A diferencia de las propiedades (cambios por entrada, §29), los grupos no son entradas. Se modela como un
+**cambio pendiente propio de grupo**, nunca automático:
+
+- Nuevo tipo de cambio de grupo (`group_delete`) con `objectType` + `groupName`, materializado solo por acción
+  explícita del usuario y aplicado por entorno (sandbox primero, luego producción), reutilizando el flujo de
+  aplicar/descartar de §23/§29.
+- Precondición: el grupo debe estar **vacío** (sin propiedades activas mapeadas ni en HubSpot); si no, se
+  bloquea con aviso y se ofrece mover/archivar primero.
+
+### 33.4 UI
+
+Acción «Eliminar grupo» en la gestión de grupos, con `ConfirmDialog` (SPEC-0002 §11) de **doble
+confirmación**, texto explícito de que es permanente y afecta a producción, y selección de entorno. Oculta o
+deshabilitada si el grupo no está vacío.
+
+### 33.5 MCP
+
+Tool `properties_groups_request_delete` (crea el cambio pendiente, no borra directo), simétrica con
+`properties_request_delete` (§29). Requiere rebuild MCP. No expone borrado inmediato.
+
+### 33.6 Seguridad
+
+Destructivo y permanente: por defecto inactivo, sandbox-first, doble confirmación, precondición de grupo
+vacío, y nunca como efecto secundario de otra acción. Alinear con SPEC-0005 §11 (CRUD del MCP) y §22.3.
+
+### 33.7 Estado
+
+**IMPLEMENTADO (2026-06-24), incluida la UI.**
+
+Validado el spec. Implementado en main + MCP + tests:
+
+- **Conector** `connectors/hubspot/properties.ts`: `deleteGroup(objectType, groupName, environment)` →
+  `DELETE /crm/properties/2026-03/{objectType}/groups/{groupName}` (confirmado contra la doc de HubSpot, mismo
+  patrón que `listGroups`/`createGroup`).
+- **Tipos** `shared/types/properties.ts`: `GroupDeleteChange` + inputs (`GroupDeleteRequestInput`,
+  `GroupChangesListInput`, `GroupApplyChangeInput`, `GroupDiscardChangeInput`).
+- **Store** `store.ts`: `PropertyState.groupChanges`. **Limitación**: se persiste en electron-store (local), no
+  en el documento de estado companion de Drive (no se bumpea su esquema); los borrados pendientes de grupo no
+  son portables hasta una iteración posterior.
+- **Servicio** `service.ts`: `requestGroupDelete` (dedup), `listGroupChanges`, `applyGroupChange` (precondición
+  **grupo vacío** comprobada con `listProperties` del entorno destino; sandbox marca flag, producción retira el
+  cambio), `discardGroupChange`.
+- **MCP** `mcp-tools.ts`: `properties_groups_request_delete`, `properties_group_pending_changes`,
+  `properties_groups_apply_change`, `properties_groups_discard_change` (DESTRUCTIVO, requiere rebuild MCP).
+- **Tests** `service.spec.ts`: request/dedup, rechazo por grupo no vacío, aplicar en producción (borra+retira),
+  sandbox (marca flag), discard. No ejecutables en el sandbox por truncación del espejo (originales sanos);
+  verificación en la máquina.
+
+**Confirmación API (Chrome, cuenta Cloud District)**: el endpoint de grupos sigue el patrón estándar ya usado;
+el diseño exige **grupo vacío** antes de borrar, así que el comportamiento de la API con grupos no vacíos no
+afecta a la seguridad.
+
+- **IPC + preload** (`ipc.ts`, `main/index.ts`, `preload/index.ts`): canales `groups:request-delete`,
+  `groups:changes`, `groups:apply-change`, `groups:discard-change` + métodos en `RevOpsApi`.
+- **UI** (decisión 2026-06-24: **sección «Grupos» en Propiedades**): botón «Grupos» en la barra de
+  `PropertyManagementScreen` abre `GroupsModal` (nuevo) con: lista de grupos del objeto activo, acción
+  «Eliminar» con **doble confirmación** (`useConfirm` ×2, tono `danger`), deshabilitada si el grupo tiene
+  propiedades (chip «Con propiedades») o ya tiene borrado pendiente; y panel de **borrados pendientes** con
+  Aplicar (sandbox/producción) y Descartar. Feedback por Snackbar; `LoadingState` al cargar.
+- **i18n** `properties.manageGroups` + `properties.groupsModal.*` en `es`/`ca`/`eu`/`en` (JSON validado).
+
+El borrado es operable por UI y por MCP. typecheck/suite/e2e + rebuild MCP en la máquina del usuario.

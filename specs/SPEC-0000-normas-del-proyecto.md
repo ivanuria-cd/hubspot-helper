@@ -42,12 +42,12 @@ Este documento define las reglas que rigen **todos** los demás SPECs y el desar
 
 ### Internacionalización (i18n)
 - Toda cadena de texto visible en la interfaz debe externalizarse — **prohibido texto hardcodeado** en componentes.
-- Idiomas soportados: **castellano (`es`)**, **catalán (`ca`)**, **euskera (`eu`)**, **inglés (`en`)**.
+- Idiomas soportados: **castellano (`es`)**, **catalán (`ca`)**, **euskera (`eu`)**, **inglés (`en`)**, **gallego (`gl`)**, **portugués (`pt`)** y **francés (`fr`)** (los tres últimos añadidos por SPEC-0014).
 - El idioma por defecto es castellano; el usuario puede cambiarlo en ajustes y la preferencia se persiste.
 - Librería: **`i18next`** + **`react-i18next`**. Los ficheros de traducción son JSON organizados por `locale/feature`.
 - Las fechas, números y monedas se formatean con la API nativa `Intl` según el locale activo.
 - Ningún SPEC de característica puede usar texto literal en componentes React — debe referenciar siempre la clave de traducción.
-- **Nombres de idioma en selectores (autónimos):** en cualquier desplegable de selección de idioma, el nombre de cada idioma se muestra **SIEMPRE en su propio idioma objetivo** (autónimo), nunca traducido al idioma activo de la interfaz. Valores canónicos: `es` → «Castellano», `ca` → «Català», `eu` → «Euskara», `en` → «English». La **etiqueta** del campo selector (p. ej. «Idioma» / «Language») sí se traduce al idioma activo; las **opciones** no. Los autónimos son una única fuente de verdad (constante compartida), no claves de traducción por locale.
+- **Nombres de idioma en selectores (autónimos):** en cualquier desplegable de selección de idioma, el nombre de cada idioma se muestra **SIEMPRE en su propio idioma objetivo** (autónimo), nunca traducido al idioma activo de la interfaz. Valores canónicos: `es` → «Castellano», `ca` → «Català», `eu` → «Euskara», `en` → «English», `gl` → «Galego», `pt` → «Português», `fr` → «Français». La **etiqueta** del campo selector (p. ej. «Idioma» / «Language») sí se traduce al idioma activo; las **opciones** no. Los autónimos son una única fuente de verdad (constante compartida), no claves de traducción por locale.
 - **Tooltip de campos rellenables (obligatorio):** todo campo que el usuario deba rellenar (input de texto/número, select, textarea, date, checkbox/radio y toggles con semántica no evidente, etc.) debe exponer un **tooltip de ayuda contextual** que describa su función. El texto del tooltip se externaliza vía i18n (clave de traducción por `locale/feature`, **prohibido texto literal**) en los cuatro idiomas (`es` canónico, `ca`, `eu`, `en`). El tooltip es **accesible**: asociado al campo mediante `aria-describedby` (o `aria-label`/`title` cuando el patrón lo requiera), operable por teclado (foco/`Esc`) y anunciado por lector de pantalla, cumpliendo WCAG 2.1 AA (§3 a11y). El **componente compartido** y su patrón de uso se definen en **[SPEC-0002 §18](SPEC-0002-app-shell.md)**; cada SPEC de característica registra su adopción.
 
 ---
@@ -211,12 +211,12 @@ Toda característica de la aplicación — empezando por los conectores (HubSpot
 
 ### Reglas
 
-- Los tutoriales se guardan en `doc/tutoriales/<feature>/<locale>/`, con una subcarpeta por idioma (`es`, `ca`, `eu`, `en`). El **castellano (`es`) es la versión canónica** y siempre debe existir para cada tarea (ver SPEC-0009).
+- Los tutoriales se guardan en `doc/tutoriales/<feature>/<locale>/`, con una subcarpeta por idioma (`es`, `ca`, `eu`, `en`, `gl`, `pt`, `fr`). El **castellano (`es`) es la versión canónica** y siempre debe existir para cada tarea (ver SPEC-0009).
 - Cada tutorial es un fichero Markdown con el nombre de la tarea que describe (ej: `conectar-hubspot.md`, `crear-mapa-de-propiedades.md`). **El `slug` (nombre de fichero) es el mismo en todos los idiomas** — es el identificador estable del tutorial; el título traducido vive en el encabezado `# ` del propio `.md`.
 - El lenguaje es claro, orientado a usuarios de negocio (RevOps), sin jerga técnica innecesaria.
 - Cada paso va numerado e incluye, si aplica, una descripción de qué esperar ver en la pantalla.
 - Si la tarea tiene prerrequisitos (ej: "debes tener configurado el conector HubSpot"), se indican al inicio.
-- Los tutoriales se escriben en castellano como idioma base; el resto de idiomas (`ca`, `eu`, `en`) se mantienen traducidos en su subcarpeta de idioma. El visor de Ayuda muestra cada tutorial en el idioma activo de la interfaz y **cae a castellano con un aviso** si falta la traducción (SPEC-0009).
+- Los tutoriales se escriben en castellano como idioma base; el resto de idiomas (`ca`, `eu`, `en`, `gl`, `pt`, `fr`) se mantienen traducidos en su subcarpeta de idioma. El visor de Ayuda muestra cada tutorial en el idioma activo de la interfaz y **cae a castellano con un aviso** si falta la traducción (SPEC-0009).
 - Cada SPEC de característica debe listar en su sección §9 los tutoriales que genera y su ruta en `doc/tutoriales/`.
 - **Visibilidad en la app**: los tutoriales son para el usuario final de la aplicación y **deben poder verse desde la interfaz**, no solo como ficheros Markdown del repositorio. Se exponen en una sección **Ayuda** accesible desde el menú lateral, que lista los tutoriales por característica y los renderiza dentro de la app. El visor de Ayuda (componente, ruta y carga de los `.md`) queda definido en **SPEC-0002 (App Shell)**; cada SPEC de característica solo aporta sus ficheros en `doc/tutoriales/<feature>/` y se muestran automáticamente.
 

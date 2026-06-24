@@ -687,7 +687,7 @@ Claves i18n nuevas: `gdrive.credentialsSaved`, `gdrive.credentialsError`, `gdriv
 
 > 2026-06-19 (a11y, SPEC-0002 §16): `SearchIcon` decorativo del selector de carpeta marcado `aria-hidden`.
 
-## 17. Adopción del patrón de estados de carga (SPEC-0002 §17) (BORRADOR, 2026-06-22)
+## 17. Adopción del patrón de estados de carga (SPEC-0002 §17) (IMPLEMENTADO, 2026-06-22)
 
 `GoogleDriveConnectorScreen` y, sobre todo, `FolderPickerDialog` adoptan el patrón de SPEC-0002 §17. El selector
 de carpeta es el caso claro: al abrirlo aparece **de inmediato** con un `LoadingState` (variante `list`) y
@@ -898,3 +898,115 @@ campo rellenable lleva un `FieldTooltip` con texto i18n, asociado por `aria-desc
 (`gdrive.credentials.fieldHelp.clientId`) y Client Secret (`gdrive.credentials.fieldHelp.clientSecret`) — qué son
 y de dónde se obtienen en Google Cloud Console —, en `es`/`ca`/`eu`/`en`. El selector de carpeta (§14) no es un
 campo de texto rellenable. typecheck/test en máquina.
+
+---
+
+## 21. Corrección — Documentos de estado vacíos y duplicados (IMPLEMENTADO, 2026-06-24)
+
+### 21.1 Diagnóstico (verificado en Drive, 2026-06-24)
+
+En la subcarpeta `property-management-state` de un proyecto real hay **9+ documentos duplicados** con el mismo
+título `property-management-state`, todos de 1024 bytes (tamaño base de un Google Doc vacío). Lectura del más
+reciente (2026-06-23 10:16) y de uno antiguo (2026-06-17): **vacíos por completo** — ni portada ni el JSON
+de `serializePropertyState`. En cambio el Sheets legible `Mapa de propiedades CRM`, escrito en el **mismo
+instante**, contiene todos los datos (1 objeto, 42 campos, 6 orígenes, 40 fuentes, 104 opciones).
+
+El dato no se ha perdido: la fuente de verdad operativa es el almacén local (electron-store), evidentemente
+poblado (de él se generó ese Sheets), y el Sheets guarda una copia legible. Lo roto es **solo el documento de
+estado companion** (§15.5), que es la vía de recuperación. Que el vacío anteceda a la estilización de
+SPEC-0012 (docs de 2026-06-17, cuando `createManagedDocument` solo hacía `insertText`) descarta que la causa
+sean los `requests` de estilo.
+
+### 21.2 Cadena de causa (a confirmar con el error real de la Docs API)
+
+1. `createManagedDocument` (`connectors/google-drive/client.ts`) ejecuta primero `api.filesCreate` (crea el
+   Doc) y **después** `api.docsBatchUpdate` (inserta `buildFullBody` = portada + delimitador + JSON). Si
+   `docsBatchUpdate` lanza, el Doc ya existe **vacío** y la función propaga el error sin limpiarlo → Doc
+   huérfano.
+2. `writeFile` (`connectors/google-drive/index.ts`) captura el error y devuelve `{ success: false }`, pero el
+   `DriveFile` con su `driveId` **solo se registra en la config tras** el `createManagedDocument` correcto;
+   al fallar, la config no aprende el `driveId`.
+3. En la siguiente «Actualizar archivo en Drive», `existing` no se encuentra → se vuelve a crear **otro** Doc
+   vacío. De ahí los duplicados.
+4. `writePropertiesSheets`/`writeFormsSheets`/`writeCustomObjectsSheets` (`main/index.ts`) **no comprueban el
+   resultado** de `gdrive.writeFile`: lo `await`ean y a continuación llaman a `markDriveWritten`
+   incondicionalmente. El fallo del estado queda **silenciado** y el flag de «escrito» miente.
+
+La razón de que `docsBatchUpdate` falle queda **pendiente de confirmación en runtime**. Análisis (2026-06-24):
+
+- **Scope descartado.** Los scopes son `drive.file` + `drive.metadata.readonly` + `userinfo.email`
+  (`auth.ts`). `drive.file` autoriza tanto la Sheets API como la Docs API sobre ficheros creados por la app;
+  como el Sheets sí se escribe con el mismo token, el scope no explica la asimetría.
+- **Hipótesis principal: la Docs API no está habilitada en el proyecto de Google Cloud** del usuario (mientras
+  que Drive API y Sheets API sí lo están). Una API deshabilitada devuelve `403 SERVICE_DISABLED`
+  independientemente del contenido o de los `requests` de estilo, lo que encaja con que los Docs estén vacíos
+  desde el primer volcado (2026-06-17) y con que el Sheets funcione. **Verificación**: habilitar «Google Docs
+  API» en el proyecto de Cloud Console y repetir «Actualizar archivo en Drive».
+- El error real queda ahora **registrado** (§21.3.5) y, además, se propaga al usuario por Snackbar (§21.3.3),
+  por lo que el próximo intento mostrará el mensaje exacto de la Docs API y confirmará la causa.
+
+### 21.3 Correcciones
+
+1. **Resiliencia de `createManagedDocument`**: envolver `docsBatchUpdate` en `try/catch`; ante fallo, borrar
+   el Doc recién creado (`filesDelete`) antes de propagar el error, para no dejar huérfanos.
+2. **Reutilización antes de crear**: antes de `createManagedDocument`, si la config no tiene `driveId` para el
+   `featureKey`, buscar un Doc gestionado existente en la subcarpeta del feature (vía `listManagedFiles` /
+   `appProperties` `feature == featureKey`) y reutilizarlo (`replaceDocumentBody`) en vez de crear uno nuevo.
+   Evita duplicados cuando la config perdió la referencia (reinstalación, proyecto reabierto, build previa).
+3. **Propagación del fallo al llamante**: `writePropertiesSheets`/`writeFormsSheets`/
+   `writeCustomObjectsSheets` deben comprobar el `success` de `gdrive.writeFile`; si el estado no se escribió,
+   **no** llamar a `markDriveWritten` y devolver error (Snackbar `error`, SPEC-0004 §16). La escritura del
+   par Sheets+estado es atómica desde el punto de vista del usuario: si falla el estado, el documento no está
+   «al día».
+4. **Limpieza/deduplicación**: rutina que localice los `*-state` duplicados de un feature en su subcarpeta y
+   envíe a la papelera los vacíos, conservando el más reciente con contenido (o recreándolo desde el estado
+   local). Expuesta como acción puntual o integrada en `gdrive:refresh-project` (§19).
+5. **Diagnóstico**: registrar (log) el cuerpo del error de `docsBatchUpdate` para identificar la causa raíz y
+   confirmar que las correcciones 1–3 la cubren.
+
+### 21.4 Verificación de datos (norma del proyecto)
+
+Coherente con «si encuentras corrupción, verifica que no sea del clonado al sandbox y que los originales estén
+sanos»: el vacío está en los **originales de Drive**, no en una copia del sandbox. El estado local y el Sheets
+se han verificado sanos. Tras aplicar 1–4, una sola «Actualizar archivo en Drive» repuebla el documento de
+estado desde el estado local.
+
+### 21.5 Tests requeridos
+
+- `client.spec.ts`: `createManagedDocument` borra el Doc creado si `docsBatchUpdate` falla (mock que lanza) y
+  propaga el error; round-trip correcto cuando no falla (sin regresión).
+- `index.spec.ts` (conector): `writeFile` reutiliza un Doc gestionado existente en la subcarpeta cuando la
+  config no tiene `driveId`, en vez de crear uno nuevo.
+- Test del orquestador de escritura en `main`: si `gdrive.writeFile` del estado falla, no se llama a
+  `markDriveWritten` y el handler devuelve error.
+- Test de la rutina de limpieza: con varios `*-state` (vacíos + uno con contenido), conserva el correcto y
+  envía el resto a la papelera.
+
+### 21.6 Alcance e impacto
+
+Cambios internos en `connectors/google-drive/client.ts` e `index.ts` y en los orquestadores `write*Sheets` de
+`main/index.ts`. No cambia el contrato §15.5 (sigue siendo Doc de estado + JSON íntegro) ni los `serialize`/
+`parse` por feature; refuerza su fiabilidad. Sin scopes nuevos salvo que el diagnóstico (21.2/21.3.5) revele
+que falta el de la Docs API, en cuyo caso se documentará aparte en §7.
+
+### 21.7 Estado
+
+IMPLEMENTADO (2026-06-24) — pendiente el **diagnóstico del fallo real de `docsBatchUpdate`** (runtime, 21.2/
+21.3.5) y la verificación en la máquina del usuario.
+
+- `createManagedDocument` (`client.ts`): `docsBatchUpdate` envuelto en `try/catch`; ante fallo borra el Doc
+  recién creado (`filesDelete`) y propaga el error. Test `client.spec.ts` «borra el documento recién creado
+  si falla docsBatchUpdate».
+- `writeFile` (conector `index.ts`): si la config no tiene el archivo, lista los Docs gestionados de la
+  subcarpeta del feature; si hay alguno, reutiliza el primero (`replaceDocumentBody`), registra su `driveId`
+  y envía a la papelera los duplicados (best-effort); solo crea uno nuevo si no hay ninguno. Esto deduplica
+  los `*-state` vacíos existentes en la próxima escritura.
+- `writePropertiesSheets`/`writeCustomObjectsSheets`/`writeFormsSheets` (`main/index.ts`): comprueban el
+  `success` de `gdrive.writeFile`; si falla, no llaman a `markDriveWritten` y devuelven error.
+- `writeFile` (conector `index.ts`): `console.error` del error real en el `catch` (§21.3.5) para capturar el
+  mensaje de la Docs API en el próximo fallo; además ya se propaga al usuario por Snackbar.
+- Verificación (sandbox): `client.spec.ts` 15/15. El test del conector `index.ts` y de los orquestadores
+  `write*Sheets` no se añade por no existir harness unitario de `index.ts` en el repo (orquestación cubierta
+  por `tsc`); se valida en la máquina. `tsc -p tsconfig.main.json` sin errores en los ficheros tocados (el
+  único error es la truncación del espejo del sandbox en `sheets-style.spec.ts`; original sano). Suite
+  completa + e2e + PR en la máquina del usuario.

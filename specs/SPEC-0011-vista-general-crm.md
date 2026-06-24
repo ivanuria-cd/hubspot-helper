@@ -110,7 +110,7 @@ Solo lectura de estado ya expuesto al renderer. No muestra secretos.
 - **Decisión:** hook propio `useCrmOverview` (no se entrelaza con `useDashboardStatus`) para no acoplar Dashboard y CRM; comparten solo los canales IPC.
 - **Verificación:** `npm run typecheck` y `eslint` en verde. Suite unitaria completa pendiente en máquina.
 
-## 12. Adopción del patrón de estados de carga (SPEC-0002 §17) (BORRADOR, 2026-06-22)
+## 12. Adopción del patrón de estados de carga (SPEC-0002 §17) (IMPLEMENTADO, 2026-06-22)
 
 `CrmOverviewScreen` reconvierte sus estados loading/error (§11) al patrón unificado de SPEC-0002 §17:
 `LoadingState` (variante `cards`) con `aria-busy` mientras `useCrmOverview` resuelve total + pendientes de las

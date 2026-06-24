@@ -31,6 +31,6 @@ describe('ElectronPropertyStore.get (migración v1 → v2)', () => {
   it('proyecto inexistente devuelve estado vacío', async () => {
     const { ElectronPropertyStore } = await import('./store');
     const store = new ElectronPropertyStore();
-    expect(store.get('desconocido')).toEqual({ origins: [], entries: [] });
+    expect(store.get('desconocido')).toEqual({ origins: [], entries: [], groupChanges: [] });
   });
 });

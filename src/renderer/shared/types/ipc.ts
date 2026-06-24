@@ -56,7 +56,12 @@ import type {
   EntryDeleteInput,
   EntryUpsertInput,
   ExportJsonInput,
+  GroupApplyChangeInput,
+  GroupChangesListInput,
   GroupCreateInput,
+  GroupDeleteChange,
+  GroupDeleteRequestInput,
+  GroupDiscardChangeInput,
   GroupsListInput,
   HubSpotGroup,
   HubSpotObject,
@@ -152,6 +157,10 @@ export const IpcChannels = {
   hubspotPropertiesList: 'properties:hubspot-list',
   groupsList: 'groups:list',
   groupsCreate: 'groups:create',
+  groupRequestDelete: 'groups:request-delete',
+  groupChanges: 'groups:changes',
+  groupApplyChange: 'groups:apply-change',
+  groupDiscardChange: 'groups:discard-change',
   entriesList: 'entries:list',
   entriesUpsert: 'entries:upsert',
   entriesDelete: 'entries:delete',
@@ -250,6 +259,10 @@ export interface RevOpsApi {
   hubspotPropertiesList(input: HubSpotPropertiesInput): Promise<HubSpotPropertyDef[]>;
   groupsList(input: GroupsListInput): Promise<HubSpotGroup[]>;
   groupsCreate(input: GroupCreateInput): Promise<HubSpotGroup>;
+  groupRequestDelete(input: GroupDeleteRequestInput): Promise<OperationResult>;
+  groupChanges(input: GroupChangesListInput): Promise<GroupDeleteChange[]>;
+  groupApplyChange(input: GroupApplyChangeInput): Promise<ApplyChangeResult>;
+  groupDiscardChange(input: GroupDiscardChangeInput): Promise<OperationResult>;
   entriesList(input: EntriesListInput): Promise<PropertyEntry[]>;
   entriesUpsert(input: EntryUpsertInput): Promise<PropertyEntry>;
   entriesDelete(input: EntryDeleteInput): Promise<OperationResult>;

@@ -16,6 +16,7 @@ import {
   Typography,
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import AutorenewIcon from '@mui/icons-material/Autorenew';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { useTranslation } from 'react-i18next';
@@ -130,7 +131,7 @@ export function McpSettingsScreen(): JSX.Element {
               <ContentCopyIcon />
             </IconButton>
           </Stack>
-          <BusyButton sx={{ mt: 1 }} busy={busy} onClick={() => void handleRegenerate()}>
+          <BusyButton sx={{ mt: 1 }} busy={busy} startIcon={<AutorenewIcon />} onClick={() => void handleRegenerate()}>
             {t('mcp.regenerate')}
           </BusyButton>
         </Box>

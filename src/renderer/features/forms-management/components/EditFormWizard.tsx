@@ -23,6 +23,9 @@ import {
 } from '@mui/material';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
+import SaveIcon from '@mui/icons-material/Save';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useTranslation } from 'react-i18next';
 import { FieldTooltip, useFieldHelp } from '@shared/components/feedback';
@@ -437,7 +440,7 @@ export function EditFormWizard({
               ))}
             </TableBody>
           </Table>
-          <Button variant="text" onClick={addField} sx={{ alignSelf: 'flex-start' }}>
+          <Button variant="text" startIcon={<AddIcon />} onClick={addField} sx={{ alignSelf: 'flex-start' }}>
             {t('forms.editWizard.addField')}
           </Button>
 
@@ -597,6 +600,7 @@ export function EditFormWizard({
                   ))}
                   <Button
                     variant="text"
+                    startIcon={<AddIcon />}
                     onClick={addCheckbox}
                     disabled={subscriptionTypes.length === 0}
                     sx={{ alignSelf: 'flex-start' }}
@@ -615,8 +619,10 @@ export function EditFormWizard({
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>{t('forms.editWizard.cancel')}</Button>
-        <Button variant="contained" onClick={handleSave}>
+        <Button startIcon={<CloseIcon />} onClick={onClose}>
+          {t('forms.editWizard.cancel')}
+        </Button>
+        <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave}>
           {t('forms.editWizard.save')}
         </Button>
       </DialogActions>

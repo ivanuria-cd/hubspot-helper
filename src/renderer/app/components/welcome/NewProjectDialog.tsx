@@ -8,6 +8,8 @@ import {
   Stack,
   TextField,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 import type { NewProjectInput } from '@shared/types/project';
 
@@ -80,8 +82,10 @@ export function NewProjectDialog({ open, onClose, onCreate }: NewProjectDialogPr
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose}>{t('dialog.cancel')}</Button>
-        <Button variant="contained" onClick={handleSubmit}>
+        <Button startIcon={<CloseIcon />} onClick={handleClose}>
+          {t('dialog.cancel')}
+        </Button>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleSubmit}>
           {t('dialog.create')}
         </Button>
       </DialogActions>

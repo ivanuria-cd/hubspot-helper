@@ -91,6 +91,22 @@ export interface HsPropertyChange {
   createdAt: string;
 }
 
+/**
+ * Cambio pendiente de borrado (archivado permanente) de un grupo de propiedades (SPEC-0006 §33).
+ * No va asociado a una entrada; vive a nivel de proyecto. Destructivo: solo por acción explícita y
+ * aplicado por entorno (sandbox primero). Requiere que el grupo esté vacío al aplicarse.
+ */
+export interface GroupDeleteChange {
+  id: string;
+  objectType: string;
+  groupName: string;
+  label?: string;
+  summary: string;
+  appliedToSandbox: boolean;
+  appliedToProduction: boolean;
+  createdAt: string;
+}
+
 export interface HubSpotObject {
   objectType: string;
   label: string;
@@ -284,4 +300,26 @@ export interface GroupCreateInput {
   objectType: string;
   name: string;
   label: string;
+}
+
+export interface GroupDeleteRequestInput {
+  projectId: string;
+  objectType: string;
+  groupName: string;
+  label?: string;
+}
+
+export interface GroupChangesListInput {
+  projectId: string;
+}
+
+export interface GroupApplyChangeInput {
+  projectId: string;
+  changeId: string;
+  environment: HubSpotEnvironment;
+}
+
+export interface GroupDiscardChangeInput {
+  projectId: string;
+  changeId: string;
 }

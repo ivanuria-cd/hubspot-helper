@@ -17,6 +17,8 @@ Aplikazioa HubSpot-era *Private App Token* (PAT) baten bidez konektatzen da. Hub
 
    Gehitu, gainera, erabiliko dituzun funtzioek behar dituzten scope-ak (funtzio bakoitzak bereak dokumentatzen ditu; adibidez, automatizazioak `automation` behar du).
 
+   Zehazki, **formularioen baimen legalak** (harpidetza motak) **`communication_preferences.read`** scope-a behar du (Subscription Preferences API), edozein kontutan erabilgarri. Hori gabe, harpidetza motak zerrendatzeak baimen-errore bat (403) itzultzen du.
+
    > **Garrantzitsua:** idatzi zein scope aktibatzen dituzun. Aplikazioak **ezin ditu gako pribatu baten scope-ak irakurri ezta erakutsi** (HubSpot-ek ez ditu API bidez ageriko jartzen), beraz baimen-zerrenda hemen soilik da ikusgai, HubSpot-en.
 7. Sakatu **Sortu aplikazioa** eta berretsi abisuan.
 8. HubSpot-ek **sarbide-tokena** erakutsiko du. Sakatu **Erakutsi tokena** eta gero **Kopiatu**.

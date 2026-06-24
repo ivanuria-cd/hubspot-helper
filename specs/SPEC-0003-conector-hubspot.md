@@ -250,7 +250,7 @@ Nota: la confirmación al cambiar de entorno producción↔sandbox (Informe #5, 
 
 Claves i18n nuevas: `hubspot.tokenSaved`, `hubspot.tokenError` (cuatro locales).
 
-## 14. Adopción del patrón de estados de carga (SPEC-0002 §17) (BORRADOR, 2026-06-22)
+## 14. Adopción del patrón de estados de carga (SPEC-0002 §17) (IMPLEMENTADO, 2026-06-22)
 
 `HubSpotConnectorScreen` adopta el patrón de SPEC-0002 §17: al montar (o cambiar de proyecto/entorno) pinta de
 inmediato un `LoadingState` (variante `form`) con `aria-busy` mientras resuelve el estado de conexión/validación;

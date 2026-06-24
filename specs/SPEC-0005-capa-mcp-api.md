@@ -250,7 +250,7 @@ Adopción de SPEC-0002 §10 (Snackbar):
 
 Claves i18n nuevas: `mcp.regenerateTitle`, `mcp.regenerateBody`, `mcp.tokenCopied`, `mcp.configCopied`, `mcp.tokenRegenerated` (cuatro locales).
 
-## 13. Adopción del patrón de estados de carga (SPEC-0002 §17) (BORRADOR, 2026-06-22)
+## 13. Adopción del patrón de estados de carga (SPEC-0002 §17) (IMPLEMENTADO, 2026-06-22)
 
 `McpSettingsScreen` adopta el patrón de SPEC-0002 §17: pinta de inmediato un `LoadingState` mientras resuelve el
 estado del servidor MCP y el token; las acciones (copiar token/config, regenerar, toggle del servidor) pasan a

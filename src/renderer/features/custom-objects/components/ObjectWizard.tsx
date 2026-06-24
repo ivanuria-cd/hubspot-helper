@@ -20,6 +20,9 @@ import {
   Typography,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
+import SaveIcon from '@mui/icons-material/Save';
 import { useTranslation } from 'react-i18next';
 import type {
   CustomObjectDefinition,
@@ -318,7 +321,7 @@ export function ObjectWizard({
             </Stack>
           ))}
           <Box>
-            <Button size="small" onClick={() => setProperties((prev) => [...prev, emptyProperty()])}>
+            <Button size="small" startIcon={<AddIcon />} onClick={() => setProperties((prev) => [...prev, emptyProperty()])}>
               {t('customObjects.wizard.addProperty')}
             </Button>
           </Box>
@@ -390,8 +393,10 @@ export function ObjectWizard({
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>{t('customObjects.wizard.cancel')}</Button>
-        <BusyButton variant="contained" busy={submitting} disabled={!canSubmit} onClick={() => void handleSubmit()}>
+        <Button startIcon={<CloseIcon />} onClick={onClose}>
+          {t('customObjects.wizard.cancel')}
+        </Button>
+        <BusyButton variant="contained" busy={submitting} startIcon={<SaveIcon />} disabled={!canSubmit} onClick={() => void handleSubmit()}>
           {t('customObjects.wizard.save')}
         </BusyButton>
       </DialogActions>

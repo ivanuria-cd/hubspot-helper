@@ -11,6 +11,9 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import CheckIcon from '@mui/icons-material/Check';
+import HubIcon from '@mui/icons-material/Hub';
+import LinkOffIcon from '@mui/icons-material/LinkOff';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
 import {
@@ -91,13 +94,19 @@ export function HubSpotConnectorScreen(): JSX.Element | null {
             <BusyButton
               variant="contained"
               busy={saving}
+              startIcon={<HubIcon />}
               onClick={() => void handleSave()}
               disabled={token.trim().length === 0}
             >
               {t('hubspot.save')}
             </BusyButton>
             {envConfig ? (
-              <Button color="inherit" onClick={() => void revoke(environment)} disabled={saving}>
+              <Button
+                color="inherit"
+                startIcon={<LinkOffIcon />}
+                onClick={() => void revoke(environment)}
+                disabled={saving}
+              >
                 {t('hubspot.revoke')}
               </Button>
             ) : null}
@@ -120,7 +129,11 @@ export function HubSpotConnectorScreen(): JSX.Element | null {
                 {isActive ? (
                   <Chip color="primary" size="small" label={t('hubspot.activeBadge')} />
                 ) : (
-                  <Button size="small" onClick={() => void selectEnvironment(environment)}>
+                  <Button
+                    size="small"
+                    startIcon={<CheckIcon />}
+                    onClick={() => void selectEnvironment(environment)}
+                  >
                     {t('hubspot.useAsActive')}
                   </Button>
                 )}

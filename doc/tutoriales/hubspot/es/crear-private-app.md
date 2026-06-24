@@ -17,6 +17,8 @@ La aplicación se conecta a HubSpot mediante un *Private App Token* (PAT). Es el
 
    Añade además los scopes que requieran las características que vayas a usar (cada característica documenta los suyos; por ejemplo, automatización requiere `automation`).
 
+   En concreto, el **consentimiento legal de formularios** (tipos de suscripción) requiere el scope **`communication_preferences.read`** (Subscription Preferences API), disponible en cualquier cuenta. Sin él, listar los tipos de suscripción devuelve un error de permisos (403).
+
    > **Importante:** anota qué scopes activas. La app **no puede leer ni mostrar los scopes** de una clave privada (HubSpot no los expone vía API), así que la lista de permisos solo es visible aquí, en HubSpot.
 7. Pulsa **Crear aplicación** y confirma en el aviso.
 8. HubSpot mostrará el **token de acceso**. Pulsa **Mostrar token** y luego **Copiar**.

@@ -2,6 +2,9 @@ import { Box, Button, Chip, List, ListItem, Stack, Typography } from '@mui/mater
 import { useTranslation } from 'react-i18next';
 import type { FormChange } from '@shared/types/forms';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
+import EditIcon from '@mui/icons-material/Edit';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useConfirm } from '@shared/components/feedback';
 
 export interface FormPendingChangesViewProps {
@@ -66,6 +69,7 @@ export function FormPendingChangesView({
             <Stack direction="row" spacing={1}>
               <Button
                 size="small"
+                startIcon={<EditIcon />}
                 disabled={busy || change.appliedToSandbox || change.appliedToProduction}
                 onClick={() => onEdit(change)}
               >
@@ -74,6 +78,7 @@ export function FormPendingChangesView({
               <Button
                 size="small"
                 variant="outlined"
+                startIcon={<CheckCircleIcon />}
                 disabled={busy || change.appliedToSandbox}
                 onClick={() => onApply(change.id, 'sandbox')}
               >
@@ -82,12 +87,13 @@ export function FormPendingChangesView({
               <Button
                 size="small"
                 variant="contained"
+                startIcon={<CheckCircleIcon />}
                 disabled={busy || change.appliedToProduction}
                 onClick={() => onApply(change.id, 'production')}
               >
                 {t('forms.changes.applyProduction')}
               </Button>
-              <Button size="small" color="error" disabled={busy} onClick={() => void handleDiscard(change.id)}>
+              <Button size="small" color="error" startIcon={<DeleteIcon />} disabled={busy} onClick={() => void handleDiscard(change.id)}>
                 {t('forms.changes.discard')}
               </Button>
             </Stack>

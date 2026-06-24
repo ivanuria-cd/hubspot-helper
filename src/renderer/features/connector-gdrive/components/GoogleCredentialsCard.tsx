@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Box, Button, Chip, Stack, TextField, Typography } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
+import SaveIcon from '@mui/icons-material/Save';
 import { useTranslation } from 'react-i18next';
 import type { GoogleCredentialsStatus, GoogleCredentialSource } from '@shared/types/gdrive';
 import { useFieldHelp, useSnackbar } from '@shared/components/feedback';
@@ -104,10 +106,20 @@ export function GoogleCredentialsCard({ credentials, working, onSave, onClear }:
           fullWidth
         />
         <Stack direction="row" spacing={2} justifyContent="flex-end">
-          <Button color="inherit" onClick={() => void handleClear()} disabled={working}>
+          <Button
+            color="inherit"
+            startIcon={<DeleteIcon />}
+            onClick={() => void handleClear()}
+            disabled={working}
+          >
             {t('gdrive.credentials.clear')}
           </Button>
-          <Button variant="contained" onClick={() => void handleSave()} disabled={working}>
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
+            onClick={() => void handleSave()}
+            disabled={working}
+          >
             {t('gdrive.credentials.save')}
           </Button>
         </Stack>

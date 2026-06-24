@@ -16,6 +16,8 @@ import {
   Typography,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 import type { DataOrigin, OriginType } from '@shared/types/properties';
 import { useConfirm, useFieldHelp } from '@shared/components/feedback';
@@ -82,7 +84,7 @@ function OriginObjects({
           inputProps={{ 'aria-describedby': objectNameHelp.describedById }}
           InputProps={{ endAdornment: <InputAdornment position="end">{objectNameHelp.tooltip}</InputAdornment> }}
         />
-        <Button size="small" variant="outlined" onClick={addObject} disabled={!objectName.trim()}>
+        <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={addObject} disabled={!objectName.trim()}>
           {t('properties.originsModal.addObject')}
         </Button>
       </Stack>
@@ -187,13 +189,15 @@ export function OriginsModal({
             inputProps={{ 'aria-describedby': descriptionHelp.describedById }}
             InputProps={{ endAdornment: <InputAdornment position="end">{descriptionHelp.tooltip}</InputAdornment> }}
           />
-          <Button variant="outlined" onClick={handleAdd} disabled={!name.trim()}>
+          <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAdd} disabled={!name.trim()}>
             {t('properties.originsModal.add')}
           </Button>
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>{t('properties.originsModal.close')}</Button>
+        <Button startIcon={<CloseIcon />} onClick={onClose}>
+          {t('properties.originsModal.close')}
+        </Button>
       </DialogActions>
     </Dialog>
   );

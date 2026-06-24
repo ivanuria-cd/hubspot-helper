@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import SyncIcon from '@mui/icons-material/Sync';
+import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
 import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
@@ -172,7 +175,7 @@ export function FormsManagementScreen(): JSX.Element | null {
             {t('forms.syncHs')}
           </BusyButton>
         ) : (
-          <Button variant="outlined" onClick={() => setView('list')}>
+          <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => setView('list')}>
             {t('forms.changes.back')}
           </Button>
         )}
@@ -199,11 +202,16 @@ export function FormsManagementScreen(): JSX.Element | null {
       ) : (
         <>
           <Stack direction="row" spacing={1} sx={{ mb: 2 }} flexWrap="wrap" useFlexGap>
-            <Button variant="contained" onClick={() => setWizardOpen(true)}>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setWizardOpen(true)}>
               {t('forms.addForm')}
             </Button>
             <DriveDocActions doc={driveDoc} updateDisabled={forms.length === 0} />
-            <Button variant="text" disabled={changes.length === 0} onClick={() => setView('changes')}>
+            <Button
+              variant="text"
+              startIcon={<PendingActionsIcon />}
+              disabled={changes.length === 0}
+              onClick={() => setView('changes')}
+            >
               {t('forms.pendingChanges', { count: changes.length })}
             </Button>
             <Box sx={{ flexGrow: 1 }} />

@@ -12,6 +12,9 @@ import {
 } from '@mui/material';
 import { SIDE_PANEL_WIDTH } from '@shared/components/layout-constants';
 import CloseIcon from '@mui/icons-material/Close';
+import EditIcon from '@mui/icons-material/Edit';
+import LinkIcon from '@mui/icons-material/Link';
+import AddIcon from '@mui/icons-material/Add';
 import { useTranslation } from 'react-i18next';
 import type { FormCoverageReport, FormOriginLink, HubSpotForm } from '@shared/types/forms';
 import type { DataOrigin } from '@shared/types/properties';
@@ -53,7 +56,7 @@ export function FormPanel({
                 {form.name}
               </Typography>
               {form.formType === 'hubspot' ? (
-                <Button size="small" onClick={onEdit} disabled={busy}>
+                <Button size="small" startIcon={<EditIcon />} onClick={onEdit} disabled={busy}>
                   {t('forms.panel.edit')}
                 </Button>
               ) : null}
@@ -86,7 +89,7 @@ export function FormPanel({
               <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>
                 {t('forms.panel.origins')}
               </Typography>
-              <Button size="small" onClick={onLinkOrigin}>
+              <Button size="small" startIcon={<LinkIcon />} onClick={onLinkOrigin}>
                 {t('forms.panel.linkOrigin')}
               </Button>
             </Stack>
@@ -122,6 +125,7 @@ export function FormPanel({
                       <Button
                         size="small"
                         variant="outlined"
+                        startIcon={<AddIcon />}
                         disabled={busy}
                         onClick={() => onAddMissing(report.originId)}
                       >

@@ -204,7 +204,21 @@ export function createPropertiesApi(deps: PropertiesApiDeps) {
     return { name: data.name ?? group.name, label: data.label ?? group.label };
   }
 
-  return { listProperties, createProperty, patchProperty, deleteProperty, listGroups, createGroup };
+  async function deleteGroup(
+    objectType: string,
+    groupName: string,
+    environment?: HubSpotEnvironment,
+  ): Promise<HubSpotResponse> {
+    // Borrado (archivado) permanente de un grupo de propiedades en el entorno indicado (SPEC-0006 §33).
+    return deps.request({
+      projectId: deps.projectId,
+      environment,
+      method: 'DELETE',
+      path: `/crm/properties/2026-03/${objectType}/groups/${groupName}`,
+    });
+  }
+
+  return { listProperties, createProperty, patchProperty, deleteProperty, listGroups, createGroup, deleteGroup };
 }
 
 export type PropertiesApi = ReturnType<typeof createPropertiesApi>;

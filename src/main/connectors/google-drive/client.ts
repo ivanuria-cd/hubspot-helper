@@ -196,13 +196,24 @@ export function createDriveClient(api: DriveApi) {
       },
       fields: 'id,modifiedTime',
     });
-    await api.docsBatchUpdate({
-      documentId: file.id,
-      requests: [
-        { insertText: { location: { index: 1 }, text: buildFullBody(input.cover, input.content) } },
-        ...buildDocStyleRequests(input.cover),
-      ],
-    });
+    // SPEC-0004 §21: si el cuerpo no se inserta, el Doc recién creado quedaría vacío y huérfano.
+    // Se borra antes de propagar el error para no acumular duplicados vacíos.
+    try {
+      await api.docsBatchUpdate({
+        documentId: file.id,
+        requests: [
+          { insertText: { location: { index: 1 }, text: buildFullBody(input.cover, input.content) } },
+          ...buildDocStyleRequests(input.cover),
+        ],
+      });
+    } catch (error) {
+      try {
+        await api.filesDelete({ fileId: file.id });
+      } catch {
+        // El borrado de limpieza puede fallar; se prioriza propagar el error original.
+      }
+      throw error;
+    }
     return { driveId: file.id, modifiedTime: file.modifiedTime ?? '' };
   }
 

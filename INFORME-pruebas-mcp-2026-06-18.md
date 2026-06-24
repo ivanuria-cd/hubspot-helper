@@ -6,6 +6,21 @@
 - **Alcance acordado:** lectura + escritura local (drafts) + apply/sync reales en HubSpot.
 - **Resultado global:** 24 herramientas con comportamiento correcto, 1 fallo de uso reproducible (`forms_create_definition` con `fieldGroups`), 1 fallo esperado por precondición (`forms_add_missing_fields` sin formulario sincronizado) y 2 herramientas no ejecutadas por decisión de seguridad (`custom_objects_apply_change` / `custom_objects_discard_change`).
 
+## Tercera batería (2026-06-24) — tools nuevas y revalidación
+
+Tras los fixes y un reinicio de la app, el servidor MCP expone 8 tools nuevas. Resultado:
+
+- **Fixes previos revalidados en vivo:** `forms_create_definition` (acepta `fieldGroups`, conserva `name`), `entries_upsert` (rechaza `originId` inexistente), `custom_objects_sync`/`delete_draft`, `origins_delete`, `forms_discard_change`.
+- **Grupos (ciclo completo):** `properties_groups_request_delete` → `properties_group_pending_changes` → `properties_groups_discard_change` (cancela) y `properties_groups_apply_change` (destructivo, sandbox) sobre un grupo desechable. La precondición «grupo vacío» se respeta. ✅
+- **`properties_request_delete`:** genera el cambio `delete` (archivado) tras `properties_sync`; aplicado a sandbox archivó la propiedad residuo `zzz_mcp_test`. ✅
+- **Formularios:** `forms_update_definition` (cambio `update_form` conservando campos/config) y `forms_edit_pending_change` (edita el pendiente) ✅; descartados sin aplicar a HubSpot.
+- **`forms_subscription_types`:** ❌ **403** — el PAT no tiene scope de Communication Preferences API (limitación de permisos, no de código).
+- **Entorno activo detectado:** sandbox (el apply de grupo a production dio `GROUP_NOT_FOUND`).
+- **Residuo limpiado:** propiedad `zzz_mcp_test` archivada; grupo desechable borrado; entradas y cambios de prueba eliminados. **No se tocó el trabajo real del usuario** (entradas `gym_*`/`bakery_*`, cambios «Notas de salud»/«Descripción aficiones», grupo «Datos del gimnasio», formulario «Aficiones»).
+- **Pendiente menor:** un vínculo formulario↔origen huérfano de baterías previas (sin tool de desvinculación en MCP).
+
+---
+
 ## Resumen por herramienta
 
 | # | Herramienta | Input usado | Resultado | Observaciones |

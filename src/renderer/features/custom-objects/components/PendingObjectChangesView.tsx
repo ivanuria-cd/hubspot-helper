@@ -1,4 +1,6 @@
 import { Box, Button, Paper, Stack, Typography } from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useTranslation } from 'react-i18next';
 import type { CustomObjectDefinition } from '@shared/types/custom-objects';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
@@ -36,6 +38,7 @@ export function PendingObjectChangesView({
             <Button
               size="small"
               variant="outlined"
+              startIcon={<CheckCircleIcon />}
               disabled={busy || change.appliedToSandbox}
               onClick={() => onApply(change.id, 'sandbox')}
             >
@@ -44,12 +47,19 @@ export function PendingObjectChangesView({
             <Button
               size="small"
               variant="contained"
+              startIcon={<CheckCircleIcon />}
               disabled={busy || change.appliedToProduction}
               onClick={() => onApply(change.id, 'production')}
             >
               {t('customObjects.changes.applyProduction')}
             </Button>
-            <Button size="small" color="inherit" disabled={busy} onClick={() => onDiscard(change.id)}>
+            <Button
+              size="small"
+              color="inherit"
+              startIcon={<DeleteIcon />}
+              disabled={busy}
+              onClick={() => onDiscard(change.id)}
+            >
               {t('customObjects.changes.discard')}
             </Button>
             <Box sx={{ flexGrow: 1 }} />

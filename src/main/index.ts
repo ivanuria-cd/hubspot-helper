@@ -91,7 +91,11 @@ import type {
   EntryDeleteInput,
   EntryUpsertInput,
   ExportJsonInput,
+  GroupApplyChangeInput,
+  GroupChangesListInput,
   GroupCreateInput,
+  GroupDeleteRequestInput,
+  GroupDiscardChangeInput,
   GroupsListInput,
   HubSpotPropertiesInput,
   OriginCreateInput,
@@ -320,6 +324,18 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   ipcMain.handle(IpcChannels.groupsCreate, (_event, input: GroupCreateInput) =>
     properties.createGroup(input),
   );
+  ipcMain.handle(IpcChannels.groupRequestDelete, (_event, input: GroupDeleteRequestInput) =>
+    properties.requestGroupDelete(input),
+  );
+  ipcMain.handle(IpcChannels.groupChanges, (_event, input: GroupChangesListInput) =>
+    properties.listGroupChanges(input),
+  );
+  ipcMain.handle(IpcChannels.groupApplyChange, (_event, input: GroupApplyChangeInput) =>
+    properties.applyGroupChange(input),
+  );
+  ipcMain.handle(IpcChannels.groupDiscardChange, (_event, input: GroupDiscardChangeInput) =>
+    properties.discardGroupChange(input),
+  );
   ipcMain.handle(IpcChannels.entriesList, (_event, input: EntriesListInput) =>
     properties.listEntries(input),
   );
@@ -353,11 +369,16 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
       tabs,
     });
     if (result.success) {
-      await gdrive.writeFile({
+      // SPEC-0004 §21: la escritura del par Sheets+estado es atómica para el usuario. Si el documento
+      // de estado no se escribe, no se marca como «al día» y se propaga el error.
+      const stateWrite = await gdrive.writeFile({
         projectId,
         featureKey: PROPERTY_STATE_FEATURE_KEY,
         content: serializePropertyState({ entries, origins }),
       });
+      if (!stateWrite.success) {
+        return { success: false, error: stateWrite.error ?? 'No se pudo escribir el documento de estado en Drive.' };
+      }
       properties.markDriveWritten({ projectId });
     }
     return result;
@@ -475,11 +496,15 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
       tabs,
     });
     if (result.success) {
-      await gdrive.writeFile({
+      // SPEC-0004 §21: escritura atómica del par Sheets+estado (ver writePropertiesSheets).
+      const stateWrite = await gdrive.writeFile({
         projectId,
         featureKey: CUSTOM_OBJECTS_STATE_FEATURE_KEY,
         content: serializeCustomObjectsState({ objects }),
       });
+      if (!stateWrite.success) {
+        return { success: false, error: stateWrite.error ?? 'No se pudo escribir el documento de estado en Drive.' };
+      }
       customObjects.markDriveWritten({ projectId });
     }
     return result;
@@ -570,11 +595,15 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
       tabs,
     });
     if (result.success) {
-      await gdrive.writeFile({
+      // SPEC-0004 §21: escritura atómica del par Sheets+estado (ver writePropertiesSheets).
+      const stateWrite = await gdrive.writeFile({
         projectId,
         featureKey: FORMS_STATE_FEATURE_KEY,
         content: serializeFormsState({ forms: formsList, links }),
       });
+      if (!stateWrite.success) {
+        return { success: false, error: stateWrite.error ?? 'No se pudo escribir el documento de estado en Drive.' };
+      }
       forms.markDriveWritten({ projectId });
     }
     return result;

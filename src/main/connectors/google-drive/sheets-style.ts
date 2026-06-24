@@ -132,8 +132,9 @@ export function buildStyleRequests(sheets: SheetMeta[], tabs: SheetTab[]): Reque
 
     // Hoja de datos: congelado fila+columna, cabecera de marca, notas, bandas, wrap, anchos y protección.
     const header = tab.rows[0] ?? [];
-    // Solo en las hojas «Campos»: congela hasta «Nombre» inclusive y oculta ID/Objeto (SPEC-0012 §3.1).
-    const isCampos = tab.title.endsWith('_Campos');
+    // En las hojas «Campos» y «Definicion»: congela hasta «Nombre» inclusive y oculta ID/Objeto
+    // (SPEC-0012 §3.1 / §12).
+    const isCampos = tab.title.endsWith('_Campos') || tab.title.endsWith('_Definicion');
     const freezeAt = header.findIndex((cell) => String(cell) === FREEZE_HEADER);
     const frozenColumnCount = isCampos && freezeAt !== -1 ? freezeAt + 1 : columnCount > 1 ? 1 : 0;
     requests.push({
@@ -215,6 +216,21 @@ export function buildStyleRequests(sheets: SheetMeta[], tabs: SheetTab[]): Reque
           fields: 'userEnteredFormat(wrapStrategy,verticalAlignment)',
         },
       });
+
+      // Formato numérico por columna (SPEC-0012 §13): dirigido por datos. Si todas las celdas no vacías
+      // del cuerpo de una columna son números, se aplica patrón entero o decimal.
+      for (let col = 0; col < columnCount; col += 1) {
+        const values = tab.rows.slice(1).map((row) => row[col]).filter((value) => value !== '' && value !== undefined);
+        if (values.length === 0 || !values.every((value) => typeof value === 'number')) continue;
+        const pattern = values.some((value) => !Number.isInteger(value as number)) ? '0.######' : '0';
+        requests.push({
+          repeatCell: {
+            range: { sheetId, startRowIndex: 1, endRowIndex: rowCount, startColumnIndex: col, endColumnIndex: col + 1 },
+            cell: { userEnteredFormat: { numberFormat: { type: 'NUMBER', pattern } } },
+            fields: 'userEnteredFormat.numberFormat',
+          },
+        });
+      }
 
       // Columna «Estado»: validación (desplegable) + formato condicional por valor.
       const statusCol = header.findIndex((cell) => String(cell) === STATUS_HEADER);

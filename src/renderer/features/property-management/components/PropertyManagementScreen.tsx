@@ -15,6 +15,12 @@ import {
 } from '@mui/material';
 import SyncIcon from '@mui/icons-material/Sync';
 import EditIcon from '@mui/icons-material/Edit';
+import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import SettingsIcon from '@mui/icons-material/Settings';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import PendingActionsIcon from '@mui/icons-material/PendingActions';
+import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
 import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
@@ -31,6 +37,7 @@ import { StatusBadge } from './StatusBadge';
 import { EntryWizard } from './EntryWizard';
 import { EntryPanel } from './EntryPanel';
 import { OriginsModal } from './OriginsModal';
+import { GroupsModal } from './GroupsModal';
 import { PendingChangesView } from './PendingChangesView';
 
 function destName(entry: PropertyEntry): string {
@@ -57,6 +64,7 @@ export function PropertyManagementScreen(): JSX.Element | null {
   const [editing, setEditing] = useState<PropertyEntry | null>(null);
   const [selected, setSelected] = useState<PropertyEntry | null>(null);
   const [originsOpen, setOriginsOpen] = useState(false);
+  const [groupsOpen, setGroupsOpen] = useState(false);
   const [exportAnchor, setExportAnchor] = useState<null | HTMLElement>(null);
   const [busy, setBusy] = useState(false);
 
@@ -129,7 +137,7 @@ export function PropertyManagementScreen(): JSX.Element | null {
             {t('properties.syncHs')}
           </BusyButton>
         ) : (
-          <Button variant="outlined" onClick={() => setView('list')}>
+          <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => setView('list')}>
             {t('properties.changes.back')}
           </Button>
         )}
@@ -172,6 +180,7 @@ export function PropertyManagementScreen(): JSX.Element | null {
             </TextField>
             <Button
               variant="contained"
+              startIcon={<AddIcon />}
               onClick={() => {
                 setEditing(null);
                 setWizardOpen(true);
@@ -179,14 +188,27 @@ export function PropertyManagementScreen(): JSX.Element | null {
             >
               {t('properties.addProperty')}
             </Button>
-            <Button variant="outlined" onClick={() => setOriginsOpen(true)}>
+            <Button variant="outlined" startIcon={<SettingsIcon />} onClick={() => setOriginsOpen(true)}>
               {t('properties.manageOrigins', { count: (origins ?? []).length })}
             </Button>
-            <Button variant="outlined" disabled={(origins ?? []).length === 0} onClick={(e) => setExportAnchor(e.currentTarget)}>
+            <Button variant="outlined" startIcon={<FolderOutlinedIcon />} onClick={() => setGroupsOpen(true)}>
+              {t('properties.manageGroups')}
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<FileDownloadOutlinedIcon />}
+              disabled={(origins ?? []).length === 0}
+              onClick={(e) => setExportAnchor(e.currentTarget)}
+            >
               {t('properties.exportJson')}
             </Button>
             <DriveDocActions doc={driveDoc} updateDisabled={(entries?.length ?? 0) === 0} />
-            <Button variant="text" disabled={pendingCount === 0} onClick={() => setView('changes')}>
+            <Button
+              variant="text"
+              startIcon={<PendingActionsIcon />}
+              disabled={pendingCount === 0}
+              onClick={() => setView('changes')}
+            >
               {t('properties.pendingChanges', { count: pendingCount })}
             </Button>
             <Menu anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}>
@@ -282,6 +304,13 @@ export function PropertyManagementScreen(): JSX.Element | null {
         onCreate={(origin) => createOrigin(projectId, origin)}
         onUpdate={(origin) => updateOrigin(projectId, origin)}
         onDelete={(originId) => removeOrigin(projectId, originId)}
+      />
+
+      <GroupsModal
+        open={groupsOpen}
+        projectId={projectId}
+        objectType={objectType}
+        onClose={() => setGroupsOpen(false)}
       />
 
       <DriveDirtyGuard

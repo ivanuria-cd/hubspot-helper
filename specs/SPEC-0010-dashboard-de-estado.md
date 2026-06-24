@@ -145,7 +145,7 @@ Solo lectura de estado ya expuesto al renderer vía IPC. No muestra tokens ni se
 - **Verificación**: `npm run typecheck` en verde. Suite unitaria completa pendiente en máquina (límite de tiempo del sandbox); los specs nuevos pasan en local.
 - Sin nuevos canales IPC (reutiliza `hubspotGetStatus`, `gdriveGetStatus`, `mcpGetStatus`, `entriesList`, `objectsListSchemas`, `formsPendingChanges`).
 
-## 12. Adopción del patrón de estados de carga (SPEC-0002 §17) (BORRADOR, 2026-06-22)
+## 12. Adopción del patrón de estados de carga (SPEC-0002 §17) (IMPLEMENTADO, 2026-06-22)
 
 `DashboardScreen` ya tiene estados loading/error propios (§11); se **reconvierten** al patrón unificado de
 SPEC-0002 §17: `LoadingState` (variante `cards`) con `aria-busy` mientras `useDashboardStatus` resuelve los

@@ -7,6 +7,8 @@ import {
   CardContent,
   Typography,
 } from '@mui/material';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useShellStore } from '@renderer/app/store/shell-store';
@@ -58,7 +60,7 @@ export function CrmOverviewScreen(): JSX.Element | null {
               severity="info"
               sx={{ mb: 2 }}
               action={
-                <Button color="inherit" size="small" onClick={() => navigate('config/connectors/hubspot')}>
+                <Button color="inherit" size="small" startIcon={<SettingsIcon />} onClick={() => navigate('config/connectors/hubspot')}>
                   {t('crm.configure')}
                 </Button>
               }
@@ -84,7 +86,7 @@ export function CrmOverviewScreen(): JSX.Element | null {
                       ? t('crm.pending', { count: card.data.pending })
                       : t('crm.upToDate')}
                   </Typography>
-                  <Button size="small" sx={{ mt: 1 }} onClick={() => navigate(card.to)}>
+                  <Button size="small" startIcon={<ArrowForwardIcon />} sx={{ mt: 1 }} onClick={() => navigate(card.to)}>
                     {t('crm.open')}
                   </Button>
                 </CardContent>

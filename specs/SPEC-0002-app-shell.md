@@ -440,7 +440,12 @@ Extraer a `renderer/shared/components/` un pequeño conjunto de primitivas de pr
 
 ---
 
-## 17. Estados de carga y respuesta inmediata (A11y) (BORRADOR, 2026-06-22)
+## 17. Estados de carga y respuesta inmediata (A11y) (IMPLEMENTADO, 2026-06-22)
+
+**Estado (conciliado 2026-06-24):** patrón y artefactos compartidos presentes en código —
+`renderer/shared/hooks/useAsyncResource.ts` (+ `useAsyncResource.spec.ts`) y
+`renderer/shared/components/feedback/LoadingState.tsx`— y adoptado en las pantallas/modales de los SPEC de
+característica (ver sus secciones de adopción). typecheck/suite completa + PR en la máquina del usuario.
 
 **Origen:** petición de UX/accesibilidad — al pulsar un botón que dispara una carga no hay respuesta inmediata
 y no se alinea con A11y. Norma transversal enlazada desde **SPEC-0000 §15**. Patrón y componentes compartidos
@@ -570,6 +575,11 @@ Formularios y asistentes con campos rellenables: `HubSpotConnectorScreen` (SPEC-
   verificando el elemento con rol `tooltip`.
 - Por superficie: cada campo rellenable tiene `helpKey` y el control queda asociado por `aria-describedby`. A11y
   con `@axe-core/playwright`.
+- **Selectores e2e (convención, 2026-06-24):** `FieldTooltip` usa el texto de ayuda como `aria-label` del icono,
+  por lo que `getByLabel('<etiqueta>')` puede capturar tanto el campo como el botón de ayuda cuando la etiqueta es
+  **prefijo/subcadena** del texto de ayuda (p. ej. campo «Nombre» + ayuda «Nombre identificativo…»). En los tests
+  funcionales, usar `getByLabel('<etiqueta>', { exact: true })` en esos casos. Corregido en
+  `tests/functional/origin-crud.spec.ts` (campo «Nombre»).
 
 ### 18.6 Estado
 
@@ -583,3 +593,154 @@ locales validado (parseo correcto). typecheck/test/e2e + PR en máquina.
 > Nota de convención: las claves usan el contenedor `fieldHelp` (no `help`) para evitar colisión con el `help`
 > de tutoriales (top-level) y con `gdrive.credentials.help` ya existente. Esto matiza la nomenclatura
 > `…​.<campo>.help` que anticipaban los registros de adopción de las features.
+
+---
+
+## 19. Botones de acción con icono (IMPLEMENTADO, 2026-06-23)
+
+**Origen:** petición de UX — unificar los botones «con icono» y «sin icono» a un único patrón: todo `Button` de
+acción lleva icono (como el botón de editar). Norma transversal de consistencia (refuerza §14.2 punto 4); cada SPEC
+de característica la **adopta** en sus pantallas, diálogos y paneles.
+
+### 19.1 Principio
+
+Todo `Button` (MUI) que dispare una acción lleva `startIcon` con un icono de `@mui/icons-material`. El icono
+**refuerza** la semántica de la acción y no la sustituye: el nombre accesible sigue siendo el texto i18n del botón.
+El icono es **decorativo** (MUI lo marca `aria-hidden`); no se añade texto alternativo redundante (WCAG AA,
+SPEC-0000 §3).
+
+- **Alcance:** `Button` con texto en pantallas, diálogos (`DialogActions`) y paneles.
+- **No-alcance:** los `IconButton` (solo icono, sin texto) de filas/tablas/cabeceras compactas se **mantienen** como
+  solo-icono (ya cumplen con `aria-label`). No se convierten a icono+texto.
+- **Asíncronos:** los botones que disparan carga usan `BusyButton` (ya respeta `startIcon` y lo sustituye por el
+  spinner mientras `busy`); basta con pasarle `startIcon`.
+- No cambia lógica, variantes (`contained`/`outlined`/`text`), `color`, ni claves i18n. Sustitución 1:1.
+
+### 19.2 Vocabulario de iconos por acción
+
+Mapa canónico verbo → icono (fuente única de consistencia):
+
+| Acción | Icono `@mui/icons-material` |
+|--------|------------------------------|
+| Cerrar / Cancelar | `Close` |
+| Volver / Atrás | `ArrowBack` |
+| Confirmar (genérico) / Seleccionar esta | `Check` |
+| Crear / Añadir | `Add` |
+| Editar / Editar opciones | `Edit` |
+| Guardar | `Save` |
+| Aplicar (sandbox/producción) | `CheckCircle` |
+| Eliminar / Descartar / Borrar borrador | `Delete` |
+| Archivar | `Archive` |
+| Sincronizar | `Sync` |
+| Regenerar | `Autorenew` |
+| Importar / Cargar (proyecto) | `FileUploadOutlined` |
+| Exportar JSON / Cargar desde Drive | `FileDownloadOutlined` |
+| Actualizar documento de Drive | `CloudUpload` |
+| Abrir en Drive (enlace) | `OpenInNew` |
+| Copiar | `ContentCopy` *(ya en uso)* |
+| Pegar opciones (en bloque) | `ContentPaste` |
+| Conectar (Drive) / Token (HubSpot) | `Hub` |
+| Desconectar / Revocar | `LinkOff` |
+| Vincular origen | `Link` |
+| Seleccionar/Cambiar carpeta | `Folder` |
+| Ir a / Abrir destino (navegación CTA) | `ArrowForward` |
+| Configurar / Gestionar orígenes | `Settings` |
+| Ver cambios pendientes | `PendingActions` |
+| Salir sin guardar | `Logout` |
+
+### 19.3 Mapeo botón a botón (76 botones, 26 ficheros)
+
+> Los 4 ya con icono (`WelcomeScreen` importar/crear, `McpSettingsScreen` copiar snippet, y los 3 `SyncIcon` de
+> sincronización de Propiedades/Objetos/Formularios) quedan **como están**.
+
+**App / bienvenida**
+
+- `app/components/welcome/NewProjectDialog.tsx` — :83 cancel → `Close`; :84 create → `Add`.
+- `app/components/welcome/ImportProjectDialog.tsx` — :121 cancel → `Close`; :122 import → `FileUploadOutlined`.
+- `shared/components/DriveDirtyGuard.tsx` — :88 cancel → `Close`; :89 leave → `Logout`; :90 updateAndLeave → `Save`.
+- `shared/components/DriveDocActions.tsx` — :42 update → `CloudUpload`; :49 load → `FileDownloadOutlined`; :57 «Abrir
+  en Drive» (enlace) → `OpenInNew`; :80 cancel → `Close`; :81 load (confirmar) → `FileDownloadOutlined`.
+- `shared/components/feedback/ConfirmDialog.tsx` — :56 cancel → `Close`; :59 confirm → `Check` (componente
+  compartido: el icono no cambia según `tone`; el `color="error"` ya distingue lo destructivo).
+
+**HubSpot (SPEC-0003)**
+
+- `HubSpotConnectorScreen.tsx` — :91 guardar token (`BusyButton`) → `Hub`; :100 revoke → `LinkOff`; :123 useAsActive
+  → `Check`.
+
+**Google Drive (SPEC-0004)**
+
+- `GoogleDriveConnectorScreen.tsx` — :87 disconnect → `LinkOff`; :92 connect → `Hub`; :119 seleccionar/cambiar
+  carpeta → `Folder`; :140 sync (`BusyButton`) → `Sync`.
+- `GoogleCredentialsCard.tsx` — :107 clear → `Delete`; :110 save → `Save`.
+- `FolderPickerDialog.tsx` — :222 cancel → `Close`; :225 selectThis (`BusyButton`) → `Check`.
+
+**MCP (SPEC-0005)**
+
+- `McpSettingsScreen.tsx` — :133 regenerate (`BusyButton`) → `Autorenew`.
+
+**Propiedades (SPEC-0006)**
+
+- `PropertyManagementScreen.tsx` — :132 back → `ArrowBack`; :173 nueva entrada → `Add`; :182 gestionar orígenes →
+  `Settings`; :185 exportar JSON → `FileDownloadOutlined`; :189 cambios pendientes → `PendingActions`.
+- `PendingChangesView.tsx` — :36 applySandbox → `CheckCircle`; :44 applyProduction → `CheckCircle`; :52 discard →
+  `Delete`.
+- `EntryPanel.tsx` — :137 fila de cambio pendiente (abre el diálogo de aplicar) → `CheckCircle` *(corrige el
+  borrador, que anticipaba `Delete`: el botón no descarta, lleva a aplicar)*; :171 cancel → `Close`; :172
+  applySandbox → `CheckCircle`; :175 applyProduction → `CheckCircle`.
+- `EntryWizard.tsx` — :297 editOptions → `Edit`; :316 createGroup → `Add`; :513 addSource → `Add`; :576 editOptions →
+  `Edit`; :589 cancel → `Close`; :590 save → `Save`.
+- `OriginsModal.tsx` — :85 addObject → `Add`; :190 add → `Add`; :196 close → `Close`.
+- `OptionsDialog.tsx` — :141 pasteOptions → `ContentPaste`; :144 addPropOption → `Add`; :166 bulkApply → `Check`;
+  :174 cancel → `Close`.
+- `SourceOptionsDialog.tsx` — :147 pasteOptions → `ContentPaste`; :150 addOption → `Add`; :165 bulkApply → `Check`;
+  :173 cancel → `Close`.
+
+**Objetos custom (SPEC-0007)**
+
+- `CustomObjectsScreen.tsx` — :117 back → `ArrowBack`; :144 nuevo objeto → `Add`; :153 cambios pendientes →
+  `PendingActions`.
+- `ObjectPanel.tsx` — :105 applySandbox → `CheckCircle`; :113 applyProduction → `CheckCircle`; :128 edit → `Edit`;
+  :131 archive → `Archive`; :140 deleteDraft → `Delete`; :143 close → `Close`.
+- `PendingObjectChangesView.tsx` — :36 applySandbox → `CheckCircle`; :44 applyProduction → `CheckCircle`; :52
+  discard → `Delete`.
+- `ObjectWizard.tsx` — :321 addProperty → `Add`; :393 cancel → `Close`; :394 save (`BusyButton`) → `Save`.
+
+**Formularios (SPEC-0008)**
+
+- `FormsManagementScreen.tsx` — :175 back → `ArrowBack`; :202 addForm → `Add`; :206 cambios pendientes →
+  `PendingActions`.
+- `FormPanel.tsx` — :56 edit → `Edit`; :89 linkOrigin → `Link`; :122 addMissing → `Add`.
+- `FormPendingChangesView.tsx` — :67 edit → `Edit`; :74 applySandbox → `CheckCircle`; :82 applyProduction →
+  `CheckCircle`; :90 discard → `Delete`.
+- `NewFormWizard.tsx` — :270 cancel → `Close`; :271 crear → `Add`.
+- `EditFormWizard.tsx` — :440 addField → `Add`; :598 addCheckbox → `Add`; :618 cancel → `Close`; :619 save → `Save`.
+- `LinkOriginModal.tsx` — :112 cancel → `Close`; :113 save → `Save`.
+
+**Dashboard / CRM (SPEC-0010 / SPEC-0011)**
+
+- `DashboardScreen.tsx` — :101/:104/:107 pasos (navegar) → `ArrowForward`; :137 configure → `Settings`; :159 review →
+  `ArrowForward`.
+- `CrmOverviewScreen.tsx` — :61 configure → `Settings`; :87 open → `ArrowForward`.
+
+### 19.4 Adopción
+
+Registro en cada SPEC propietario: SPEC-0003 (HubSpot), SPEC-0004 (Drive + `DriveDocActions`/`DriveDirtyGuard`),
+SPEC-0005 (MCP), SPEC-0006 (Propiedades), SPEC-0007 (Objetos), SPEC-0008 (Formularios), SPEC-0010 (Dashboard),
+SPEC-0011 (CRM), SPEC-0002 (`NewProjectDialog`, `ImportProjectDialog`, `ConfirmDialog`).
+
+### 19.5 Tests
+
+- Los tests unitarios y e2e existentes deben seguir en **verde** sin reescribirse (sustitución 1:1; no cambian
+  textos ni roles accesibles).
+- Donde un test ya seleccione un botón por su nombre accesible (`getByRole('button', { name })`), debe seguir
+  pasando porque el nombre lo da el texto, no el icono.
+
+### 19.6 Estado
+
+IMPLEMENTADO (2026-06-23). Aplicado el mapeo §19.3 en los 26 ficheros (76 botones); los `IconButton` solo-icono
+quedan intactos. Sustitución 1:1 sin cambio de lógica, variantes ni claves i18n. Única desviación del borrador:
+`EntryPanel.tsx` :137 usa `CheckCircle` (no `Delete`) por su semántica real (§19.3). Verificación:
+`npm run typecheck` + `npm run test:unit` **pendientes en máquina** — el espejo del sandbox corrompe la
+codificación de los ficheros editados (la `→` y otros no-ASCII; también afecta a `ipc.ts` y los `common.json` no
+tocados), por lo que el typecheck no es fiable en sandbox; los originales se verificaron sanos vía lectura directa.

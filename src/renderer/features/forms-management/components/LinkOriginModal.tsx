@@ -13,6 +13,8 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import SaveIcon from '@mui/icons-material/Save';
 import { useTranslation } from 'react-i18next';
 import { FieldTooltip, useFieldHelp } from '@shared/components/feedback';
 import type { HubSpotForm, FormOriginLink } from '@shared/types/forms';
@@ -109,8 +111,10 @@ export function LinkOriginModal({
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>{t('forms.linkModal.cancel')}</Button>
-        <Button variant="contained" disabled={originIds.length === 0} onClick={handleSubmit}>
+        <Button startIcon={<CloseIcon />} onClick={onClose}>
+          {t('forms.linkModal.cancel')}
+        </Button>
+        <Button variant="contained" startIcon={<SaveIcon />} disabled={originIds.length === 0} onClick={handleSubmit}>
           {t('forms.linkModal.save')}
         </Button>
       </DialogActions>

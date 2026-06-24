@@ -14,6 +14,9 @@ import {
   DialogTitle,
   FormControlLabel,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import LogoutIcon from '@mui/icons-material/Logout';
+import SaveIcon from '@mui/icons-material/Save';
 import { useBlocker, type BlockerFunction } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -85,9 +88,13 @@ export function DriveDirtyGuard({
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => blocker.reset()}>{t('drive.dirtyGuard.cancel')}</Button>
-        <Button onClick={leaveWithout}>{t('drive.dirtyGuard.leave')}</Button>
-        <Button variant="contained" onClick={() => void updateAndLeave()}>
+        <Button startIcon={<CloseIcon />} onClick={() => blocker.reset()}>
+          {t('drive.dirtyGuard.cancel')}
+        </Button>
+        <Button startIcon={<LogoutIcon />} onClick={leaveWithout}>
+          {t('drive.dirtyGuard.leave')}
+        </Button>
+        <Button variant="contained" startIcon={<SaveIcon />} onClick={() => void updateAndLeave()}>
           {t('drive.dirtyGuard.updateAndLeave')}
         </Button>
       </DialogActions>

@@ -38,7 +38,9 @@ test('crear, ver y eliminar un origen de datos', async () => {
   await expect(modal.getByText('Gestionar orígenes')).toBeVisible();
 
   // Crear un origen.
-  await modal.getByLabel('Nombre').fill('Migración Salesforce Q1');
+  // exact: el campo «Nombre» convive con el botón de ayuda (FieldTooltip, §18) cuyo aria-label
+  // empieza por «Nombre…»; sin exact, getByLabel('Nombre') captura ambos (strict mode violation).
+  await modal.getByLabel('Nombre', { exact: true }).fill('Migración Salesforce Q1');
   await modal.getByRole('button', { name: 'Añadir origen' }).click();
   await expect(modal.getByText('Migración Salesforce Q1')).toBeVisible();
 

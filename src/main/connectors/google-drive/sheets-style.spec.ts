@@ -74,6 +74,52 @@ describe('buildStyleRequests', () => {
     expect(hidden.map((h) => h.updateDimensionProperties.range.startIndex).sort()).toEqual([0, 1]);
   });
 
+  it('aplica la regla de ocultar/congelar también en hojas _Definicion (SPEC-0012 §12)', () => {
+    const tab: SheetTab = {
+      title: '03_contacts_Definicion',
+      rows: [
+        ['ID', 'Nombre', 'Propiedad HubSpot', 'Etiqueta'],
+        ['e1', 'Grado', 'degree', 'Grado'],
+      ],
+    };
+    const reqs = buildStyleRequests([{ properties: { sheetId: 6, title: tab.title } }], [tab]);
+    const props = reqs.find((r) => 'updateSheetProperties' in r) as
+      | { updateSheetProperties: { properties: { gridProperties: { frozenColumnCount: number } } } }
+      | undefined;
+    expect(props?.updateSheetProperties.properties.gridProperties.frozenColumnCount).toBe(2);
+    const hidden = reqs.filter(
+      (r) =>
+        'updateDimensionProperties' in r &&
+        (r as { updateDimensionProperties: { properties: { hiddenByUser?: boolean } } }).updateDimensionProperties
+          .properties.hiddenByUser === true,
+    ) as Array<{ updateDimensionProperties: { range: { startIndex: number } } }>;
+    expect(hidden.map((h) => h.updateDimensionProperties.range.startIndex)).toEqual([0]);
+  });
+
+  it('aplica numberFormat solo a columnas cuyo cuerpo es numérico (SPEC-0012 §13)', () => {
+    const tab: SheetTab = {
+      title: '03_contacts_Campos',
+      rows: [
+        ['ID', 'Nombre', 'Nº orígenes', 'Ratio'],
+        ['e1', 'Grado', 2, 1.5],
+        ['e2', 'Hobby', 3, 2],
+      ],
+    };
+    const reqs = buildStyleRequests([{ properties: { sheetId: 7, title: tab.title } }], [tab]);
+    const numberFormats = reqs.filter(
+      (r) =>
+        'repeatCell' in r &&
+        (r as { repeatCell: { cell: { userEnteredFormat?: { numberFormat?: unknown } } } }).repeatCell.cell
+          .userEnteredFormat?.numberFormat !== undefined,
+    ) as Array<{ repeatCell: { range: { startColumnIndex: number }; cell: { userEnteredFormat: { numberFormat: { pattern: string } } } } }>;
+    // Columnas numéricas: índice 2 (enteros → '0') e índice 3 (decimal → '0.######'); ID/Nombre no.
+    const byCol = new Map(numberFormats.map((r) => [r.repeatCell.range.startColumnIndex, r.repeatCell.cell.userEnteredFormat.numberFormat.pattern]));
+    expect(byCol.get(0)).toBeUndefined();
+    expect(byCol.get(1)).toBeUndefined();
+    expect(byCol.get(2)).toBe('0');
+    expect(byCol.get(3)).toBe('0.######');
+  });
+
   it('añade notas por columna en la cabecera de datos', () => {
     const reqs = buildStyleRequests(freshMeta, tabs);
     const cells = reqs.find((r) => 'updateCells' in r) as

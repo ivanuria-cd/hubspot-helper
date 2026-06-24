@@ -23,6 +23,10 @@ import {
   Typography,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import CloseIcon from '@mui/icons-material/Close';
+import SaveIcon from '@mui/icons-material/Save';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { OptionsDialog } from './OptionsDialog';
 import { SourceOptionsDialog } from './SourceOptionsDialog';
@@ -294,7 +298,7 @@ export function EntryWizard({
           <Typography variant="body2" color="text.primary">
             {t('properties.wizard.optionsTitle')} · {t('properties.wizard.optionsCount', { count: (def.options ?? []).length })}
           </Typography>
-          <Button size="small" variant="outlined" onClick={() => setOptionsOpen(true)}>
+          <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => setOptionsOpen(true)}>
             {t('properties.wizard.editOptions')}
           </Button>
         </Stack>
@@ -313,7 +317,7 @@ export function EntryWizard({
       </TextField>
       <Stack direction="row" spacing={1}>
         <TextField size="small" label={t('properties.wizard.newGroupLabel')} value={newGroupLabel} onChange={(e) => setNewGroupLabel(e.target.value)} InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.wizard.fieldHelp.group" /></InputAdornment> }} />
-        <Button size="small" variant="outlined" onClick={createGroup} disabled={!newGroupLabel.trim()}>
+        <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={createGroup} disabled={!newGroupLabel.trim()}>
           {t('properties.wizard.createGroup')}
         </Button>
       </Stack>
@@ -510,7 +514,7 @@ export function EntryWizard({
           <Divider />
           <Stack direction="row" alignItems="center">
             <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>{t('properties.entry.sources')}</Typography>
-            <Button size="small" onClick={addSource} disabled={origins.length === 0}>
+            <Button size="small" startIcon={<AddIcon />} onClick={addSource} disabled={origins.length === 0}>
               {t('properties.wizard.addSource')}
             </Button>
           </Stack>
@@ -573,7 +577,7 @@ export function EntryWizard({
                     <Typography variant="body2" color="text.primary">
                       {t('properties.wizard.optionsTitle')} · {t('properties.wizard.optionsCount', { count: s.options.length })}
                     </Typography>
-                    <Button size="small" variant="outlined" onClick={() => setSrcOptionsId(s.id)}>
+                    <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => setSrcOptionsId(s.id)}>
                       {t('properties.wizard.editOptions')}
                     </Button>
                   </Stack>
@@ -586,8 +590,10 @@ export function EntryWizard({
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>{t('properties.wizard.cancel')}</Button>
-        <Button variant="contained" disabled={!canSubmit} onClick={handleSubmit}>
+        <Button startIcon={<CloseIcon />} onClick={onClose}>
+          {t('properties.wizard.cancel')}
+        </Button>
+        <Button variant="contained" startIcon={<SaveIcon />} disabled={!canSubmit} onClick={handleSubmit}>
           {t('properties.wizard.save')}
         </Button>
       </DialogActions>

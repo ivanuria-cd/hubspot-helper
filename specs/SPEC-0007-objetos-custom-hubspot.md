@@ -463,7 +463,7 @@ Claves i18n nuevas: `objects.archiveTitle/Body`, `objects.deleteDraftTitle/Body`
 
 Implementado 2026-06-19: `ObjectPanel` usa `useConfirm` para archivar y borrar borrador; el toast de resultado se emite en `handleApply` de `CustomObjectsScreen`.
 
-## 18. Adopción del patrón de estados de carga (SPEC-0002 §17) (BORRADOR, 2026-06-22)
+## 18. Adopción del patrón de estados de carga (SPEC-0002 §17) (IMPLEMENTADO, 2026-06-22)
 
 `CustomObjectsScreen` (listado), `ObjectWizard` y `ObjectPanel` adoptan el patrón de SPEC-0002 §17: la pantalla
 y el panel pintan `LoadingState` (variantes `cards`/`form`) con `aria-busy` mientras resuelven objetos/propiedades;

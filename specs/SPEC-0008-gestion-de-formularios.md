@@ -264,6 +264,7 @@ Todas las capacidades del SPEC se exponen como tools MCP (SPEC-0005). Las de esc
 |-------|--------|
 | `forms` | Leer, crear y actualizar formularios (Marketing Forms API v3) |
 | `crm.schemas.contacts.read` | Resolver propiedades destino y objetos para la cobertura (ya activo por SPEC-0006) |
+| `communication_preferences.read` | Listar los tipos de suscripción del portal para el consentimiento legal (Subscription Preferences API, §24; `forms_subscription_types`). Sin él, HubSpot devuelve `403`. Documentado a nivel usuario en `doc/tutoriales/hubspot/<locale>/crear-private-app.md` |
 
 > Los scopes se activan en la Private App de HubSpot. Como recoge SPEC-0003, los scopes de un PAT no se pueden leer vía API; si falta `forms`, HubSpot devolverá `403` en la operación concreta y la app lo propagará al usuario.
 
@@ -752,7 +753,7 @@ Corrección:
 
 Ficheros: `pending-changes.ts` (`fieldGroupsFrom`/`enforceGroupSize` + builders), `service.ts` (applyChange), test en `pending-changes.spec.ts`. Pendiente en máquina: typecheck/test/PR. Requiere rebuild para el MCP.
 
-## 27. Adopción del patrón de estados de carga (SPEC-0002 §17) (BORRADOR, 2026-06-22)
+## 27. Adopción del patrón de estados de carga (SPEC-0002 §17) (IMPLEMENTADO, 2026-06-22)
 
 `FormsManagementScreen`, `NewFormWizard`, `EditFormWizard` y `LinkOriginModal` adoptan el patrón de SPEC-0002 §17.
 Los asistentes/modales se abren de inmediato con `LoadingState` (variante `form`/`list`) y `aria-busy` mientras

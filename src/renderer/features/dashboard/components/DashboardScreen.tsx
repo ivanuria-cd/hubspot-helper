@@ -9,6 +9,8 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useShellStore } from '@renderer/app/store/shell-store';
@@ -98,13 +100,15 @@ export function DashboardScreen(): JSX.Element | null {
               {t('dashboard.onboardingIntro')}
             </Typography>
             <Stack spacing={1} alignItems="flex-start">
-              <Button onClick={() => navigate('config/connectors/hubspot')}>
+              <Button startIcon={<ArrowForwardIcon />} onClick={() => navigate('config/connectors/hubspot')}>
                 {t('dashboard.stepHubspot')}
               </Button>
-              <Button onClick={() => navigate('config/connectors/google-drive')}>
+              <Button startIcon={<ArrowForwardIcon />} onClick={() => navigate('config/connectors/google-drive')}>
                 {t('dashboard.stepDrive')}
               </Button>
-              <Button onClick={() => navigate('config/api-mcp')}>{t('dashboard.stepMcp')}</Button>
+              <Button startIcon={<ArrowForwardIcon />} onClick={() => navigate('config/api-mcp')}>
+                {t('dashboard.stepMcp')}
+              </Button>
             </Stack>
           </CardContent>
         </Card>
@@ -134,7 +138,7 @@ export function DashboardScreen(): JSX.Element | null {
                   <Typography variant="body2" color="text.primary" sx={{ minHeight: 20 }}>
                     {card.detail ?? ''}
                   </Typography>
-                  <Button size="small" sx={{ mt: 1 }} onClick={() => navigate(card.to)}>
+                  <Button size="small" startIcon={<SettingsIcon />} sx={{ mt: 1 }} onClick={() => navigate(card.to)}>
                     {t('dashboard.configure')}
                   </Button>
                 </CardContent>
@@ -156,7 +160,7 @@ export function DashboardScreen(): JSX.Element | null {
                     {card.count}
                   </Typography>
                   {card.count > 0 ? (
-                    <Button size="small" onClick={() => navigate(card.to)}>
+                    <Button size="small" startIcon={<ArrowForwardIcon />} onClick={() => navigate(card.to)}>
                       {t('dashboard.review')}
                     </Button>
                   ) : (

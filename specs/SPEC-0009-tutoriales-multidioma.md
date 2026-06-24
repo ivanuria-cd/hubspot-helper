@@ -5,6 +5,8 @@
 **Fecha:** 2026-06-17
 **Depende de:** SPEC-0000 (§3 i18n, §10 tutoriales), SPEC-0002 (sección Ayuda)
 
+> **Enmienda (SPEC-0014, 2026-06-24):** el conjunto de idiomas se amplió de 4 a 7 con `gl`, `pt` y `fr`. El mecanismo (loader, `resolveContent`/`resolveTitle`, fallback a `es`) no cambia; solo crece `SUPPORTED_LANGUAGES` y el número de ficheros de paridad. Los conteos «24×4» y «96 ficheros» de este documento reflejan el estado en su fecha; la paridad vigente es **29 × 7 = 203** (ver SPEC-0014).
+
 ---
 
 ## 1. Objetivo

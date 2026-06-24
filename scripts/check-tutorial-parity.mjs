@@ -1,10 +1,10 @@
-// Verifica que todo tutorial con versión `es` tenga también `ca`, `eu` y `en`
-// (SPEC-0009). Sale con código 1 si falta alguna traducción.
+// Verifica que todo tutorial con versión `es` tenga también el resto de idiomas
+// soportados (SPEC-0009 + SPEC-0014). Sale con código 1 si falta alguna traducción.
 import { readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const LOCALES = ['es', 'ca', 'eu', 'en'];
+const LOCALES = ['es', 'ca', 'eu', 'en', 'gl', 'pt', 'fr'];
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'doc', 'tutoriales');
 
 function features() {

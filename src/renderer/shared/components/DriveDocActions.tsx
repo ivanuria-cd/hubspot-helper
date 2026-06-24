@@ -14,6 +14,10 @@ import {
   DialogTitle,
   Stack,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { useTranslation } from 'react-i18next';
 import type { DriveDocController } from '@shared/hooks/useDriveDoc';
 
@@ -41,6 +45,7 @@ export function DriveDocActions({
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
         <Button
           variant="outlined"
+          startIcon={<CloudUploadIcon />}
           disabled={updateDisabled || doc.updating}
           onClick={() => void doc.update()}
         >
@@ -48,6 +53,7 @@ export function DriveDocActions({
         </Button>
         <Button
           variant="text"
+          startIcon={<FileDownloadOutlinedIcon />}
           disabled={loadDisabled || doc.loading}
           onClick={() => setConfirmLoad(true)}
         >
@@ -56,6 +62,7 @@ export function DriveDocActions({
         {doc.fileUrl ? (
           <Button
             variant="text"
+            startIcon={<OpenInNewIcon />}
             component="a"
             href={doc.fileUrl}
             target="_blank"
@@ -77,8 +84,10 @@ export function DriveDocActions({
           <DialogContentText>{t('drive.doc.loadConfirmBody')}</DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmLoad(false)}>{t('drive.doc.cancel')}</Button>
-          <Button variant="contained" onClick={runLoad}>
+          <Button startIcon={<CloseIcon />} onClick={() => setConfirmLoad(false)}>
+            {t('drive.doc.cancel')}
+          </Button>
+          <Button variant="contained" startIcon={<FileDownloadOutlinedIcon />} onClick={runLoad}>
             {t('drive.doc.load')}
           </Button>
         </DialogActions>

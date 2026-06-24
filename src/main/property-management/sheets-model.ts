@@ -1,13 +1,13 @@
 /**
- * Builder del Google Sheets del mapa de propiedades (SPEC-0006 §16.4 / §18 + SPEC-0012 §2.3,
- * schema_version: 3). Hojas globales: Portada, Indice, Origenes. Por cada objeto con entradas, un
- * bloque de tres hojas: Campos, Fuentes, Opciones (esta última se omite si no hay fuentes `enum`).
- * Es puro (sin dependencias de Drive) para poder testearlo. Las erratas en nombres/claves se reflejan
- * tal cual (no se corrigen).
+ * Builder del Google Sheets del mapa de propiedades (SPEC-0006 §16.4 / §18 / §32 + SPEC-0012 §2.3 / §12,
+ * schema_version: 4). Hojas globales: Portada, Indice, Origenes. Por cada objeto con entradas, un
+ * bloque de hasta cinco hojas: Campos, Definicion, Fuentes, Opciones (se omite si no hay fuentes `enum`)
+ * y DefOpciones (solo con propiedades nuevas de enumeración con opciones). Es puro (sin dependencias de
+ * Drive) para poder testearlo. Las erratas en nombres/claves se reflejan tal cual (no se corrigen).
  */
-import type { DataOrigin, PropertyEntry } from '@shared/types/properties';
+import type { DataOrigin, HubSpotPropertyDef, PropertyEntry } from '@shared/types/properties';
 
-export const SHEETS_SCHEMA_VERSION = 3;
+export const SHEETS_SCHEMA_VERSION = 4;
 export const PROPERTY_MAP_FEATURE_KEY = 'property-management';
 
 export type CellValue = string | number | boolean;
@@ -30,6 +30,29 @@ const ENTRADAS_HEADER = [
 ];
 const FUENTES_HEADER = ['ID', 'Entrada', 'Objeto', 'Origen', 'Campo origen', 'Tipo genérico', 'Formato booleano', 'Notas'];
 const OPCIONES_HEADER = ['Entrada', 'Origen', 'Valor origen', 'Etiqueta origen', 'Valor HubSpot'];
+const DEFINICION_HEADER = [
+  'ID',
+  'Nombre',
+  'Propiedad HubSpot',
+  'Etiqueta',
+  'Tipo',
+  'Field type',
+  'Grupo',
+  'Descripción',
+  'Formato número',
+  'Símbolo moneda',
+  'Propiedad moneda',
+  'Formato texto',
+  'Fórmula cálculo',
+  'Valor único',
+  'Sensibilidad',
+  'Opciones externas',
+  'Objeto referenciado',
+  'Orden',
+  'Oculta',
+  'Campo de formulario',
+];
+const DEFOPCIONES_HEADER = ['ID', 'Nombre', 'Propiedad HubSpot', 'Valor', 'Etiqueta', 'Orden', 'Oculta'];
 const SHEET_NAME_MAX = 100;
 const INVALID_SHEET_CHARS = /[:\\/?*[\]]/g;
 
@@ -81,6 +104,51 @@ function fuenteRows(entry: PropertyEntry, originName: Map<string, string>): Cell
     source.definition.kind,
     source.definition.boolean ? `${source.definition.boolean.truthy}/${source.definition.boolean.falsy}` : '',
     source.notes ?? '',
+  ]);
+}
+
+function destDef(entry: PropertyEntry): HubSpotPropertyDef | undefined {
+  return entry.hubspotProperty.definition;
+}
+
+function definicionRow(entry: PropertyEntry): CellValue[] {
+  const def = destDef(entry);
+  const cell = (value: CellValue | undefined): CellValue => value ?? '';
+  return [
+    entry.id,
+    entry.name,
+    destName(entry),
+    cell(def?.label),
+    destType(entry),
+    cell(def?.fieldType),
+    cell(def?.groupName),
+    cell(def?.description),
+    cell(def?.numberDisplayHint),
+    cell(def?.showCurrencySymbol),
+    cell(def?.currencyPropertyName),
+    cell(def?.textDisplayHint),
+    cell(def?.calculationFormula),
+    cell(def?.hasUniqueValue),
+    cell(def?.dataSensitivity),
+    cell(def?.externalOptions),
+    cell(def?.referencedObjectType),
+    cell(def?.displayOrder),
+    cell(def?.hidden),
+    cell(def?.formField),
+  ];
+}
+
+function defOpcionRows(entry: PropertyEntry): CellValue[][] {
+  const ref = entry.hubspotProperty;
+  if (ref.mode !== 'new' || ref.definition.type !== 'enumeration') return [];
+  return (ref.definition.options ?? []).map((option) => [
+    entry.id,
+    entry.name,
+    ref.definition.hubspotName,
+    option.value,
+    option.label,
+    option.displayOrder,
+    option.hidden,
   ]);
 }
 
@@ -145,7 +213,7 @@ export function buildPropertyMapTabs(
 
   const indice: SheetTab = {
     title: '01_Indice',
-    rows: [['Objeto', 'Campos', 'Fuentes', 'Opciones', 'Hojas']],
+    rows: [['Objeto', 'Campos', 'Definicion', 'Fuentes', 'Opciones', 'DefOpciones', 'Hojas']],
   };
 
   const origenes: SheetTab = {
@@ -172,22 +240,40 @@ export function buildPropertyMapTabs(
       title: blockTitle(prefix, part, 'Campos'),
       rows: [ENTRADAS_HEADER, ...objectEntries.map(entradaRow)],
     };
+    const definicion: SheetTab = {
+      title: blockTitle(prefix, part, 'Definicion'),
+      rows: [DEFINICION_HEADER, ...objectEntries.map(definicionRow)],
+    };
     const fuentesRows = objectEntries.flatMap((entry) => fuenteRows(entry, originName));
     const fuentes: SheetTab = {
       title: blockTitle(prefix, part, 'Fuentes'),
       rows: [FUENTES_HEADER, ...fuentesRows],
     };
     const opcionesRows = objectEntries.flatMap((entry) => opcionRows(entry, originName));
+    const defOpcionesRows = objectEntries.flatMap(defOpcionRows);
 
-    const sheetNames = [entradas.title, fuentes.title];
-    blocks.push(entradas, fuentes);
+    const sheetNames = [entradas.title, definicion.title, fuentes.title];
+    blocks.push(entradas, definicion, fuentes);
     if (opcionesRows.length > 0) {
       const opciones: SheetTab = { title: blockTitle(prefix, part, 'Opciones'), rows: [OPCIONES_HEADER, ...opcionesRows] };
       sheetNames.push(opciones.title);
       blocks.push(opciones);
     }
+    if (defOpcionesRows.length > 0) {
+      const defOpciones: SheetTab = { title: blockTitle(prefix, part, 'DefOpciones'), rows: [DEFOPCIONES_HEADER, ...defOpcionesRows] };
+      sheetNames.push(defOpciones.title);
+      blocks.push(defOpciones);
+    }
 
-    indice.rows.push([objectType, objectEntries.length, fuentesRows.length, opcionesRows.length, sheetNames.join(', ')]);
+    indice.rows.push([
+      objectType,
+      objectEntries.length,
+      objectEntries.length,
+      fuentesRows.length,
+      opcionesRows.length,
+      defOpcionesRows.length,
+      sheetNames.join(', '),
+    ]);
   });
 
   return [portada, indice, origenes, ...blocks];

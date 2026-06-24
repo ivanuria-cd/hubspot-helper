@@ -14,6 +14,9 @@ import {
 } from '@mui/material';
 import { driveFileUrl } from '@shared/utils/driveFileUrl';
 import FolderIcon from '@mui/icons-material/Folder';
+import HubIcon from '@mui/icons-material/Hub';
+import LinkOffIcon from '@mui/icons-material/LinkOff';
+import SyncIcon from '@mui/icons-material/Sync';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
 import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
@@ -84,13 +87,19 @@ export function GoogleDriveConnectorScreen(): JSX.Element | null {
             <Stack direction="row" spacing={2} alignItems="center">
               <Chip color="secondary" size="small" label={t('gdrive.connected')} />
               <Typography color="text.primary">{t('gdrive.connectedAs', { email })}</Typography>
-              <Button color="inherit" onClick={() => void disconnect()} disabled={working}>
+              <Button
+                color="inherit"
+                startIcon={<LinkOffIcon />}
+                onClick={() => void disconnect()}
+                disabled={working}
+              >
                 {t('gdrive.disconnect')}
               </Button>
             </Stack>
           ) : (
             <Button
               variant="contained"
+              startIcon={<HubIcon />}
               onClick={() => void connect()}
               disabled={working || authStatus.state === 'authorizing'}
             >
@@ -116,7 +125,11 @@ export function GoogleDriveConnectorScreen(): JSX.Element | null {
                 <Typography color="text.primary">
                   {status?.folderName || t('gdrive.noFolder')}
                 </Typography>
-                <Button onClick={() => setPickerOpen(true)} disabled={working}>
+                <Button
+                  startIcon={<FolderIcon />}
+                  onClick={() => setPickerOpen(true)}
+                  disabled={working}
+                >
                   {status?.folderId ? t('gdrive.changeFolder') : t('gdrive.selectFolder')}
                 </Button>
               </Stack>
@@ -137,7 +150,12 @@ export function GoogleDriveConnectorScreen(): JSX.Element | null {
                     ? t('gdrive.lastSync', { date: new Date(status.lastSyncAt).toLocaleString() })
                     : t('gdrive.neverSynced')}
                 </Typography>
-                <BusyButton variant="outlined" busy={working} onClick={() => void handleSync()}>
+                <BusyButton
+                  variant="outlined"
+                  busy={working}
+                  startIcon={<SyncIcon />}
+                  onClick={() => void handleSync()}
+                >
                   {t('gdrive.sync')}
                 </BusyButton>
               </Stack>

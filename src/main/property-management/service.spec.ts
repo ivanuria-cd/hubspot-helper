@@ -17,6 +17,7 @@ function fakeProperties(remote: Omit<RemoteProperty, 'objectType'>[] = []): Prop
     deleteProperty: vi.fn(() => Promise.resolve({ status: 204, data: {} })),
     listGroups: vi.fn(() => Promise.resolve([])),
     createGroup: vi.fn((_objectType: string, g: { name: string; label: string }) => Promise.resolve(g)),
+    deleteGroup: vi.fn(() => Promise.resolve({ status: 204, data: {} })),
   };
 }
 
@@ -317,5 +318,78 @@ describe('PropertyService (entradas)', () => {
     expect(exported.origin.name).toBe('SF');
     service.deleteOrigin({ projectId: 'p1', originId: origin.id });
     expect(service.listOrigins({ projectId: 'p1' })).toHaveLength(0);
+  });
+});
+
+describe('PropertyService (borrado de grupos, SPEC-0006 §33)', () => {
+  beforeEach(() => {
+    idCounter = 0;
+  });
+
+  it('requestGroupDelete crea un cambio pendiente y listGroupChanges lo devuelve', () => {
+    const service = createPropertyService(deps(createMemoryPropertyStore(), fakeProperties(), fakeObjects()));
+    expect(
+      service.requestGroupDelete({ projectId: 'p1', objectType: 'contacts', groupName: 'gym_info', label: 'Gimnasio' }),
+    ).toEqual({ success: true });
+    const changes = service.listGroupChanges({ projectId: 'p1' });
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({ objectType: 'contacts', groupName: 'gym_info', appliedToProduction: false });
+  });
+
+  it('requestGroupDelete rechaza un duplicado para el mismo objeto/grupo', () => {
+    const service = createPropertyService(deps(createMemoryPropertyStore(), fakeProperties(), fakeObjects()));
+    service.requestGroupDelete({ projectId: 'p1', objectType: 'contacts', groupName: 'gym_info' });
+    expect(
+      service.requestGroupDelete({ projectId: 'p1', objectType: 'contacts', groupName: 'gym_info' }),
+    ).toEqual({ success: false, error: 'Ya hay un borrado pendiente para ese grupo' });
+  });
+
+  it('applyGroupChange rechaza si el grupo no está vacío y no llama a deleteGroup', async () => {
+    // Una propiedad remota pertenece al grupo ⇒ no vacío.
+    const props = fakeProperties([
+      { name: 'p', label: 'P', type: 'string', fieldType: 'text', groupName: 'gym_info' },
+    ]);
+    const service = createPropertyService(deps(createMemoryPropertyStore(), props, fakeObjects()));
+    service.requestGroupDelete({ projectId: 'p1', objectType: 'contacts', groupName: 'gym_info' });
+    const change = service.listGroupChanges({ projectId: 'p1' })[0];
+    const result = await service.applyGroupChange({ projectId: 'p1', changeId: change.id, environment: 'production' });
+    expect(result.success).toBe(false);
+    expect(props.deleteGroup).not.toHaveBeenCalled();
+    // El cambio sigue pendiente al no aplicarse.
+    expect(service.listGroupChanges({ projectId: 'p1' })).toHaveLength(1);
+  });
+
+  it('applyGroupChange en producción borra el grupo vacío y retira el cambio', async () => {
+    const props = fakeProperties([]); // sin propiedades ⇒ grupo vacío
+    const service = createPropertyService(deps(createMemoryPropertyStore(), props, fakeObjects()));
+    service.requestGroupDelete({ projectId: 'p1', objectType: 'contacts', groupName: 'gym_info' });
+    const change = service.listGroupChanges({ projectId: 'p1' })[0];
+    const result = await service.applyGroupChange({ projectId: 'p1', changeId: change.id, environment: 'production' });
+    expect(result.success).toBe(true);
+    expect(props.deleteGroup).toHaveBeenCalledWith('contacts', 'gym_info', 'production');
+    expect(service.listGroupChanges({ projectId: 'p1' })).toHaveLength(0);
+  });
+
+  it('applyGroupChange en sandbox marca el flag sin retirar el cambio', async () => {
+    const service = createPropertyService(deps(createMemoryPropertyStore(), fakeProperties([]), fakeObjects()));
+    service.requestGroupDelete({ projectId: 'p1', objectType: 'contacts', groupName: 'gym_info' });
+    const change = service.listGroupChanges({ projectId: 'p1' })[0];
+    await service.applyGroupChange({ projectId: 'p1', changeId: change.id, environment: 'sandbox' });
+    const after = service.listGroupChanges({ projectId: 'p1' });
+    expect(after).toHaveLength(1);
+    expect(after[0].appliedToSandbox).toBe(true);
+    expect(after[0].appliedToProduction).toBe(false);
+  });
+
+  it('discardGroupChange retira el cambio; error si no existe', () => {
+    const service = createPropertyService(deps(createMemoryPropertyStore(), fakeProperties(), fakeObjects()));
+    service.requestGroupDelete({ projectId: 'p1', objectType: 'contacts', groupName: 'gym_info' });
+    const change = service.listGroupChanges({ projectId: 'p1' })[0];
+    expect(service.discardGroupChange({ projectId: 'p1', changeId: change.id })).toEqual({ success: true });
+    expect(service.listGroupChanges({ projectId: 'p1' })).toHaveLength(0);
+    expect(service.discardGroupChange({ projectId: 'p1', changeId: 'nope' })).toEqual({
+      success: false,
+      error: 'Cambio no encontrado',
+    });
   });
 });

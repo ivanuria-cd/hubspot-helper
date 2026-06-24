@@ -188,6 +188,24 @@ describe('cliente Drive', () => {
     expect(text).toContain('DATOS');
   });
 
+  it('borra el documento recién creado si falla docsBatchUpdate (SPEC-0004 §21)', async () => {
+    const api = fakeApi({
+      docsBatchUpdate: vi.fn().mockRejectedValue(new Error('Docs API down')),
+    });
+    const client = createDriveClient(api);
+    await expect(
+      client.createManagedDocument({
+        folderId: 'sub',
+        name: 'props',
+        featureKey: 'props',
+        schemaVersion: 1,
+        cover,
+        content: 'DATOS',
+      }),
+    ).rejects.toThrow('Docs API down');
+    expect(api.filesDelete).toHaveBeenCalledWith({ fileId: 'new-id' });
+  });
+
   it('reemplaza el cuerpo borrando el rango previo antes de insertar', async () => {
     const api = fakeApi({
       docsGet: vi.fn().mockResolvedValue({ body: { content: [{ endIndex: 50 }] } }),
