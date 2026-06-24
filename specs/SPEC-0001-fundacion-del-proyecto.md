@@ -114,8 +114,8 @@ directories:
   output: dist
 publish:
   provider: github
-  owner: cloud-district
-  repo: revops-app
+  owner: ivanuria-cd
+  repo: hubspot-helper
 mac:
   target: dmg
 win:
