@@ -32,6 +32,7 @@ Crear el esqueleto del proyecto: repositorio Git, scaffolding Electron + TypeScr
 ### Auto-update
 - Configurado para buscar actualizaciones al inicio. El usuario ve un banner no intrusivo cuando hay update disponible.
 - Descarga en background; instalación al cerrar o a petición del usuario.
+- Publicación de releases vía `electron-builder` con provider `github` (`ivanuria-cd/hubspot-helper`). Scripts `release:win` / `release:mac` (`electron-builder --<plataforma> --publish always`) que construyen, generan los metadatos (`latest.yml` / `latest-mac.yml`) y suben un release en borrador a GitHub. Requieren `GH_TOKEN` con permiso sobre el repo. El borrador se publica manualmente en GitHub; `electron-updater` compara contra la `version` de `package.json`.
 
 ---
 

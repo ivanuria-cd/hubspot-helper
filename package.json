@@ -1,6 +1,6 @@
 {
   "name": "revops-app",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "RevOps Assistant — asistente de escritorio para HubSpot y Google Drive (Cloud District)",
   "author": "Cloud District",
   "license": "UNLICENSED",
@@ -14,6 +14,8 @@
     "package": "npm run build && electron-builder",
     "package:win": "npm run build && electron-builder --win",
     "package:mac": "npm run build && electron-builder --mac",
+    "release:win": "npm run build && electron-builder --win --publish always",
+    "release:mac": "npm run build && electron-builder --mac --publish always",
     "typecheck:node": "tsc --noEmit -p tsconfig.main.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.renderer.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
