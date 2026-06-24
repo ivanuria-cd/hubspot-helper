@@ -99,6 +99,16 @@ export function EntryPanel({ entry, origins, busy, onClose, onEdit, onDelete, on
               {destName(entry)}
               {entry.hubspotProperty.mode === 'new' ? ` (${t('properties.wizard.new')})` : ''}
             </Typography>
+            {entry.hubspotProperty.definition?.description ? (
+              <>
+                <Typography variant="caption" color="text.primary">
+                  {t('properties.panel.description')}
+                </Typography>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {entry.hubspotProperty.definition.description}
+                </Typography>
+              </>
+            ) : null}
 
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" gutterBottom>

@@ -1335,3 +1335,70 @@ afecta a la seguridad.
 - **i18n** `properties.manageGroups` + `properties.groupsModal.*` en `es`/`ca`/`eu`/`en` (JSON validado).
 
 El borrado es operable por UI y por MCP. typecheck/suite/e2e + rebuild MCP en la máquina del usuario.
+
+---
+
+## 34. Descripción de la propiedad en el UI (IMPLEMENTADO, 2026-06-24)
+
+### 34.1 Diagnóstico
+
+`HubSpotPropertyDef.description` ya existe en el modelo (§25.3), se edita en `EntryWizard` y se vuelca a la
+hoja `<NN>_<Obj>_Definicion` del Sheets (§32). Lagunas detectadas en el UI:
+
+- El campo de edición vive dentro del acordeón colapsado «Opciones avanzadas» (§25.7), poco visible.
+- `EntryPanel` (panel lateral de solo lectura) **no muestra** la descripción.
+
+Fuera de alcance de esta enmienda: la fila de lista de `PropertyManagementScreen` (no se añade descripción
+ahí, decisión del usuario 2026-06-24).
+
+### 34.2 Editor — mover la descripción al núcleo del wizard
+
+- El `TextField` de descripción (hoy en el `Accordion` de «Opciones avanzadas», `EntryWizard.tsx` :331-338)
+  se traslada al **bloque principal** de `definitionEditor`, siempre visible, tras `label`/`type`/`fieldType`
+  y antes de las opciones de enumeración. Multilínea (`minRows={2}`), mantiene el `FieldTooltip`
+  (`properties.advanced.fieldHelp.description`) y la clave de etiqueta `properties.advanced.description`.
+- Se aplica tanto a `mode: 'new'` como a `mode: 'existing'` (`definitionEditor` ya se renderiza en ambos).
+- `hasAdvancedContent` deja de considerar `description` para decidir la apertura automática del acordeón
+  (la descripción ya no vive ahí). El resto de campos avanzados no cambian.
+- No se crean claves i18n nuevas (se reutilizan las existentes).
+
+### 34.3 Vista de solo lectura — `EntryPanel`
+
+- `EntryPanel` añade un bloque de **descripción** bajo «Propiedad destino» (tras `destName`), antes del
+  `Divider` que precede a «Fuentes». Render condicional: solo si la definición destino tiene `description`.
+- Lectura del valor: `entry.hubspotProperty.definition?.description` (en `mode: 'existing'` la definición
+  puede no estar cacheada → no se muestra nada, coherente con §32.2; no es errata, refleja el estado de
+  sincronización). Texto con `whiteSpace: 'pre-wrap'`.
+- Etiqueta con clave i18n `properties.panel.description`. **Ya existía** en los 7 locales
+  (`es`/`ca`/`eu`/`en`/`gl`/`pt`/`fr`); no se crea ninguna clave nueva.
+
+### 34.4 Sheets
+
+Sin cambios estructurales: la descripción ya se vuelca en la hoja `<NN>_<Obj>_Definicion` (§32, columna
+`Descripción`). No se duplica en la hoja de resumen `Campos`. `SHEETS_SCHEMA_VERSION` no se toca.
+
+### 34.5 MCP
+
+Sin cambios: `entries_upsert` ya transporta la definición completa con `description`; las tools de lectura ya
+la exponen. No requiere rebuild.
+
+### 34.6 Impacto / ficheros
+
+- `renderer/features/property-management/components/EntryWizard.tsx` (mover el campo; ajustar
+  `hasAdvancedContent`).
+- `renderer/features/property-management/components/EntryPanel.tsx` (bloque de descripción de solo lectura).
+- i18n: sin cambios (la clave `properties.panel.description` ya existía en los 7 locales).
+
+### 34.7 Tests
+
+- `EntryPanel.spec.tsx` (nuevo): con definición que tiene `description` se renderiza el bloque (etiqueta +
+  texto); sin `description` no aparece.
+- typecheck/test:unit + e2e en la máquina del usuario.
+
+### 34.8 Estado
+
+IMPLEMENTADO (2026-06-24). `EntryWizard.tsx` (campo descripción movido al núcleo de `definitionEditor`,
+`hasAdvancedContent` ya no mira `description`); `EntryPanel.tsx` (bloque de descripción de solo lectura);
+`EntryPanel.spec.tsx` (2 casos). i18n sin cambios. La suite del renderer **no es ejecutable en el sandbox**
+por el truncado del espejo del clonado (`src/renderer/i18n/index.ts` queda cortado a mitad de línea; original
+sano, 50 líneas) — typecheck/test:unit/e2e en la máquina del usuario.

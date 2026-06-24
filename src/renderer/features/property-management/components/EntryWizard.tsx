@@ -56,8 +56,7 @@ const KINDS: SourceFieldKind[] = ['number', 'text', 'boolean', 'enum', 'memo'];
 /** ¿La definición usa alguna opción avanzada? Sirve para abrir la sección colapsable. */
 function hasAdvancedContent(def: HubSpotPropertyDef): boolean {
   return Boolean(
-    def.description ||
-      def.numberDisplayHint ||
+    def.numberDisplayHint ||
       def.textDisplayHint ||
       def.calculationFormula ||
       def.dataSensitivity ||
@@ -286,6 +285,14 @@ export function EntryWizard({
           <MenuItem key={ft} value={ft}>{t(`properties.fieldTypes.${ft}`, { defaultValue: ft })}</MenuItem>
         ))}
       </TextField>
+      <TextField
+        label={t('properties.advanced.description')}
+        value={def.description ?? ''}
+        onChange={(e) => setDef({ ...def, description: e.target.value || undefined })}
+        multiline
+        minRows={2}
+        InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.advanced.fieldHelp.description" /></InputAdornment> }}
+      />
 
       {def.type === 'enumeration' ? (
         <Stack
@@ -328,15 +335,6 @@ export function EntryWizard({
         </AccordionSummary>
         <AccordionDetails>
           <Stack spacing={1.5}>
-            <TextField
-              label={t('properties.advanced.description')}
-              value={def.description ?? ''}
-              onChange={(e) => setDef({ ...def, description: e.target.value || undefined })}
-              multiline
-              minRows={2}
-              InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.advanced.fieldHelp.description" /></InputAdornment> }}
-            />
-
             {def.type === 'number' ? (
               <Stack spacing={1.5}>
                 <TextField
