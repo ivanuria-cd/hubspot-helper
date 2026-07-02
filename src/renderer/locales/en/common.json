@@ -357,7 +357,10 @@
       "formField": "In forms and chatbots",
       "formFieldOn": "Yes",
       "formFieldOff": "No",
-      "formFieldDefault": "HubSpot default"
+      "formFieldDefault": "HubSpot default",
+      "applyTitle": "Apply change in HubSpot",
+      "applyHint": "This action writes to HubSpot. Choose the environment.",
+      "applied": "Applied"
     },
     "addDialog": {
       "title": "Add property",
@@ -396,7 +399,11 @@
         "type": "Nature of the origin: integration, migration, user or workflow.",
         "description": "Description of the origin and which data it provides.",
         "objectName": "HubSpot object affected by this origin."
-      }
+      },
+      "objects": "Origin objects",
+      "addObject": "Add object",
+      "objectName": "Object name",
+      "noObjects": "No objects"
     },
     "changes": {
       "title": "Properties / Pending changes",
@@ -422,7 +429,18 @@
       "save": "Save"
     },
     "fieldTypes": {
-      "calculation_equation": "Calculation (formula)"
+      "calculation_equation": "Calculation (formula)",
+      "text": "Text",
+      "textarea": "Multi-line text",
+      "phonenumber": "Phone",
+      "html": "Rich text",
+      "file": "File",
+      "number": "Number",
+      "date": "Date",
+      "select": "Dropdown",
+      "radio": "Single option",
+      "checkbox": "Multiple checkboxes",
+      "booleancheckbox": "Yes/No"
     },
     "wizard": {
       "fieldHelp": {
@@ -439,7 +457,47 @@
         "optionLabel": "Visible text of the option for the end user.",
         "optionValue": "Internal value stored in HubSpot for the option.",
         "notes": "Internal notes about the mapping. They are not sent to HubSpot."
-      }
+      },
+      "title": "Add property",
+      "editTitle": "Edit property",
+      "name": "Property name",
+      "hubspotMode": "HubSpot property",
+      "existing": "Existing",
+      "new": "New",
+      "selectProperty": "Select the property",
+      "addSource": "Add origin",
+      "origin": "Origin",
+      "sourceField": "Source field",
+      "kind": "Type",
+      "truthy": "True value",
+      "falsy": "False value",
+      "sourceValue": "Source value",
+      "hubspotValue": "HubSpot value",
+      "addOption": "Add option",
+      "notes": "Notes",
+      "cancel": "Cancel",
+      "save": "Save",
+      "sourceObject": "Origin object",
+      "group": "Group",
+      "createGroup": "Create group",
+      "newGroupLabel": "New group name",
+      "searchProperty": "Search property…",
+      "searchOrigin": "Search origin…",
+      "optionsTitle": "Options",
+      "optionLabel": "Label",
+      "optionValue": "Value",
+      "addPropOption": "Add option",
+      "editOptions": "Edit options",
+      "optionsCount": "{{count}} options",
+      "searchOption": "Search option…",
+      "noOptions": "No options",
+      "pasteSourceHint": "One source value per line; the HubSpot value is mapped afterwards.",
+      "editExistingHint": "You can edit the definition; the changes will be applied in HubSpot.",
+      "pasteOptions": "Paste list",
+      "pasteHint": "One value per line (value = label). For \"label + value\", set the separator.",
+      "separator": "Separator (optional)",
+      "bulkList": "List",
+      "bulkApply": "Add to list"
     },
     "advanced": {
       "section": "Advanced options",
@@ -494,7 +552,27 @@
     "deleteOriginTitle": "Delete origin",
     "deleteOriginBody": "This removes the data origin and its mappings. This action cannot be undone. Continue?",
     "applyToastDone": "Change applied in HubSpot.",
-    "applyToastError": "Could not apply the change: {{error}}"
+    "applyToastError": "Could not apply the change: {{error}}",
+    "entry": {
+      "dest": "Target HubSpot property",
+      "sources": "Origins",
+      "noSources": "No origins",
+      "sourceCount": "{{count}} origin(s)"
+    },
+    "newProp": {
+      "hubspotName": "Technical name (HubSpot)",
+      "label": "Label",
+      "type": "Type",
+      "fieldType": "Field type",
+      "group": "Group"
+    },
+    "kinds": {
+      "number": "Number",
+      "text": "Text",
+      "boolean": "Boolean",
+      "enum": "Limited options",
+      "memo": "Memo"
+    }
   },
   "customObjects": {
     "title": "CRM / Custom objects",
@@ -777,5 +855,10 @@
     "configure": "Configure HubSpot",
     "loading": "Loading CRM…",
     "error": "Could not load the CRM status."
+  },
+  "common": {
+    "loading": "Loading…",
+    "retry": "Retry",
+    "loadError": "The information could not be loaded."
   }
 }

@@ -357,7 +357,10 @@
       "formField": "Inprimakietan eta chatbotetan",
       "formFieldOn": "Bai",
       "formFieldOff": "Ez",
-      "formFieldDefault": "HubSpot-en lehenetsia"
+      "formFieldDefault": "HubSpot-en lehenetsia",
+      "applyTitle": "Aplikatu aldaketa HubSpoten",
+      "applyHint": "Ekintza honek HubSpoten idazten du. Aukeratu ingurunea.",
+      "applied": "Aplikatuta"
     },
     "addDialog": {
       "title": "Gehitu propietatea",
@@ -396,7 +399,11 @@
         "type": "Jatorriaren izaera: integrazioa, migrazioa, erabiltzailea edo workflow.",
         "description": "Jatorriaren deskribapena eta zer datu ekartzen dituen.",
         "objectName": "Jatorri honek eragiten dion HubSpot-eko objektua."
-      }
+      },
+      "objects": "Jatorriaren objektuak",
+      "addObject": "Gehitu objektua",
+      "objectName": "Objektuaren izena",
+      "noObjects": "Objekturik gabe"
     },
     "changes": {
       "title": "Propietateak / Aldaketa zain",
@@ -422,7 +429,18 @@
       "save": "Gorde"
     },
     "fieldTypes": {
-      "calculation_equation": "Kalkulua (formula)"
+      "calculation_equation": "Kalkulua (formula)",
+      "text": "Testua",
+      "textarea": "Lerro anitzeko testua",
+      "phonenumber": "Telefonoa",
+      "html": "Testu aberastua",
+      "file": "Fitxategia",
+      "number": "Zenbakia",
+      "date": "Data",
+      "select": "Goitibeherakoa",
+      "radio": "Aukera bakarra",
+      "checkbox": "Kontrol-lauki anitzak",
+      "booleancheckbox": "Bai/Ez"
     },
     "advanced": {
       "section": "Aukera aurreratuak",
@@ -464,7 +482,47 @@
         "optionLabel": "Azken erabiltzailearentzat ikusgai dagoen aukeraren testua.",
         "optionValue": "Aukerarako HubSpot-en gordetzen den barne-balioa.",
         "notes": "Mapatzeari buruzko barne-oharrak. Ez zaizkio HubSpot-i bidaltzen."
-      }
+      },
+      "title": "Gehitu propietatea",
+      "editTitle": "Editatu propietatea",
+      "name": "Propietatearen izena",
+      "hubspotMode": "HubSpot propietatea",
+      "existing": "Lehendik dagoena",
+      "new": "Berria",
+      "selectProperty": "Hautatu propietatea",
+      "addSource": "Gehitu jatorria",
+      "origin": "Jatorria",
+      "sourceField": "Jatorriko eremua",
+      "kind": "Mota",
+      "truthy": "Egiazko balioa",
+      "falsy": "Balio faltsua",
+      "sourceValue": "Jatorriko balioa",
+      "hubspotValue": "HubSpot balioa",
+      "addOption": "Gehitu aukera",
+      "notes": "Oharrak",
+      "cancel": "Utzi",
+      "save": "Gorde",
+      "sourceObject": "Jatorriaren objektua",
+      "group": "Taldea",
+      "createGroup": "Sortu taldea",
+      "newGroupLabel": "Talde berriaren izena",
+      "searchProperty": "Bilatu propietatea…",
+      "searchOrigin": "Bilatu jatorria…",
+      "optionsTitle": "Aukerak",
+      "optionLabel": "Etiketa",
+      "optionValue": "Balioa",
+      "addPropOption": "Gehitu aukera",
+      "editOptions": "Editatu aukerak",
+      "optionsCount": "{{count}} aukera",
+      "searchOption": "Bilatu aukera…",
+      "noOptions": "Aukerarik gabe",
+      "pasteSourceHint": "Jatorriko balio bat lerro bakoitzeko; HubSpot balioa gero mapatzen da.",
+      "editExistingHint": "Definizioa edita dezakezu; aldaketak HubSpoten aplikatuko dira.",
+      "pasteOptions": "Itsatsi zerrenda",
+      "pasteHint": "Balio bat lerro bakoitzeko (balioa = etiketa). «Etiketa + balioa» erabiltzeko, adierazi bereizlea.",
+      "separator": "Bereizlea (aukerakoa)",
+      "bulkList": "Zerrenda",
+      "bulkApply": "Gehitu zerrendara"
     },
     "numberHints": {
       "unformatted": "Formaturik gabe",
@@ -494,7 +552,27 @@
     "deleteOriginTitle": "Ezabatu jatorria",
     "deleteOriginBody": "Datu-jatorria eta haren mapatzeak ezabatuko dira. Ekintza hau ezin da desegin. Jarraitu nahi duzu?",
     "applyToastDone": "Aldaketa HubSpot-en aplikatu da.",
-    "applyToastError": "Ezin izan da aldaketa aplikatu: {{error}}"
+    "applyToastError": "Ezin izan da aldaketa aplikatu: {{error}}",
+    "entry": {
+      "dest": "Helburuko HubSpot propietatea",
+      "sources": "Jatorriak",
+      "noSources": "Jatorririk gabe",
+      "sourceCount": "{{count}} jatorri"
+    },
+    "newProp": {
+      "hubspotName": "Izen teknikoa (HubSpot)",
+      "label": "Etiketa",
+      "type": "Mota",
+      "fieldType": "Eremu mota",
+      "group": "Taldea"
+    },
+    "kinds": {
+      "number": "Zenbakia",
+      "text": "Testua",
+      "boolean": "Boolearra",
+      "enum": "Aukera mugatuak",
+      "memo": "Memoa"
+    }
   },
   "customObjects": {
     "title": "CRM / Objektu pertsonalizatuak",
@@ -777,5 +855,10 @@
     "configure": "Konfiguratu HubSpot",
     "loading": "CRM kargatzen…",
     "error": "Ezin izan da CRMaren egoera kargatu."
+  },
+  "common": {
+    "loading": "Kargatzen…",
+    "retry": "Saiatu berriro",
+    "loadError": "Ezin izan da informazioa kargatu."
   }
 }

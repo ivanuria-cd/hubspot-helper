@@ -24,7 +24,9 @@
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:e2e": "playwright test",
-    "test": "npm run test:unit && npm run test:e2e"
+    "test": "npm run test:unit && npm run test:e2e",
+    "check:locales": "node scripts/check-locale-parity.mjs",
+    "check:tutoriales": "node scripts/check-tutorial-parity.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.13.3",

@@ -25,7 +25,7 @@ import { GoogleCredentialsCard } from './GoogleCredentialsCard';
 import { FolderPickerDialog } from './FolderPickerDialog';
 
 export function GoogleDriveConnectorScreen(): JSX.Element | null {
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
   const { notify } = useSnackbar();
   const activeProject = useShellStore((state) => state.activeProject);
   const projectId = activeProject?.id ?? '';
@@ -147,7 +147,13 @@ export function GoogleDriveConnectorScreen(): JSX.Element | null {
               <Stack direction="row" spacing={2} alignItems="center">
                 <Typography color="text.primary">
                   {status.lastSyncAt
-                    ? t('gdrive.lastSync', { date: new Date(status.lastSyncAt).toLocaleString() })
+                    // SPEC-0000 §3: la fecha se formatea con el idioma activo, no con el del SO.
+                    ? t('gdrive.lastSync', {
+                        date: new Intl.DateTimeFormat(i18n.language, {
+                          dateStyle: 'short',
+                          timeStyle: 'short',
+                        }).format(new Date(status.lastSyncAt)),
+                      })
                     : t('gdrive.neverSynced')}
                 </Typography>
                 <BusyButton

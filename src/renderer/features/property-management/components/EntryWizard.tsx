@@ -465,7 +465,7 @@ export function EntryWizard({
       <DialogTitle>{t(entry ? 'properties.wizard.editTitle' : 'properties.wizard.title')}</DialogTitle>
       <DialogContent>
         {metaLoading ? (
-          <LinearProgress aria-label={t('common.loading', { defaultValue: 'Cargando…' })} sx={{ mb: 2 }} />
+          <LinearProgress aria-label={t('common.loading')} sx={{ mb: 2 }} />
         ) : null}
         <Stack spacing={2} sx={{ mt: 1 }}>
           <TextField

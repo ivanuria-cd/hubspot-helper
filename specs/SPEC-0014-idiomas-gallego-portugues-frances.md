@@ -169,3 +169,36 @@ node scripts\check-tutorial-parity.mjs
 - [x] SPEC-0000 §3/§10 y SPEC-0009 enmendados; SPEC-0014 en las tablas de `CLAUDE.md`.
 - [ ] `typecheck`, `test:unit`, `test:e2e` en verde (pendiente en máquina).
 - [ ] PR creada (comandos entregados, no ejecutados).
+
+## 12. Paridad de `common.json` y cierre del gap ca/eu/en (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgos 6.1–6.3.
+
+### 12.1 76 claves ausentes en `ca`/`eu`/`en` (§6.1)
+
+`ca`/`eu`/`en` tenían 76 claves menos que `es` (75 reales + `_fallbackProbe`, que es intencional solo-es):
+`common.loading/retry/loadError` y los bloques `properties.wizard.*`, `properties.newProp.*`,
+`properties.kinds.*`, `properties.fieldTypes.*`, `properties.entry.*`, `properties.panel.applyTitle/Hint/applied`
+y `properties.originsModal.*`. El EntryWizard y media pantalla de Propiedades caían a castellano en silencio.
+Traducidas las 75 claves × 3 idiomas (los otros 3 ya estaban a paridad). Paridad verificada: 704 claves en los
+6 locales contra 705 de `es` (la sonda).
+
+### 12.2 Script de paridad de locales
+
+`scripts/check-locale-parity.mjs` (nuevo): compara las claves aplanadas de cada `common.json` contra `es`
+(canónico; `_fallbackProbe` exento) y sale con código 1 si hay faltantes o sobrantes. Scripts npm nuevos:
+`check:locales` y `check:tutoriales` (este último cablea el script de SPEC-0014 §7 que no tenía entrada en
+`package.json`).
+
+### 12.3 Textos y formatos hardcodeados (§6.2, §6.3)
+
+- Eliminado `defaultValue: 'Cargando…'` en `EntryWizard` y en el compartido `LoadingState` (enmascaraba la
+  ausencia de `common.loading`, ahora presente en los 7 locales).
+- `GoogleDriveConnectorScreen`: la fecha de `gdrive.lastSync` se formatea con
+  `Intl.DateTimeFormat(i18n.language)` (antes `toLocaleString()` con el idioma del SO), conforme a SPEC-0000 §3.
+
+### 12.4 Estado
+
+IMPLEMENTADO (2026-07-02). `check:locales` en verde en sandbox (6/6 a paridad); originales verificados sanos vía
+lectura directa (acentos correctos). Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+Revisión lingüística humana de `eu`/`ca` recomendada.

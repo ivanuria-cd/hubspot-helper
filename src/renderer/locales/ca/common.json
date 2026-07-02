@@ -357,7 +357,10 @@
       "formField": "En formularis i chatbots",
       "formFieldOn": "Sí",
       "formFieldOff": "No",
-      "formFieldDefault": "Per defecte de HubSpot"
+      "formFieldDefault": "Per defecte de HubSpot",
+      "applyTitle": "Aplicar canvi a HubSpot",
+      "applyHint": "Aquesta acció escriu a HubSpot. Tria l'entorn.",
+      "applied": "Aplicat"
     },
     "addDialog": {
       "title": "Afegeix propietat",
@@ -396,7 +399,11 @@
         "type": "Naturalesa de l'origen: integració, migració, usuari o workflow.",
         "description": "Descripció de l'origen i de quines dades aporta.",
         "objectName": "Objecte de HubSpot al qual afecta aquest origen."
-      }
+      },
+      "objects": "Objectes de l'origen",
+      "addObject": "Afegir objecte",
+      "objectName": "Nom de l'objecte",
+      "noObjects": "Sense objectes"
     },
     "changes": {
       "title": "Propietats / Canvis pendents",
@@ -436,10 +443,61 @@
         "optionLabel": "Text visible de l'opció per a l'usuari final.",
         "optionValue": "Valor intern emmagatzemat a HubSpot per a l'opció.",
         "notes": "Anotacions internes sobre el mapatge. No s'envien a HubSpot."
-      }
+      },
+      "title": "Afegir propietat",
+      "editTitle": "Editar propietat",
+      "name": "Nom de la propietat",
+      "hubspotMode": "Propietat de HubSpot",
+      "existing": "Existent",
+      "new": "Nova",
+      "selectProperty": "Selecciona la propietat",
+      "addSource": "Afegir origen",
+      "origin": "Origen",
+      "sourceField": "Camp origen",
+      "kind": "Tipus",
+      "truthy": "Valor verdader",
+      "falsy": "Valor fals",
+      "sourceValue": "Valor origen",
+      "hubspotValue": "Valor HubSpot",
+      "addOption": "Afegir opció",
+      "notes": "Notes",
+      "cancel": "Cancel·lar",
+      "save": "Desar",
+      "sourceObject": "Objecte de l'origen",
+      "group": "Grup",
+      "createGroup": "Crear grup",
+      "newGroupLabel": "Nom del grup nou",
+      "searchProperty": "Cercar propietat…",
+      "searchOrigin": "Cercar origen…",
+      "optionsTitle": "Opcions",
+      "optionLabel": "Etiqueta",
+      "optionValue": "Valor",
+      "addPropOption": "Afegir opció",
+      "editOptions": "Editar opcions",
+      "optionsCount": "{{count}} opcions",
+      "searchOption": "Cercar opció…",
+      "noOptions": "Sense opcions",
+      "pasteSourceHint": "Un valor d'origen per línia; el valor HubSpot es mapa després.",
+      "editExistingHint": "Pots editar la definició; els canvis s'aplicaran a HubSpot.",
+      "pasteOptions": "Enganxar llistat",
+      "pasteHint": "Un valor per línia (valor = etiqueta). Per a «etiqueta + valor», indica el separador.",
+      "separator": "Separador (opcional)",
+      "bulkList": "Llistat",
+      "bulkApply": "Afegir al llistat"
     },
     "fieldTypes": {
-      "calculation_equation": "Càlcul (fórmula)"
+      "calculation_equation": "Càlcul (fórmula)",
+      "text": "Text",
+      "textarea": "Text multilínia",
+      "phonenumber": "Telèfon",
+      "html": "Text enriquit",
+      "file": "Fitxer",
+      "number": "Nombre",
+      "date": "Data",
+      "select": "Desplegable",
+      "radio": "Opció única",
+      "checkbox": "Caselles múltiples",
+      "booleancheckbox": "Sí/No"
     },
     "advanced": {
       "section": "Opcions avançades",
@@ -494,7 +552,27 @@
     "deleteOriginTitle": "Elimina l'origen",
     "deleteOriginBody": "S'eliminarà l'origen de dades i els seus mapatges. Aquesta acció no es pot desfer. Vols continuar?",
     "applyToastDone": "Canvi aplicat a HubSpot.",
-    "applyToastError": "No s'ha pogut aplicar el canvi: {{error}}"
+    "applyToastError": "No s'ha pogut aplicar el canvi: {{error}}",
+    "entry": {
+      "dest": "Propietat HubSpot destí",
+      "sources": "Orígens",
+      "noSources": "Sense orígens",
+      "sourceCount": "{{count}} origen(s)"
+    },
+    "newProp": {
+      "hubspotName": "Nom tècnic (HubSpot)",
+      "label": "Etiqueta",
+      "type": "Tipus",
+      "fieldType": "Tipus de camp",
+      "group": "Grup"
+    },
+    "kinds": {
+      "number": "Nombre",
+      "text": "Text",
+      "boolean": "Booleà",
+      "enum": "Opcions limitades",
+      "memo": "Memo"
+    }
   },
   "customObjects": {
     "title": "CRM / Objectes personalitzats",
@@ -777,5 +855,10 @@
     "configure": "Configura HubSpot",
     "loading": "Carregant el CRM…",
     "error": "No s'ha pogut carregar l'estat del CRM."
+  },
+  "common": {
+    "loading": "Carregant…",
+    "retry": "Torna-ho a intentar",
+    "loadError": "No s'ha pogut carregar la informació."
   }
 }

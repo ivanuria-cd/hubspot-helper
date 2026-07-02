@@ -24,7 +24,7 @@ const visuallyHidden = {
  */
 export function LoadingState({ variant = 'text', rows = 3, label }: LoadingStateProps): JSX.Element {
   const { t } = useTranslation('common');
-  const text = label ?? t('common.loading', { defaultValue: 'Cargando…' });
+  const text = label ?? t('common.loading');
 
   const body = (): JSX.Element => {
     switch (variant) {
