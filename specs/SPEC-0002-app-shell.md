@@ -761,3 +761,30 @@ la pantalla afectada y **mantiene el layout** (sidebar/topbar) en lugar de tumba
 Complementa, no sustituye, las defensas de datos (SPEC-0006 §39: validación en `entries_upsert` + `destName`
 defensivo). i18n añadido en `es`/`ca`/`eu`/`en`/`gl`/`pt`/`fr`. typecheck/test/e2e en la máquina del usuario — el
 espejo del sandbox trunca los ficheros editados; originales verificados sanos.
+
+---
+
+## 21. Marca de la app en el renderer: favicon e icono junto al nombre (IMPLEMENTADO, 2026-07-02)
+
+Complementa el icono de aplicación de SPEC-0001 §11 con la presencia de marca en la interfaz:
+
+- **Favicon**: `src/renderer/public/favicon-32.png` + `<link rel="icon" type="image/png" href="/favicon-32.png" />`
+  en `src/renderer/index.html` (servido desde el `publicDir` del renderer). Compatible con la CSP (`img-src 'self'`).
+- **Icono junto al nombre de la app**: `src/renderer/shared/assets/revopshelper-icon.svg` (icono completo, anillas
+  blancas + punto lima sobre azulejo tinta) junto al título `welcome.title` en `WelcomeScreen`, dentro de un `Stack`
+  horizontal (`img` decorativa `alt=""`/`aria-hidden`, 56×56). Se usa el icono completo —no el `mark.svg` de trazo
+  oscuro— porque el hero es fondo oscuro (`cdPalette.bgDark`) y las anillas blancas del icono sí contrastan.
+
+- **Retirada del logo de Cloud District del hero**: se elimina el `img` de `cloud-district-logo.svg` (y su import); el
+  `LanguageSwitcher` queda alineado a la derecha (`justifyContent="flex-end"`). El asset `cloud-district-logo.svg` se
+  conserva por si se reutiliza.
+- **Ajuste del hero**: se reduce la banda oscura y se sube el título — `py` del `section` a `{ xs: 2.5, md: 3.5 }`
+  (antes `{ xs: 6, md: 10 }`) y `mb` de la fila del selector de idioma a `{ xs: 1.5, md: 2 }`; separación icono↔título
+  `spacing={1.5}`.
+
+Fuera de alcance: no se toca el `TopBar` (no muestra un rótulo fijo de nombre de app, solo breadcrumbs/proyecto).
+
+Verificación: ficheros reales sanos (Read directo); `tsc` del renderer en verde en sandbox con el cambio de tipo
+(`configured` de SPEC-0004 §23) — el espejo del sandbox trunca/corrompe de forma intermitente los `.ts` con no-ASCII
+al editarlos (originales completos y balanceados verificados vía lectura directa); typecheck final en la máquina del
+usuario. Requiere **rebuild de la app**.

@@ -5,7 +5,7 @@ import FileUploadOutlinedIcon from '@mui/icons-material/FileUploadOutlined';
 import { useTranslation } from 'react-i18next';
 import { cdPalette } from '@renderer/theme';
 import { LanguageSwitcher } from '@shared/components/LanguageSwitcher';
-import cloudDistrictLogo from '@shared/assets/cloud-district-logo.svg';
+import revopsIcon from '@shared/assets/revopshelper-icon.svg';
 import type { NewProjectInput, Project } from '@shared/types/project';
 import { ProjectCard } from './ProjectCard';
 import { NewProjectDialog } from './NewProjectDialog';
@@ -45,23 +45,26 @@ export function WelcomeScreen({
         sx={{
           backgroundColor: cdPalette.bgDark,
           color: cdPalette.textOnDark,
-          py: { xs: 6, md: 10 },
+          py: { xs: 2.5, md: 3.5 },
         }}
       >
         <Container maxWidth="md">
-          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
-            <Box
-              component="img"
-              src={cloudDistrictLogo}
-              alt="Cloud District"
-              sx={{ height: 48, display: 'block', mb: { xs: 4, md: 5 } }}
-            />
+          <Stack direction="row" justifyContent="flex-end" sx={{ mb: { xs: 1.5, md: 2 } }}>
             <LanguageSwitcher onDark />
           </Stack>
           <Box>
-            <Typography variant="h1" component="h1">
-              {t('welcome.title')}
-            </Typography>
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Box
+                component="img"
+                src={revopsIcon}
+                alt=""
+                aria-hidden
+                sx={{ height: 56, width: 56, display: 'block' }}
+              />
+              <Typography variant="h1" component="h1">
+                {t('welcome.title')}
+              </Typography>
+            </Stack>
             <Typography
               variant="h5"
               component="p"

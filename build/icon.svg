@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="115" fill="#090017"></rect>
+  <mask id="cut"><rect width="512" height="512" fill="#FFFFFF"></rect><circle cx="214" cy="214" r="36" fill="#000000"></circle></mask>
+  <circle cx="214" cy="298" r="84" fill="none" stroke="#FFFFFF" stroke-width="28"></circle>
+  <circle cx="298" cy="214" r="84" fill="none" stroke="#FFFFFF" stroke-width="28" mask="url(#cut)"></circle>
+  <circle cx="298" cy="298" r="16" fill="#AFFC41"></circle>
+</svg>

@@ -11,6 +11,7 @@ export function createMainWindow(): BrowserWindow {
     minHeight: 640,
     show: false,
     backgroundColor: '#090017',
+    icon: join(__dirname, '../../build/icon.png'),
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

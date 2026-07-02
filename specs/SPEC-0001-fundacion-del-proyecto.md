@@ -230,3 +230,19 @@ Desviaciones respecto al SPEC, justificadas:
 |-------|-----------|-------------|
 | `settings:get-language` | renderer → main | Idioma persistido (electron-store) |
 | `settings:set-language` | renderer → main | Persiste el idioma elegido |
+
+## 11. Icono de la aplicación (IMPLEMENTADO, 2026-07-02)
+
+Se incorpora el icono de marca de RevOpsHelper (enlace diagonal Cloud District), sustituyendo el icono por defecto
+de Electron:
+
+- `build/` en la raíz: `icon.ico` (Windows/nsis), `icon.icns` (macOS/dmg), `icon.png` 1024×1024 (Linux/AppImage y
+  respaldo) e `icon.svg` (fuente maestra vectorial). `electron-builder.yml` ya usa `buildResources: build`, así que
+  los toma automáticamente; no se toca la config.
+- `src/main/window.ts`: `BrowserWindow` recibe `icon: join(__dirname, '../../build/icon.png')` para la ventana en
+  desarrollo.
+- Favicon y marca en el renderer: ver SPEC-0002 §21.
+
+Verificación: ficheros reales sanos (Read directo); el typecheck en sandbox no valida los `.ts` editados por la
+truncación del espejo (patrón conocido) → typecheck en la máquina del usuario. Requiere **rebuild/repackage** para el
+instalador.
