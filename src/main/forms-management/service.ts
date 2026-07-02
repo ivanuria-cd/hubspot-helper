@@ -29,6 +29,7 @@ import type { DataOrigin, PropertyEntry } from '@shared/types/properties';
 import type { DriveDocMeta } from '@shared/types/gdrive';
 import type { SubscriptionType } from '@shared/types/forms';
 import type { FormsApi } from '../connectors/hubspot/forms';
+import { hubspotErrorMessage as sharedHubspotErrorMessage } from '../connectors/hubspot/errors';
 import type { SubscriptionsApi } from '../connectors/hubspot/subscriptions';
 import type { FormsStore } from './store';
 import type { FormsDriveState } from './drive-state';
@@ -56,17 +57,10 @@ export interface FormServiceDeps {
   now: () => string;
 }
 
-/** Extrae el mensaje útil del cuerpo de error 4xx de HubSpot. */
+// Versión compartida en el conector (SPEC-0003 §19): añade el mapeo 401/403/429/409/400
+// del que esta feature carecía.
 function hubspotErrorMessage(error: unknown): string {
-  const e = error as {
-    response?: { data?: { message?: string; errors?: Array<{ message?: string }> } };
-    message?: string;
-  };
-  const data = e?.response?.data;
-  if (data?.message) return data.message;
-  const detail = (data?.errors ?? []).map((x) => x.message).filter(Boolean).join('; ');
-  if (detail) return detail;
-  return e?.message ?? 'Error en HubSpot';
+  return sharedHubspotErrorMessage(error, 'El formulario');
 }
 
 export function createFormService(deps: FormServiceDeps) {

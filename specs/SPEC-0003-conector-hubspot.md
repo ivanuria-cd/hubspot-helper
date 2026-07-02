@@ -367,3 +367,15 @@ limit de HubSpot y se ignoraba la cabecera `Retry-After`.
 ### 18.4 Estado
 
 IMPLEMENTADO (2026-07-02). Requiere rebuild de la app/MCP; typecheck/test en la máquina del usuario.
+
+## 19. `hubspotErrorMessage` compartida en el conector (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgo 4.2. La función estaba triplicada: versión rica en
+propiedades (mapeo 401/403/429/409/400, SPEC-0006 §39.9) y versiones pobres (solo body) en formularios y
+objetos custom, que daban mensajes peores para los mismos errores.
+
+Nueva `connectors/hubspot/errors.ts`: `hubspotErrorMessage(error, subject?)` — la versión rica, con el sujeto
+del conflicto 409 parametrizado (`'La propiedad'`/`'El formulario'`/`'El objeto'`; por defecto `'El recurso'`).
+Los tres servicios delegan en ella con su sujeto; formularios y objetos custom ganan el mapeo de status que no
+tenían. Test `errors.spec.ts` (3 casos). Sin cambios de API. Requiere rebuild de la app/MCP; typecheck/test en
+la máquina del usuario.

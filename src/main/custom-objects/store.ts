@@ -6,6 +6,7 @@
  */
 import Store from 'electron-store';
 import type { CustomObjectDefinition } from '@shared/types/custom-objects';
+import { createProjectRecord } from '../shared/project-record';
 
 export interface CustomObjectState {
   definitions: CustomObjectDefinition[];
@@ -35,22 +36,22 @@ export class ElectronCustomObjectStore implements CustomObjectStore {
     name: 'custom-objects',
     defaults: { states: {}, timestamps: {} },
   });
+  private readonly states = createProjectRecord<Partial<CustomObjectState>>(this.store, 'states');
+  private readonly timestamps = createProjectRecord<Partial<CustomObjectsDriveTimestamps>>(
+    this.store,
+    'timestamps',
+  );
 
   get(projectId: string): CustomObjectState {
-    const stored = this.store.get('states', {})[projectId] as Partial<CustomObjectState> | undefined;
-    return { definitions: stored?.definitions ?? [] };
+    return { definitions: this.states.get(projectId)?.definitions ?? [] };
   }
 
   set(projectId: string, state: CustomObjectState): void {
-    const all = this.store.get('states', {});
-    all[projectId] = state;
-    this.store.set('states', all);
+    this.states.set(projectId, state);
   }
 
   getTimestamps(projectId: string): CustomObjectsDriveTimestamps {
-    const stored = this.store.get('timestamps', {})[projectId] as
-      | Partial<CustomObjectsDriveTimestamps>
-      | undefined;
+    const stored = this.timestamps.get(projectId);
     return {
       lastWrittenAt: stored?.lastWrittenAt ?? null,
       lastChangedAt: stored?.lastChangedAt ?? null,
@@ -58,9 +59,7 @@ export class ElectronCustomObjectStore implements CustomObjectStore {
   }
 
   setTimestamps(projectId: string, timestamps: CustomObjectsDriveTimestamps): void {
-    const all = this.store.get('timestamps', {});
-    all[projectId] = timestamps;
-    this.store.set('timestamps', all);
+    this.timestamps.set(projectId, timestamps);
   }
 }
 

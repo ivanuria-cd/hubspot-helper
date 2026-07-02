@@ -5,6 +5,7 @@
  */
 import Store from 'electron-store';
 import type { DataOrigin, GroupDeleteChange, PropertyEntry } from '@shared/types/properties';
+import { createProjectRecord } from '../shared/project-record';
 
 export interface PropertyState {
   origins: DataOrigin[];
@@ -37,10 +38,15 @@ export class ElectronPropertyStore implements PropertyStore {
     name: 'properties',
     defaults: { states: {}, timestamps: {} },
   });
+  private readonly states = createProjectRecord<Partial<PropertyState>>(this.store, 'states');
+  private readonly timestamps = createProjectRecord<Partial<PropertyDriveTimestamps>>(
+    this.store,
+    'timestamps',
+  );
 
   get(projectId: string): PropertyState {
     // Coalesce por campo: descarta estado v1 (properties/mappings) y garantiza arrays.
-    const stored = this.store.get('states', {})[projectId] as Partial<PropertyState> | undefined;
+    const stored = this.states.get(projectId);
     return {
       origins: stored?.origins ?? [],
       entries: stored?.entries ?? [],
@@ -49,15 +55,11 @@ export class ElectronPropertyStore implements PropertyStore {
   }
 
   set(projectId: string, state: PropertyState): void {
-    const all = this.store.get('states', {});
-    all[projectId] = state;
-    this.store.set('states', all);
+    this.states.set(projectId, state);
   }
 
   getTimestamps(projectId: string): PropertyDriveTimestamps {
-    const stored = this.store.get('timestamps', {})[projectId] as
-      | Partial<PropertyDriveTimestamps>
-      | undefined;
+    const stored = this.timestamps.get(projectId);
     return {
       lastWrittenAt: stored?.lastWrittenAt ?? null,
       lastChangedAt: stored?.lastChangedAt ?? null,
@@ -65,9 +67,7 @@ export class ElectronPropertyStore implements PropertyStore {
   }
 
   setTimestamps(projectId: string, timestamps: PropertyDriveTimestamps): void {
-    const all = this.store.get('timestamps', {});
-    all[projectId] = timestamps;
-    this.store.set('timestamps', all);
+    this.timestamps.set(projectId, timestamps);
   }
 }
 

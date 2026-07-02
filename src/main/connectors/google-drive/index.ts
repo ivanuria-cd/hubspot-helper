@@ -29,6 +29,7 @@ import {
   type OAuthHttpClient,
   type TokenSet,
 } from './auth';
+import { createProjectRecord } from '../../shared/project-record';
 import { createDriveClient, type DriveApi, type DriveClient } from './client';
 import { retried } from './retry';
 import {
@@ -57,25 +58,21 @@ interface GoogleDriveConfigSchema {
 }
 
 class ElectronGoogleDriveConfigStore implements GoogleDriveConfigStore {
-  private readonly store = new Store<GoogleDriveConfigSchema>({
-    name: 'gdrive',
-    defaults: { configs: {} },
-  });
+  private readonly record = createProjectRecord<GoogleDriveConfig>(
+    new Store<GoogleDriveConfigSchema>({ name: 'gdrive', defaults: { configs: {} } }),
+    'configs',
+  );
 
   get(projectId: string): GoogleDriveConfig | null {
-    return this.store.get('configs', {})[projectId] ?? null;
+    return this.record.get(projectId) ?? null;
   }
 
   set(projectId: string, config: GoogleDriveConfig): void {
-    const all = this.store.get('configs', {});
-    all[projectId] = config;
-    this.store.set('configs', all);
+    this.record.set(projectId, config);
   }
 
   delete(projectId: string): void {
-    const all = this.store.get('configs', {});
-    delete all[projectId];
-    this.store.set('configs', all);
+    this.record.delete(projectId);
   }
 }
 

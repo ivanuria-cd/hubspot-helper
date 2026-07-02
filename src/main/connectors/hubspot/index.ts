@@ -9,6 +9,7 @@ import type {
   HubSpotSaveTokenInput,
   HubSpotSaveTokenResult,
 } from '@shared/types/hubspot';
+import { createProjectRecord } from '../../shared/project-record';
 import { createHubSpotClient } from './client';
 import { createRateLimiter } from './rate-limiter';
 import { createKeytarTokenStore, hashToken, type TokenStore } from './token-store';
@@ -27,25 +28,21 @@ interface HubSpotConfigSchema {
 }
 
 class ElectronHubSpotConfigStore implements HubSpotConfigStore {
-  private readonly store = new Store<HubSpotConfigSchema>({
-    name: 'hubspot',
-    defaults: { configs: {} },
-  });
+  private readonly record = createProjectRecord<HubSpotConfig>(
+    new Store<HubSpotConfigSchema>({ name: 'hubspot', defaults: { configs: {} } }),
+    'configs',
+  );
 
   get(projectId: string): HubSpotConfig | null {
-    return this.store.get('configs', {})[projectId] ?? null;
+    return this.record.get(projectId) ?? null;
   }
 
   set(projectId: string, config: HubSpotConfig): void {
-    const all = this.store.get('configs', {});
-    all[projectId] = config;
-    this.store.set('configs', all);
+    this.record.set(projectId, config);
   }
 
   delete(projectId: string): void {
-    const all = this.store.get('configs', {});
-    delete all[projectId];
-    this.store.set('configs', all);
+    this.record.delete(projectId);
   }
 }
 

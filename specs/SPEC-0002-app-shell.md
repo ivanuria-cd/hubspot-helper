@@ -814,3 +814,41 @@ En `src/main/window.ts`:
 
 IMPLEMENTADO (2026-07-02). Sin cambios de UI ni i18n. Requiere rebuild de la app; typecheck/test en la máquina del
 usuario.
+
+## 23. Modularización del wiring del proceso main (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgos 4.1 y 4.3. Refactor estructural sin cambio de
+comportamiento: los canales IPC, sus payloads y su semántica no cambian.
+
+### 23.1 Handlers IPC por feature (§4.1)
+
+`registerIpcHandlers` (~515 líneas en `src/main/index.ts`) mezclaba wiring de servicios, registro de secciones,
+helpers de Sheets y 90+ handlers. Nueva estructura:
+
+- `src/main/ipc/app-settings.ts` — versión de app, updater, idioma.
+- `src/main/ipc/projects.ts` — CRUD de proyectos + export/import `.rvproj` (incluye `readProjectFile` de
+  SPEC-0013 §12); notifica el proyecto activo vía callback `onActiveProjectChanged`.
+- `src/main/ipc/hubspot.ts` — conector HubSpot (incluye la allowlist de SPEC-0003 §17).
+- `src/main/ipc/gdrive.ts` — conector Drive + `gdrive:refresh-project`.
+- `src/main/ipc/mcp.ts` — estado/toggle/token/tools del servidor MCP.
+- `src/main/ipc/properties.ts`, `ipc/custom-objects.ts`, `ipc/forms.ts` — features CRM, incluidos
+  write/load-sheets y drive-meta.
+- `src/main/drive-docs.ts` — `createDriveDocs({gdrive, properties, customObjects, forms})`: los tres
+  `write*Sheets` (par Sheets+estado atómico, SPEC-0004 §21), `managedSpreadsheetId` y `buildRefreshFeatures`
+  (SPEC-0004 §19).
+
+`index.ts` queda como wiring: crea servicios, registra tools MCP y secciones del `.rvproj`, construye
+`driveDocs` y llama a los `register*Ipc` por feature (~160 líneas).
+
+### 23.2 Helper genérico de stores por proyecto (§4.3)
+
+`src/main/shared/project-record.ts`: `createProjectRecord<T>(backend, key)` encapsula el patrón
+`Record<projectId, T>` get/set/delete repetido en cinco stores. Adoptado por `ElectronHubSpotConfigStore`,
+`ElectronGoogleDriveConfigStore`, `ElectronPropertyStore`, `ElectronFormsStore` y `ElectronCustomObjectStore`
+(estos tres últimos con dos records: `states` y `timestamps`). Los nombres de fichero y las claves de
+electron-store no cambian: la persistencia existente sigue siendo compatible. Test `project-record.spec.ts`
+(3 casos).
+
+### 23.3 Estado
+
+IMPLEMENTADO (2026-07-02). Requiere rebuild de la app; typecheck/suite completa en la máquina del usuario.

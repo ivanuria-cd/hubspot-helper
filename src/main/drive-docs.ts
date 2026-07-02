@@ -1,0 +1,178 @@
+/**
+ * Escritura de los documentos companion de Drive por feature (SPEC-0004 §21: par Sheets+estado
+ * atómico) y features de refresco (SPEC-0004 §19). Extraído de `index.ts` (SPEC-0002 §23).
+ */
+import type { GoogleDriveConnector } from './connectors/google-drive';
+import type { PropertyService } from './property-management/service';
+import type { CustomObjectService } from './custom-objects/service';
+import type { FormService } from './forms-management/service';
+import type { DriveDocMeta } from '@shared/types/gdrive';
+import type { RefreshFeature } from './drive-refresh';
+import {
+  buildPropertyMapTabs,
+  PROPERTY_MAP_FEATURE_KEY,
+  SHEETS_SCHEMA_VERSION,
+} from './property-management/sheets-model';
+import {
+  PROPERTY_STATE_FEATURE_KEY,
+  serializePropertyState,
+} from './property-management/drive-state';
+import {
+  buildCustomObjectsTabs,
+  CUSTOM_OBJECTS_FEATURE_KEY,
+  CUSTOM_OBJECTS_SHEETS_SCHEMA_VERSION,
+} from './custom-objects/sheets-model';
+import {
+  CUSTOM_OBJECTS_STATE_FEATURE_KEY,
+  serializeCustomObjectsState,
+} from './custom-objects/drive-state';
+import {
+  buildFormsTabs,
+  FORMS_FEATURE_KEY,
+  FORMS_SHEETS_SCHEMA_VERSION,
+} from './forms-management/sheets-model';
+import { FORMS_STATE_FEATURE_KEY, serializeFormsState } from './forms-management/drive-state';
+
+export interface DriveDocsDeps {
+  gdrive: GoogleDriveConnector;
+  properties: PropertyService;
+  customObjects: CustomObjectService;
+  forms: FormService;
+}
+
+export function createDriveDocs(deps: DriveDocsDeps) {
+  const { gdrive, properties, customObjects, forms } = deps;
+
+  function managedSpreadsheetId(projectId: string, featureKey: string): string | null {
+    const config = gdrive.getStatus(projectId);
+    const file = (config?.files ?? []).find((f) => f.featureKey === featureKey);
+    return file?.driveId ?? null;
+  }
+
+  const isDriveDocStale = (meta: DriveDocMeta, fileId: string | null): boolean =>
+    fileId === null ||
+    meta.lastWrittenAt === null ||
+    (meta.lastChangedAt !== null && meta.lastChangedAt > meta.lastWrittenAt);
+
+  async function writePropertiesSheets(projectId: string) {
+    const entries = properties.listEntries({ projectId });
+    const origins = properties.listOrigins({ projectId });
+    const tabs = buildPropertyMapTabs(entries, origins, new Date().toISOString());
+    const result = await gdrive.writeSpreadsheet({
+      projectId,
+      name: 'Mapa de propiedades CRM',
+      featureKey: PROPERTY_MAP_FEATURE_KEY,
+      schemaVersion: SHEETS_SCHEMA_VERSION,
+      tabs,
+    });
+    if (result.success) {
+      // SPEC-0004 §21: la escritura del par Sheets+estado es atómica para el usuario. Si el documento
+      // de estado no se escribe, no se marca como «al día» y se propaga el error.
+      const stateWrite = await gdrive.writeFile({
+        projectId,
+        featureKey: PROPERTY_STATE_FEATURE_KEY,
+        content: serializePropertyState({ entries, origins }),
+      });
+      if (!stateWrite.success) {
+        return { success: false, error: stateWrite.error ?? 'No se pudo escribir el documento de estado en Drive.' };
+      }
+      properties.markDriveWritten({ projectId });
+    }
+    return result;
+  }
+
+  async function writeCustomObjectsSheets(projectId: string) {
+    const objects = customObjects.listDefinitions({ projectId });
+    const tabs = buildCustomObjectsTabs(objects, new Date().toISOString());
+    const result = await gdrive.writeSpreadsheet({
+      projectId,
+      name: 'Objetos custom',
+      featureKey: CUSTOM_OBJECTS_FEATURE_KEY,
+      schemaVersion: CUSTOM_OBJECTS_SHEETS_SCHEMA_VERSION,
+      tabs,
+    });
+    if (result.success) {
+      // SPEC-0004 §21: escritura atómica del par Sheets+estado (ver writePropertiesSheets).
+      const stateWrite = await gdrive.writeFile({
+        projectId,
+        featureKey: CUSTOM_OBJECTS_STATE_FEATURE_KEY,
+        content: serializeCustomObjectsState({ objects }),
+      });
+      if (!stateWrite.success) {
+        return { success: false, error: stateWrite.error ?? 'No se pudo escribir el documento de estado en Drive.' };
+      }
+      customObjects.markDriveWritten({ projectId });
+    }
+    return result;
+  }
+
+  async function writeFormsSheets(projectId: string) {
+    const formsList = forms.listForms({ projectId });
+    const links = forms.listLinks({ projectId });
+    const reports = formsList.flatMap((form) => forms.coverage({ projectId, formId: form.id }));
+    const tabs = buildFormsTabs(
+      formsList,
+      links,
+      reports,
+      properties.listOrigins({ projectId }),
+      new Date().toISOString(),
+    );
+    const result = await gdrive.writeSpreadsheet({
+      projectId,
+      name: 'Formularios HubSpot',
+      featureKey: FORMS_FEATURE_KEY,
+      schemaVersion: FORMS_SHEETS_SCHEMA_VERSION,
+      tabs,
+    });
+    if (result.success) {
+      // SPEC-0004 §21: escritura atómica del par Sheets+estado (ver writePropertiesSheets).
+      const stateWrite = await gdrive.writeFile({
+        projectId,
+        featureKey: FORMS_STATE_FEATURE_KEY,
+        content: serializeFormsState({ forms: formsList, links }),
+      });
+      if (!stateWrite.success) {
+        return { success: false, error: stateWrite.error ?? 'No se pudo escribir el documento de estado en Drive.' };
+      }
+      forms.markDriveWritten({ projectId });
+    }
+    return result;
+  }
+
+  const buildRefreshFeatures = (projectId: string): RefreshFeature[] => [
+    {
+      featureKey: PROPERTY_MAP_FEATURE_KEY,
+      name: 'Mapa de propiedades CRM',
+      hasData: () => properties.listEntries({ projectId }).length > 0,
+      isStale: () =>
+        isDriveDocStale(properties.getDriveMeta({ projectId }), managedSpreadsheetId(projectId, PROPERTY_MAP_FEATURE_KEY)),
+      write: () => writePropertiesSheets(projectId),
+    },
+    {
+      featureKey: CUSTOM_OBJECTS_FEATURE_KEY,
+      name: 'Objetos custom',
+      hasData: () => customObjects.listDefinitions({ projectId }).length > 0,
+      isStale: () =>
+        isDriveDocStale(customObjects.getDriveMeta({ projectId }), managedSpreadsheetId(projectId, CUSTOM_OBJECTS_FEATURE_KEY)),
+      write: () => writeCustomObjectsSheets(projectId),
+    },
+    {
+      featureKey: FORMS_FEATURE_KEY,
+      name: 'Formularios HubSpot',
+      hasData: () => forms.listForms({ projectId }).length > 0,
+      isStale: () =>
+        isDriveDocStale(forms.getDriveMeta({ projectId }), managedSpreadsheetId(projectId, FORMS_FEATURE_KEY)),
+      write: () => writeFormsSheets(projectId),
+    },
+  ];
+
+  return {
+    managedSpreadsheetId,
+    writePropertiesSheets,
+    writeCustomObjectsSheets,
+    writeFormsSheets,
+    buildRefreshFeatures,
+  };
+}
+
+export type DriveDocs = ReturnType<typeof createDriveDocs>;

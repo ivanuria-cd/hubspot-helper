@@ -39,6 +39,7 @@ import type {
 } from '@shared/types/properties';
 import type { PropertiesApi, RemoteProperty } from '../connectors/hubspot/properties';
 import type { ObjectsApi } from '../connectors/hubspot/objects';
+import { hubspotErrorMessage as sharedHubspotErrorMessage } from '../connectors/hubspot/errors';
 import type { PropertyStore } from './store';
 import type { HubSpotPropertyRef } from '@shared/types/properties';
 import type { DriveDocMeta } from '@shared/types/gdrive';
@@ -102,33 +103,9 @@ function toDef(remote: RemoteProperty): HubSpotPropertyDef {
   };
 }
 
-/**
- * Traduce el error de HubSpot a un mensaje accionable según el status/categoría (SPEC-0006 §39.9),
- * conservando el detalle del body.
- */
+// Versión compartida en el conector (SPEC-0003 §19); aquí solo se fija el sujeto del 409.
 function hubspotErrorMessage(error: unknown): string {
-  const e = error as {
-    response?: {
-      status?: number;
-      data?: { message?: string; category?: string; errors?: Array<{ message?: string }> };
-    };
-    message?: string;
-  };
-  const status = e?.response?.status;
-  const data = e?.response?.data;
-  const base =
-    data?.message ||
-    (data?.errors ?? []).map((x) => x.message).filter(Boolean).join('; ') ||
-    e?.message ||
-    'Error en HubSpot';
-  if (status === 401) return `Token de HubSpot no válido o caducado: revisa el PAT del entorno. (${base})`;
-  if (status === 403)
-    return `Permisos insuficientes: al token le faltan scopes para esta operación. (${base})`;
-  if (status === 429) return `Límite de peticiones de HubSpot alcanzado; reintenta en unos segundos. (${base})`;
-  if (status === 409 || data?.category === 'OBJECT_ALREADY_EXISTS')
-    return `La propiedad ya existe en el entorno destino. (${base})`;
-  if (status === 400) return `HubSpot rechazó la petición (datos inválidos): ${base}`;
-  return base;
+  return sharedHubspotErrorMessage(error, 'La propiedad');
 }
 
 /** Detecta el error de HubSpot «la propiedad ya existe» para tratar el create como idempotente (§38). */
