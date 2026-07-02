@@ -63,6 +63,9 @@ const api: RevOpsApi = {
   entriesUpsert: (input) => ipcRenderer.invoke(IpcChannels.entriesUpsert, input),
   entriesDelete: (input) => ipcRenderer.invoke(IpcChannels.entriesDelete, input),
   propertiesSyncHubspot: (input) => ipcRenderer.invoke(IpcChannels.propertiesSyncHubspot, input),
+  propertiesConvertToNew: (input) => ipcRenderer.invoke(IpcChannels.propertiesConvertToNew, input),
+  propertiesConvertMissingToNew: (input) =>
+    ipcRenderer.invoke(IpcChannels.propertiesConvertMissingToNew, input),
   propertiesApplyChange: (input) => ipcRenderer.invoke(IpcChannels.propertiesApplyChange, input),
   propertiesDiscardChange: (input) =>
     ipcRenderer.invoke(IpcChannels.propertiesDiscardChange, input),

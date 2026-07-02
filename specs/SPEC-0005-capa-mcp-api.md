@@ -266,3 +266,161 @@ Pendiente de implementación junto al resto de superficies.
 (`mcp.fieldHelp.token`) que explica para qué sirve y la advertencia de regenerarlo si se filtra, en
 `es`/`ca`/`eu`/`en`. El token es de solo lectura (generado); el resto de controles de la pantalla son acciones, no
 campos rellenables. typecheck/test en máquina.
+
+---
+
+## 15. Guía de operación obligatoria del MCP — gate por acuse (BORRADOR, 2026-06-25)
+
+### 15.1 Motivación
+
+Las tools del MCP exponen el estado en bruto (p. ej. `properties_sync` devuelve `{ updated, divergent, missing }`).
+Un consumidor LLM puede malinterpretar casuísticas como «entrada en modo `existing` que apunta a una propiedad
+inexistente»: la entrada aparece como `missing`/`falta` pero **no genera cambio pendiente** (SPEC-0006 §35), por lo
+que el LLM puede concluir erróneamente que «no hay nada que hacer» en vez de avisar que falta crear la propiedad.
+
+Se introduce un mecanismo transversal de la **capa MCP** (este SPEC) para forzar que el consumidor lea una guía de
+operación antes de ejecutar operaciones de riesgo. El **contenido** de la guía lo aportan los SPECs de característica
+(igual que los tutoriales, SPEC-0000 §10); aquí se define solo la **infraestructura**: tool de guía, registro de
+secciones y gate por acuse.
+
+### 15.2 Alcance
+
+Dentro de alcance (SPEC-0005): tool `revops_guidance`, registro de secciones de guía por feature, flag de tool
+`requiresGuidance`, estado de acuse por sesión y bloqueo de las tools marcadas hasta que se haya leído la guía en la
+sesión.
+
+Fuera de alcance: el **texto** de cada sección de guía (lo aporta cada SPEC de característica vía el registro; la
+primera contribución es SPEC-0006 §35.6) y la lógica de negocio de cada tool.
+
+### 15.3 Tool `revops_guidance`
+
+- `name`: `revops_guidance`. `featureKey`: `mcp`. `requiredScopes`: ninguno (lectura local, no toca HubSpot).
+- `inputSchema`: `{ type:'object', properties:{ section:{ type:'string' } } }` — `section` opcional para pedir una
+  sección concreta por `featureKey`; sin argumento devuelve la guía completa.
+- `handler`: ensambla el documento a partir del registro de secciones (15.4), ordenado por `order` y luego
+  `featureKey`, y **registra el acuse** de la sesión (15.5). Devuelve `{ content: <markdown>, sections: string[],
+  acknowledged: true }`.
+- `description`: debe instruir explícitamente: «LÉEME PRIMERO. Devuelve las reglas de operación del MCP `revops`.
+  Las tools de escritura están bloqueadas hasta llamar a esta tool en la sesión.»
+
+### 15.4 Registro de secciones de guía
+
+Análogo al registry de tools. Estructura nueva en `src/main/mcp/`:
+
+```ts
+export interface GuidanceSection {
+  featureKey: string;   // dominio que la aporta
+  title: string;        // título de la sección
+  order: number;        // orden en el documento ensamblado
+  body: string;         // markdown; texto literal en castellano (es la guía del LLM, no UI i18n)
+}
+
+export interface GuidanceRegistry {
+  register(section: GuidanceSection): void;   // duplicado por featureKey → error
+  getAll(): GuidanceSection[];
+  assemble(filter?: { featureKey?: string }): string;
+}
+```
+
+- Singleton `guidanceRegistry` exportado, paralelo a `mcpRegistry`.
+- Cada SPEC de característica registra su sección en el arranque (junto al `register*Tools`). La primera es
+  SPEC-0006 §35.6 (propiedades: distinción `existing`/`new`, casuística del `falta` no sincronizable y remedio
+  «Convertir a Nueva»).
+- El cuerpo es texto literal en castellano: es documentación para el LLM, **no** cadena de UI, por lo que **no** pasa
+  por i18n (excepción explícita a SPEC-0000 §3, que aplica a interfaz gráfica).
+
+### 15.5 Gate por acuse (estricto)
+
+- Nuevo campo opcional en `McpTool` (types.ts): `requiresGuidance?: boolean` (por defecto `false`).
+- Estado de acuse: `guidanceAck` indexado por **identificador de sesión MCP** (no por proceso). Estructura
+  `Set<sessionId>` (o `Map<sessionId, true>`) en memoria del servicio; cada sesión debe leer la guía por su cuenta.
+  - **Origen del `sessionId`**: el SDK MCP entrega el contexto de la petición (`RequestHandlerExtra`) en los
+    handlers; de ahí se obtiene el `sessionId` de la sesión activa. El transporte HTTP/SSE ya gestiona una sesión por
+    conexión (cada cliente LLM = una sesión distinta → acuse independiente); el transporte stdio expone una única
+    sesión (su `sessionId` propio). `revops_guidance` marca el acuse de **su** `sessionId`; el gate lo comprueba con
+    el `sessionId` de la petición entrante.
+  - Al cerrarse una sesión (desconexión) se purga su entrada de `guidanceAck`; reabrir exige leer la guía de nuevo.
+  - El acuse **se reinicia** al reiniciar el servidor MCP.
+  - Implica propagar el `sessionId` al `McpContext` (o pasar el `extra` del handler) para que el gate y
+    `revops_guidance` operen sobre la sesión correcta — ajuste a documentar en 15.6.
+- En `server.ts`, en el handler de `CallToolRequestSchema`, antes de despachar: si `tool.requiresGuidance === true`
+  y la sesión **no** tiene acuse, **no** se ejecuta el handler y se devuelve una respuesta estructurada:
+
+  ```json
+  {
+    "blocked": true,
+    "reason": "guidance-required",
+    "message": "Operación bloqueada. Llama a revops_guidance para leer las reglas de operación antes de continuar.",
+    "next": "revops_guidance"
+  }
+  ```
+
+- `revops_guidance` y todas las tools de **solo lectura** (`*_list`, `*_get`, `*_pending_changes`,
+  `*_coverage`, `properties_export_origin`, `mcp_health`) **no** llevan `requiresGuidance` → el LLM puede explorar
+  e inspeccionar sin acuse, pero no mutar ni sincronizar sin haber leído la guía.
+- Tools que **sí** llevan `requiresGuidance: true` (escritura/riesgo, cross-feature): `properties_sync`,
+  `properties_apply_change`, `properties_request_delete`, `properties_groups_apply_change`,
+  `properties_groups_request_delete`, `entries_upsert`, `entries_delete`, `origins_upsert`, `origins_delete`,
+  `groups_create`, las nuevas `properties_convert_to_new` / `properties_convert_missing_to_new` (SPEC-0006 §35.5),
+  y las equivalentes de escritura de SPEC-0007 (`custom_objects_*`) y SPEC-0008 (`forms_*`). El listado definitivo
+  por tool lo fija cada SPEC de característica marcando el flag al registrar.
+  - `properties_sync` se incluye intencionadamente: es la operación que destapa la casuística del `falta`; al
+    bloquearla tras el acuse se garantiza que el LLM lea primero cómo interpretar el resultado.
+
+### 15.6 Contratos / tipos
+
+- `McpTool.requiresGuidance?: boolean` (types.ts).
+- `GuidanceSection` y `GuidanceRegistry` (15.4), nuevo fichero `src/main/mcp/guidance.ts` + `guidance.spec.ts`.
+- Acuse por sesión: `guidanceAck: Set<string>` (clave `sessionId`) en el servicio MCP, con API interna
+  `markGuidanceRead(sessionId)`, `hasGuidance(sessionId)` y purga en el cierre de sesión. El `sessionId` se obtiene
+  del `RequestHandlerExtra` del handler (`server.ts`); se propaga a `revops_guidance` (para marcar) y al gate (para
+  comprobar). Si fuera necesario, `McpContext` se amplía con `sessionId?: string`.
+- La respuesta de bloqueo (15.5) es un objeto JSON serializado por el mismo camino que el resto de resultados
+  (`server.ts` envuelve en `content:[{type:'text', text:JSON.stringify(...)}]`).
+
+### 15.7 UI
+
+Sin pantalla nueva. Opcional (no bloqueante): en `McpSettingsScreen`, una nota de solo lectura indicando que el MCP
+expone `revops_guidance` y que los clientes deben leerla. Si se añade, su texto va por i18n (`mcp.*`) en los 7
+locales. Decisión de inclusión, diferida a implementación.
+
+### 15.8 Tests
+
+- `guidance.spec.ts`: registro (duplicado por featureKey → error), `assemble` ordena por `order`+`featureKey`,
+  filtro por `featureKey`.
+- `server.spec.ts` (ampliación): una tool con `requiresGuidance` devuelve la respuesta de bloqueo sin ejecutar el
+  handler cuando no hay acuse; tras llamar a `revops_guidance` la misma tool ejecuta su handler; una tool de solo
+  lectura nunca se bloquea; **el acuse de la sesión A no desbloquea la sesión B** (aislamiento por `sessionId`); la
+  purga al cerrar sesión reactiva el bloqueo.
+- `registry.spec.ts` (ampliación): `revops_guidance` registrada y sin scopes.
+
+### 15.9 Impacto / ficheros
+
+- `src/main/mcp/types.ts` (campo `requiresGuidance`).
+- `src/main/mcp/guidance.ts` + `guidance.spec.ts` (nuevos).
+- `src/main/mcp/server.ts` (gate en `CallToolRequest`, estado de acuse) + `server.spec.ts`.
+- `src/main/mcp/index.ts` (registro de `revops_guidance` y wiring del `guidanceRegistry`).
+- Cada `*/mcp-tools.ts` de característica: marcar `requiresGuidance` en sus tools de escritura y registrar su
+  sección de guía (la primera, SPEC-0006).
+- **Requiere rebuild del MCP** para que los clientes vean la tool nueva y el gate.
+
+### 15.10 Estado
+
+IMPLEMENTADO (2026-06-25). `types.ts` (`requiresGuidance`, `McpContext.sessionId`, `GuidanceBlocked`);
+`guidance.ts` + `guidance.spec.ts` (registry, 4 casos); `server.ts` (`callTool` con gate por `sessionId`,
+`guidanceAck: Set`, `purgeSession`, `onclose`, `GUIDANCE_TOOL`); `server.spec.ts` (4 casos de gate: bloqueo/acuse,
+solo-lectura, aislamiento A↔B, purga); `mcp/index.ts` (registro de `revops_guidance` + export `guidanceRegistry`).
+Las tools de escritura de cada feature marcan `requiresGuidance` (propiedades en SPEC-0006 §35). **Requiere rebuild
+del MCP.** `guidance.spec.ts` (fichero nuevo) en verde en sandbox; el resto de la suite/typecheck en la máquina del
+usuario — el espejo del sandbox no sincroniza los ficheros editados (trunca), originales verificados sanos.
+
+### 15.11 Transparencia del gate (IMPLEMENTADO, 2026-06-30)
+
+Del informe de remapeo de erratas (punto 4): el gate parecía «reactivarse cada pocas escrituras sin indicar el umbral».
+Diagnóstico: **no existe umbral por número de escrituras**. El acuse es por sesión MCP (`guidanceAck: Set<sessionId>`)
+y solo se rearma al cerrarse la sesión (`onclose`/`purgeSession`) o al reiniciar el servidor; lo percibido como «cada
+pocas escrituras» es el churn de sesiones (cada reconexión = sesión nueva = acuse nuevo).
+
+Fix (diagnóstico, sin cambiar la lógica del gate): el `message` de la respuesta `guidance-required` (`server.ts`,
+`blocked()`) explicita la semántica real — acuse por sesión, sin umbral de escrituras, rearme al reconectar/reiniciar.
+`server.spec.ts` solo afirma `blocked === true`, así que el cambio de texto no rompe tests. Requiere rebuild del MCP.

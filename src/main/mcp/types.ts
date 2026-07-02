@@ -21,6 +21,8 @@ export interface JsonSchema {
 export interface McpContext {
   /** Proyecto activo en la sesión MCP. */
   projectId: string;
+  /** Identificador de la sesión MCP actual (acuse de guía por sesión, SPEC-0005 §15). */
+  sessionId?: string;
 }
 
 /**
@@ -34,6 +36,16 @@ export interface McpTool {
   handler: (input: unknown, context: McpContext) => Promise<unknown>;
   featureKey: string;
   requiredScopes?: string[];
+  /** La tool se bloquea hasta que la sesión haya leído `revops_guidance` (SPEC-0005 §15). */
+  requiresGuidance?: boolean;
+}
+
+/** Respuesta de bloqueo del gate de guía (SPEC-0005 §15.5). */
+export interface GuidanceBlocked {
+  blocked: true;
+  reason: 'guidance-required';
+  message: string;
+  next: 'revops_guidance';
 }
 
 export function toSummary(tool: McpTool): McpToolSummary {

@@ -9,6 +9,7 @@ import { useShellStore } from '@renderer/app/store/shell-store';
 import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
 import { EmptyState } from '@shared/components/EmptyState';
 import { useDriveDoc } from '@shared/hooks/useDriveDoc';
+import { useHubspotEnvironmentChange } from '@shared/hooks/useHubspotEnvironmentChange';
 import { DriveDocActions } from '@shared/components/DriveDocActions';
 import { DriveDirtyGuard } from '@shared/components/DriveDirtyGuard';
 import type { HubSpotForm } from '@shared/types/forms';
@@ -91,6 +92,14 @@ export function FormsManagementScreen(): JSX.Element | null {
     void loadRefs(projectId);
     void loadSubscriptionTypes(projectId);
   }, [projectId, load, loadRefs, loadSubscriptionTypes]);
+
+  // Refresca al cambiar el entorno activo (SPEC-0003 §16).
+  useHubspotEnvironmentChange(() => {
+    if (!projectId) return;
+    void load(projectId);
+    void loadRefs(projectId);
+    void loadSubscriptionTypes(projectId);
+  });
 
   useEffect(() => {
     if (!projectId) return;

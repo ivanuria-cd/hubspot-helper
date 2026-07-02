@@ -53,6 +53,24 @@ describe('createSheetsClient', () => {
     expect(apis.valuesUpdate).toHaveBeenCalledTimes(2);
   });
 
+  it('§22: findManaged y createManaged pasan supportsAllDrives (unidades compartidas)', async () => {
+    const apis = makeApis({ existingFileId: null });
+    const client = createSheetsClient(apis.drive, apis.sheets);
+    await client.writeSpreadsheet({
+      folderId: 'f1',
+      name: 'Mapa',
+      featureKey: 'property-management',
+      schemaVersion: 1,
+      tabs,
+    });
+    expect(apis.drive.filesList).toHaveBeenCalledWith(
+      expect.objectContaining({ supportsAllDrives: true, includeItemsFromAllDrives: true }),
+    );
+    expect(apis.driveCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ supportsAllDrives: true }),
+    );
+  });
+
   it('reutiliza el libro existente, añade hojas que faltan y borra la hoja por defecto', async () => {
     const apis = makeApis({ existingFileId: 'existing', existingTitles: ['Sheet1'] });
     const client = createSheetsClient(apis.drive, apis.sheets);

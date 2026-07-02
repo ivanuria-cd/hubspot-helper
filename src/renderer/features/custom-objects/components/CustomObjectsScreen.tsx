@@ -19,6 +19,7 @@ import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedba
 import { EmptyState } from '@shared/components/EmptyState';
 import { useObjectsStore } from '@renderer/features/property-management/store/objects-store';
 import { useDriveDoc } from '@shared/hooks/useDriveDoc';
+import { useHubspotEnvironmentChange } from '@shared/hooks/useHubspotEnvironmentChange';
 import { DriveDocActions } from '@shared/components/DriveDocActions';
 import { DriveDirtyGuard } from '@shared/components/DriveDirtyGuard';
 import type { CustomObjectDefinition } from '@shared/types/custom-objects';
@@ -62,6 +63,13 @@ export function CustomObjectsScreen(): JSX.Element | null {
     void load(projectId);
     void loadObjects(projectId);
   }, [projectId, load, loadObjects]);
+
+  // Refresca al cambiar el entorno activo (SPEC-0003 §16).
+  useHubspotEnvironmentChange(() => {
+    if (!projectId) return;
+    void load(projectId);
+    void loadObjects(projectId);
+  });
 
   const pendingCount = useMemo(
     () => (definitions ?? []).reduce((sum, d) => sum + (d.pendingChanges?.length ?? 0), 0),

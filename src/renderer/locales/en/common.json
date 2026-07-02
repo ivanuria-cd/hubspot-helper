@@ -250,6 +250,14 @@
   "sections": {
     "placeholder": "This section will be completed in a later SPEC."
   },
+  "errorBoundary": {
+    "title": "Something went wrong on this screen",
+    "body": "A project value may be malformed. You can reload; if it persists, review this section's data.",
+    "reload": "Reload"
+  },
+  "errors": {
+    "entryValidation": "Couldn't save the entry: {{detail}}"
+  },
   "properties": {
     "title": "CRM / Properties",
     "syncHs": "Sync HubSpot",
@@ -302,12 +310,27 @@
       "type": "Type",
       "origin": "Origin",
       "status": "Status",
-      "all": "All"
+      "all": "All",
+      "search": "Search by name"
     },
     "status": {
       "exists": "exists",
       "divergent": "divergent",
-      "missing": "missing"
+      "missing": "missing",
+      "missingTooltip": "Doesn't exist in HubSpot; convert it to «New» to create it"
+    },
+    "actions": {
+      "convertToNew": "Convert to New"
+    },
+    "blocked": {
+      "banner": "{{count}} properties reference fields that don't exist in HubSpot and won't be created automatically.",
+      "convertAll": "Convert all to New ({{count}})"
+    },
+    "convert": {
+      "confirmTitle": "Convert to New",
+      "confirmBody": "{{count}} properties will be converted to «New» mode so they can be created. Then sync to generate the changes.",
+      "done": "{{converted}} converted. Sync to create the properties.",
+      "seededWarning": "{{seeded}} without a prior definition: review them before applying."
     },
     "panel": {
       "definition": "Definition",
@@ -330,7 +353,11 @@
       "addMapping": "Add origin",
       "save": "Save",
       "delete": "Delete",
-      "close": "Close"
+      "close": "Close",
+      "formField": "In forms and chatbots",
+      "formFieldOn": "Yes",
+      "formFieldOff": "No",
+      "formFieldDefault": "HubSpot default"
     },
     "addDialog": {
       "title": "Add property",
@@ -434,8 +461,10 @@
         "textDisplayHint": "Text format in HubSpot (plain, multi-line, email, phone, etc.).",
         "calculationFormula": "Calculation formula using the HubSpot API syntax (e.g. closed - started).",
         "dataSensitivity": "Sensitivity level of the data; it affects its handling and visibility in HubSpot.",
-        "hasUniqueValue": "Forces the value to be unique across records. It cannot be changed after the property is created."
-      }
+        "hasUniqueValue": "Forces the value to be unique across records. It cannot be changed after the property is created.",
+        "formField": "Lets the property be used as a field in HubSpot forms and in bots/chatflows. If left unchecked, HubSpot applies its default value."
+      },
+      "formField": "Available in forms and chatbots"
     },
     "numberHints": {
       "unformatted": "Unformatted",

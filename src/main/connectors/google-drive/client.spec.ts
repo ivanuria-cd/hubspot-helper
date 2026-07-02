@@ -203,7 +203,33 @@ describe('cliente Drive', () => {
         content: 'DATOS',
       }),
     ).rejects.toThrow('Docs API down');
-    expect(api.filesDelete).toHaveBeenCalledWith({ fileId: 'new-id' });
+    expect(api.filesDelete).toHaveBeenCalledWith({ fileId: 'new-id', supportsAllDrives: true });
+  });
+
+  it('§22: las operaciones de fichero pasan supportsAllDrives (unidades compartidas)', async () => {
+    const api = fakeApi();
+    const client = createDriveClient(api);
+    await client.listManagedFiles('folder-1');
+    expect(api.filesList).toHaveBeenCalledWith(
+      expect.objectContaining({ supportsAllDrives: true, includeItemsFromAllDrives: true }),
+    );
+    await client.createManagedDocument({
+      folderId: 'sub',
+      name: 'props',
+      featureKey: 'props',
+      schemaVersion: 1,
+      cover,
+      content: 'DATOS',
+    });
+    expect(api.filesCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ supportsAllDrives: true }),
+    );
+    await client.readManagedContent('doc');
+    expect(api.filesExport).toHaveBeenCalledWith(
+      expect.objectContaining({ supportsAllDrives: true }),
+    );
+    await client.deleteFile('doc');
+    expect(api.filesDelete).toHaveBeenCalledWith({ fileId: 'doc', supportsAllDrives: true });
   });
 
   it('reemplaza el cuerpo borrando el rango previo antes de insertar', async () => {

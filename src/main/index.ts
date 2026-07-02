@@ -86,6 +86,8 @@ import type {
 } from '@shared/types/gdrive';
 import type {
   ApplyChangeInput,
+  ConvertEntryInput,
+  ConvertMissingInput,
   DiscardChangeInput,
   EntriesListInput,
   EntryDeleteInput,
@@ -347,6 +349,12 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   );
   ipcMain.handle(IpcChannels.propertiesSyncHubspot, (_event, input: ProjectScopedInput) =>
     properties.syncHubspot(input),
+  );
+  ipcMain.handle(IpcChannels.propertiesConvertToNew, (_event, input: ConvertEntryInput) =>
+    properties.convertEntryToNew(input),
+  );
+  ipcMain.handle(IpcChannels.propertiesConvertMissingToNew, (_event, input: ConvertMissingInput) =>
+    properties.convertMissingToNew(input),
   );
   ipcMain.handle(IpcChannels.propertiesApplyChange, (_event, input: ApplyChangeInput) =>
     properties.applyChange(input),

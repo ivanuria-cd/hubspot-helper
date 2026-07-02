@@ -3,7 +3,7 @@
  * El estado de cada entrada se calcula sobre su propiedad HubSpot destino, identificada por
  * `objectType + hubspotName`. Varias entradas pueden apuntar al mismo destino.
  */
-import type { PropertyEntry } from '@shared/types/properties';
+import type { Blocker, PropertyEntry } from '@shared/types/properties';
 import type { RemoteProperty } from '../connectors/hubspot/properties';
 import {
   buildCreateChange,
@@ -11,16 +11,24 @@ import {
   diffDefinition,
   type ChangeFactoryDeps,
 } from './pending-changes';
+import { isSystemProperty } from './system-properties';
 
 export interface ReconcileResult {
   entries: PropertyEntry[];
-  summary: { updated: number; divergent: number; missing: number };
+  summary: { updated: number; divergent: number; missing: number; blocked: number };
+  blockers: Blocker[];
 }
 
 function destName(entry: PropertyEntry): string {
-  return entry.hubspotProperty.mode === 'existing'
-    ? entry.hubspotProperty.hubspotName
-    : entry.hubspotProperty.definition.hubspotName;
+  // Defensivo (SPEC-0006 §39): un `hubspotProperty` malformado no debe tumbar el sync.
+  const ref = entry.hubspotProperty as unknown as {
+    mode?: string;
+    hubspotName?: string;
+    definition?: { hubspotName?: string };
+  };
+  if (!ref || typeof ref !== 'object') return '';
+  if (ref.mode === 'existing') return ref.hubspotName ?? '';
+  return ref.definition?.hubspotName ?? '';
 }
 
 export function reconcileEntries(
@@ -33,6 +41,8 @@ export function reconcileEntries(
   let updated = 0;
   let divergent = 0;
   let missing = 0;
+  let blocked = 0;
+  const blockers: Blocker[] = [];
 
   const result = entries.map((entry) => {
     const remote = remoteByKey.get(key(entry.objectType, destName(entry)));
@@ -69,7 +79,20 @@ export function reconcileEntries(
 
     // Propiedad existente referenciada.
     if (!remote) {
+      // Bloqueo: apunta a una propiedad inexistente y no genera cambio (SPEC-0006 §35).
+      // Si es una propiedad de sistema de HubSpot, no procede recrearla (relink, no convert-to-new) (§43).
+      const name = destName(entry);
+      const system = isSystemProperty(entry.objectType, name);
       missing += 1;
+      blocked += 1;
+      blockers.push({
+        entryId: entry.id,
+        entry: entry.name,
+        objectType: entry.objectType,
+        hubspotName: name,
+        reason: system ? 'system-property' : 'existing-missing-remote',
+        remediation: system ? 'relink' : 'convert-to-new',
+      });
       return { ...entry, hubspotStatus: 'missing' as const, pendingChanges: [] };
     }
     // Si el usuario editó la definición, comparamos para proponer update_*.
@@ -84,5 +107,5 @@ export function reconcileEntries(
     return { ...entry, hubspotStatus: 'exists' as const, pendingChanges: [] };
   });
 
-  return { entries: result, summary: { updated, divergent, missing } };
+  return { entries: result, summary: { updated, divergent, missing, blocked }, blockers };
 }

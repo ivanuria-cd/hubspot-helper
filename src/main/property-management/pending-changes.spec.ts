@@ -91,6 +91,40 @@ describe('pending-changes', () => {
     expect(payload.options).toHaveLength(1);
   });
 
+  it('§36: cleanOptions normaliza hidden a false cuando falta', () => {
+    const opts = cleanOptions([
+      { label: 'España', value: 'España', displayOrder: 0 } as never,
+    ]);
+    expect(opts[0]?.hidden).toBe(false);
+  });
+
+  it('§36: no marca update_options cuando la def carece de hidden y el remoto trae hidden:false', () => {
+    const localNoHidden: HubSpotPropertyDef = {
+      hubspotName: 'pais_nacimiento',
+      label: 'País de Nacimiento',
+      type: 'enumeration',
+      fieldType: 'select',
+      groupName: 'contactinformation',
+      options: [
+        { label: 'España', value: 'España', displayOrder: 0 } as never,
+        { label: 'Francia', value: 'Francia', displayOrder: 1 } as never,
+      ],
+    };
+    const remote: RemoteProperty = {
+      name: 'pais_nacimiento',
+      objectType: 'contacts',
+      label: 'País de Nacimiento',
+      type: 'enumeration',
+      fieldType: 'select',
+      groupName: 'contactinformation',
+      options: [
+        { label: 'España', value: 'España', displayOrder: 0, hidden: false },
+        { label: 'Francia', value: 'Francia', displayOrder: 1, hidden: false },
+      ],
+    };
+    expect(diffDefinition('e1', localNoHidden, remote, deps)).toEqual([]);
+  });
+
   it('diffDefinition ignora opciones vacías al comparar (no marca divergencia)', () => {
     const withEmpty: HubSpotPropertyDef = {
       ...def,
@@ -184,6 +218,35 @@ describe('pending-changes', () => {
     const change = buildCreateChange('e1', 'contacts', boolDef, deps);
     const payload = change.payload as { options: Array<{ value: string }> };
     expect(payload.options.map((o) => o.value)).toEqual(['true', 'false']);
+  });
+
+  it('§46: createBody incluye formField cuando está fijado (true/false)', () => {
+    const on = buildCreateChange('e1', 'contacts', { ...def, formField: true }, deps);
+    expect(on.payload).toMatchObject({ formField: true });
+    const off = buildCreateChange('e1', 'contacts', { ...def, formField: false }, deps);
+    expect(off.payload).toMatchObject({ formField: false });
+  });
+
+  it('§46: createBody omite formField cuando es undefined (default de HubSpot)', () => {
+    const change = buildCreateChange('e1', 'contacts', def, deps);
+    expect(change.payload).not.toHaveProperty('formField');
+  });
+
+  it('§46: diffDefinition marca update_attributes al cambiar formField y no diverge si coincide', () => {
+    const local: HubSpotPropertyDef = { ...def, options: undefined, formField: true };
+    const remoteBase: RemoteProperty = {
+      name: 'custom_tier',
+      objectType: 'contacts',
+      label: 'Tier',
+      type: 'enumeration',
+      fieldType: 'select',
+      groupName: 'custom',
+      options: undefined,
+    };
+    const diff = diffDefinition('e1', local, { ...remoteBase, formField: false }, deps);
+    expect(diff.map((c) => c.operation)).toEqual(['update_attributes']);
+    expect(diff[0].payload).toEqual({ formField: true });
+    expect(diffDefinition('e1', local, { ...remoteBase, formField: true }, deps)).toEqual([]);
   });
 
   it('H5: diffDefinition ignora calculationFormula (HubSpot la normaliza)', () => {

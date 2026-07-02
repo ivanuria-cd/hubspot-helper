@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import type {
+  ConvertEntryResult,
+  ConvertMissingResult,
   EntryUpsertInput,
   PropertiesSyncResult,
   PropertyEntry,
@@ -14,6 +16,8 @@ interface EntriesState {
   error: string | null;
   load: (projectId: string, objectType?: string) => Promise<void>;
   sync: (projectId: string) => Promise<void>;
+  convertToNew: (projectId: string, entryId: string) => Promise<ConvertEntryResult>;
+  convertMissing: (projectId: string, objectType?: string) => Promise<ConvertMissingResult>;
   upsert: (input: EntryUpsertInput) => Promise<void>;
   remove: (projectId: string, entryId: string) => Promise<void>;
   applyChange: (
@@ -49,6 +53,16 @@ export const useEntriesStore = create<EntriesState>((set, get) => ({
     } finally {
       set({ syncing: false });
     }
+  },
+  convertToNew: async (projectId, entryId) => {
+    const result = await window.api.propertiesConvertToNew({ projectId, entryId });
+    await get().load(projectId);
+    return result;
+  },
+  convertMissing: async (projectId, objectType) => {
+    const result = await window.api.propertiesConvertMissingToNew({ projectId, objectType });
+    await get().load(projectId);
+    return result;
   },
   upsert: async (input) => {
     await window.api.entriesUpsert(input);

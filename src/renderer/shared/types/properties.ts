@@ -212,10 +212,50 @@ export interface ProjectScopedInput {
   projectId: string;
 }
 
+/**
+ * Entrada que aparece como `missing`/`falta` pero NO genera cambio pendiente: está en modo
+ * `existing` y apunta a una propiedad inexistente en HubSpot (SPEC-0006 §35). No se crea sola.
+ * Remedio según el motivo: `existing-missing-remote` → «Convertir a Nueva»; `system-property`
+ * → `relink` (es una propiedad de sistema de HubSpot; no debe recrearse, revisar el nombre interno) (§43).
+ */
+export interface Blocker {
+  entryId: string;
+  entry: string;
+  objectType: string;
+  hubspotName: string;
+  reason: 'existing-missing-remote' | 'system-property';
+  remediation: 'convert-to-new' | 'relink';
+}
+
 export interface PropertiesSyncResult {
   updated: number;
   divergent: number;
   missing: number;
+  /** Subconjunto de `missing` sin remedio automático (ver `blockers`). */
+  blocked: number;
+  blockers: Blocker[];
+}
+
+export interface ConvertEntryInput {
+  projectId: string;
+  entryId: string;
+}
+
+export interface ConvertEntryResult {
+  success: boolean;
+  /** La entrada no tenía definición cacheada: se sembró una mínima a completar antes de aplicar. */
+  seeded?: boolean;
+  error?: string;
+}
+
+export interface ConvertMissingInput {
+  projectId: string;
+  objectType?: string;
+}
+
+export interface ConvertMissingResult {
+  converted: number;
+  seeded: number;
 }
 
 export interface ApplyChangeInput {

@@ -255,6 +255,14 @@
   "sections": {
     "placeholder": "Esta secção será concluída num SPEC posterior."
   },
+  "errorBoundary": {
+    "title": "Algo correu mal neste ecrã",
+    "body": "Um dado do projeto pode estar malformado. Pode recarregar; se persistir, reveja os dados desta secção.",
+    "reload": "Recarregar"
+  },
+  "errors": {
+    "entryValidation": "Não foi possível guardar a entrada: {{detail}}"
+  },
   "properties": {
     "title": "CRM / Propriedades",
     "syncHs": "Sincronizar HubSpot",
@@ -307,12 +315,27 @@
       "type": "Tipo",
       "origin": "Origem",
       "status": "Estado",
-      "all": "Todos"
+      "all": "Todos",
+      "search": "Pesquisar por nome"
     },
     "status": {
       "exists": "existe",
       "divergent": "diverge",
-      "missing": "falta"
+      "missing": "falta",
+      "missingTooltip": "Não existe no HubSpot; converta-a para «Nova» para a criar"
+    },
+    "actions": {
+      "convertToNew": "Converter para Nova"
+    },
+    "blocked": {
+      "banner": "{{count}} propriedades referenciam campos que não existem no HubSpot e não serão criadas automaticamente.",
+      "convertAll": "Converter todas para Nova ({{count}})"
+    },
+    "convert": {
+      "confirmTitle": "Converter para Nova",
+      "confirmBody": "Serão convertidas {{count}} propriedades para o modo «Nova» para poderem ser criadas. Depois sincronize para gerar as alterações.",
+      "done": "{{converted}} convertidas. Sincronize para criar as propriedades.",
+      "seededWarning": "{{seeded}} sem definição prévia: reveja-as antes de aplicar."
     },
     "panel": {
       "definition": "Definição",
@@ -338,7 +361,11 @@
       "close": "Fechar",
       "applyTitle": "Aplicar alteração no HubSpot",
       "applyHint": "Esta ação escreve no HubSpot. Escolha o ambiente.",
-      "applied": "Aplicado"
+      "applied": "Aplicado",
+      "formField": "Em formulários e chatbots",
+      "formFieldOn": "Sim",
+      "formFieldOff": "Não",
+      "formFieldDefault": "Padrão do HubSpot"
     },
     "addDialog": {
       "title": "Adicionar propriedade",
@@ -517,8 +544,10 @@
         "textDisplayHint": "Formato do texto no HubSpot (simples, multilinha, email, telefone, etc.).",
         "calculationFormula": "Fórmula de cálculo com a sintaxe da API do HubSpot (p. ex. closed - started).",
         "dataSensitivity": "Nível de sensibilidade do dado; afeta o seu tratamento e visibilidade no HubSpot.",
-        "hasUniqueValue": "Obriga a que o valor seja único entre registos. Não pode ser modificado após criar a propriedade."
-      }
+        "hasUniqueValue": "Obriga a que o valor seja único entre registos. Não pode ser modificado após criar a propriedade.",
+        "formField": "Permite usar a propriedade como campo em formulários do HubSpot e em bots/chatflows. Se ficar desmarcado, o HubSpot aplica o seu valor padrão."
+      },
+      "formField": "Disponível em formulários e chatbots"
     },
     "numberHints": {
       "unformatted": "Sem formato",

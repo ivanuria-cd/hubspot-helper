@@ -63,6 +63,10 @@ import type {
   GroupDeleteRequestInput,
   GroupDiscardChangeInput,
   GroupsListInput,
+  ConvertEntryInput,
+  ConvertEntryResult,
+  ConvertMissingInput,
+  ConvertMissingResult,
   HubSpotGroup,
   HubSpotObject,
   HubSpotPropertiesInput,
@@ -165,6 +169,8 @@ export const IpcChannels = {
   entriesUpsert: 'entries:upsert',
   entriesDelete: 'entries:delete',
   propertiesSyncHubspot: 'properties:sync-hubspot',
+  propertiesConvertToNew: 'properties:convert-to-new',
+  propertiesConvertMissingToNew: 'properties:convert-missing-to-new',
   propertiesApplyChange: 'properties:apply-change',
   propertiesDiscardChange: 'properties:discard-change',
   propertiesExportJson: 'properties:export-json',
@@ -267,6 +273,8 @@ export interface RevOpsApi {
   entriesUpsert(input: EntryUpsertInput): Promise<PropertyEntry>;
   entriesDelete(input: EntryDeleteInput): Promise<OperationResult>;
   propertiesSyncHubspot(input: ProjectScopedInput): Promise<PropertiesSyncResult>;
+  propertiesConvertToNew(input: ConvertEntryInput): Promise<ConvertEntryResult>;
+  propertiesConvertMissingToNew(input: ConvertMissingInput): Promise<ConvertMissingResult>;
   propertiesApplyChange(input: ApplyChangeInput): Promise<ApplyChangeResult>;
   propertiesDiscardChange(input: DiscardChangeInput): Promise<OperationResult>;
   propertiesExportJson(input: ExportJsonInput): Promise<OriginExport>;

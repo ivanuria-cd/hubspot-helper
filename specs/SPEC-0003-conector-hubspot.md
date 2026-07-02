@@ -267,3 +267,52 @@ Pendiente de implementación junto al resto de superficies.
 i18n que describe su función, asociado por `aria-describedby`. Campos: token PAT (`hubspot.fieldHelp.token`) y
 selector de entorno production/sandbox (`hubspot.fieldHelp.environment`), en `es`/`ca`/`eu`/`en`. typecheck/test en
 máquina.
+
+---
+
+## 16. Refresco automático de la interfaz al cambiar de entorno (BORRADOR, 2026-06-25)
+
+### 16.1 Motivación
+
+Hoy, al cambiar el entorno activo (production ↔ sandbox) en el conector (`selectEnvironment` → IPC
+`hubspotSetEnvironment`), solo se refresca la pantalla del conector. El resto de superficies que muestran datos
+dependientes del entorno (selector de propiedades existentes, grupos, objetos custom, formularios, vistas CRM y
+dashboard) siguen mostrando los datos del entorno anterior hasta que el usuario refresca a mano. Se quiere que el
+cambio de entorno **recargue automáticamente** esos datos.
+
+Nota: el **estado** de propiedades (exists/missing/divergent) se reconcilia siempre contra producción (SPEC-0006 §37),
+así que no varía con el entorno; lo que sí varía y debe refrescarse es el resto de datos por entorno (catálogo de
+propiedades del wizard, grupos, objetos, formularios, contadores).
+
+### 16.2 Mecanismo
+
+- El entorno activo ya vive en `shell-store.hubspotEnvironment` y se actualiza al cambiarlo (`useHubSpotConnector`).
+- Hook compartido nuevo `useHubspotEnvironmentChange(onChange)` en `renderer/shared/hooks/`: se suscribe a
+  `shell-store.hubspotEnvironment` y ejecuta `onChange` **cuando cambia** (omite el montaje inicial para no duplicar
+  la carga que ya hacen las pantallas en su `useEffect` de `projectId`). Debounce no necesario (el cambio es manual).
+- Cada superficie dependiente del entorno adopta el hook para re-disparar su carga existente:
+  - SPEC-0006 (Propiedades): re-`load` de entradas/objetos/orígenes (el `sync` no cambia el estado por §37; se
+    re-ejecuta `load` y, opcionalmente, `sync` para refrescar pendientes). 
+  - SPEC-0007 (Objetos custom): re-`load`.
+  - SPEC-0008 (Formularios): re-`load`.
+  - SPEC-0010 (Dashboard) y SPEC-0011 (Vista CRM): re-`load` de sus agregados.
+- No cambia la mecánica del conector ni el IPC; solo añade reacción en el renderer.
+
+### 16.3 Alcance
+
+Dentro: hook compartido + adopción en las pantallas listadas. Fuera: cambiar la fuente del estado (sigue §37); no
+re-sincroniza ni escribe en HubSpot automáticamente (solo lecturas/recargas).
+
+### 16.4 Tests
+
+- `useHubspotEnvironmentChange.spec`: no llama a `onChange` en el montaje; lo llama al cambiar el valor; no lo llama
+  si el valor no cambia.
+
+### 16.5 Estado
+
+IMPLEMENTADO (2026-06-25). Hook compartido `renderer/shared/hooks/useHubspotEnvironmentChange.ts` (+ `.spec.ts`,
+jsdom, 3 casos: no dispara en montaje, dispara al cambiar, no dispara sin cambio). Adoptado en `PropertyManagementScreen`
+(re-`load`+`loadObjects`), `CustomObjectsScreen` (re-`load`+`loadObjects`), `FormsManagementScreen`
+(re-`load`+`loadRefs`+`loadSubscriptionTypes`), `DashboardScreen` (`status.reload`) y `CrmOverviewScreen`
+(`overview.reload`). El spec del hook (fichero nuevo) recoge las 3 pruebas en sandbox; verificación completa/typecheck en
+la máquina del usuario — el espejo del sandbox trunca los ficheros editados; originales verificados sanos.

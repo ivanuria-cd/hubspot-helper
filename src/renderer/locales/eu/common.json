@@ -250,6 +250,14 @@
   "sections": {
     "placeholder": "Atal hau geroko SPEC batean osatuko da."
   },
+  "errorBoundary": {
+    "title": "Zerbaitek huts egin du pantaila honetan",
+    "body": "Proiektuko datu bat gaizki osatuta egon daiteke. Birkargatu dezakezu; jarraitzen badu, berrikusi atal honetako datuak.",
+    "reload": "Birkargatu"
+  },
+  "errors": {
+    "entryValidation": "Ezin izan da sarrera gorde: {{detail}}"
+  },
   "properties": {
     "title": "CRM / Propietateak",
     "syncHs": "Sinkronizatu HubSpot",
@@ -302,12 +310,27 @@
       "type": "Mota",
       "origin": "Jatorria",
       "status": "Egoera",
-      "all": "Guztiak"
+      "all": "Guztiak",
+      "search": "Bilatu izenez"
     },
     "status": {
       "exists": "badago",
       "divergent": "desberdina",
-      "missing": "ez dago"
+      "missing": "ez dago",
+      "missingTooltip": "Ez dago HubSpot-en; sortzeko, bihurtu «Berria»"
+    },
+    "actions": {
+      "convertToNew": "Berri bihurtu"
+    },
+    "blocked": {
+      "banner": "{{count}} propietatek HubSpot-en existitzen ez diren eremuak erreferentziatzen dituzte eta ez dira automatikoki sortuko.",
+      "convertAll": "Bihurtu guztiak Berri ({{count}})"
+    },
+    "convert": {
+      "confirmTitle": "Berri bihurtu",
+      "confirmBody": "{{count}} propietate «Berria» modura bihurtuko dira sortu ahal izateko. Ondoren, sinkronizatu aldaketak sortzeko.",
+      "done": "{{converted}} bihurtuta. Sinkronizatu propietateak sortzeko.",
+      "seededWarning": "{{seeded}} definiziorik gabe: berrikusi aplikatu aurretik."
     },
     "panel": {
       "definition": "Definizioa",
@@ -330,7 +353,11 @@
       "addMapping": "Gehitu jatorria",
       "save": "Gorde",
       "delete": "Ezabatu",
-      "close": "Itxi"
+      "close": "Itxi",
+      "formField": "Inprimakietan eta chatbotetan",
+      "formFieldOn": "Bai",
+      "formFieldOff": "Ez",
+      "formFieldDefault": "HubSpot-en lehenetsia"
     },
     "addDialog": {
       "title": "Gehitu propietatea",
@@ -417,8 +444,10 @@
         "textDisplayHint": "Testuaren formatua HubSpot-en (soila, lerro anitzekoa, posta elektronikoa, telefonoa, etab.).",
         "calculationFormula": "HubSpot APIaren sintaxiarekin idatzitako kalkulu-formula (adib. closed - started).",
         "dataSensitivity": "Datuaren sentikortasun-maila; HubSpot-en haren tratamenduari eta ikusgaitasunari eragiten dio.",
-        "hasUniqueValue": "Balioak erregistroen artean bakarra izatera behartzen du. Ezin da aldatu propietatea sortu ondoren."
-      }
+        "hasUniqueValue": "Balioak erregistroen artean bakarra izatera behartzen du. Ezin da aldatu propietatea sortu ondoren.",
+        "formField": "Propietatea HubSpot inprimakietan eta bot/chatflow-etan eremu gisa erabiltzeko aukera ematen du. Markatu gabe uzten bada, HubSpot-ek bere balio lehenetsia aplikatzen du."
+      },
+      "formField": "Inprimakietan eta chatbotetan erabilgarri"
     },
     "wizard": {
       "fieldHelp": {

@@ -1010,3 +1010,57 @@ IMPLEMENTADO (2026-06-24) — pendiente el **diagnóstico del fallo real de `doc
   por `tsc`); se valida en la máquina. `tsc -p tsconfig.main.json` sin errores en los ficheros tocados (el
   único error es la truncación del espejo del sandbox en `sheets-style.spec.ts`; original sano). Suite
   completa + e2e + PR en la máquina del usuario.
+
+---
+
+## 22. Soporte de unidades/carpetas compartidas en las operaciones de fichero (BORRADOR, 2026-06-25)
+
+### 22.1 Diagnóstico
+
+Síntoma: al guardar/actualizar un documento gestionado en una **carpeta de una unidad compartida** (Shared Drive),
+la app falla con `File not found: <fileId>`. El selector de carpeta sí permite elegir la carpeta compartida.
+
+Causa raíz: los flags de la Drive API para unidades compartidas (`supportsAllDrives: true` y, en los listados,
+`includeItemsFromAllDrives: true`) **solo** se pasan en el navegador de carpetas (`listFolders`, `searchFolders` en
+`client.ts`). Las operaciones que tocan los **ficheros gestionados** no los pasan:
+
+- `client.ts`: `listManagedFiles` (`filesList`), `ensureFeatureFolder` (`filesList` + `filesCreate`),
+  `createManagedDocument` (`filesCreate`), `readManagedContent` (`filesExport`), `deleteFile` (`filesDelete`),
+  y `filesGet`.
+- `sheets-client.ts`: `findManaged` (`filesList`) y `createManaged` (`filesCreate`).
+
+Sin esos flags, la Drive API no resuelve los ficheros que viven en una unidad compartida y devuelve `404 File not
+found`. Las APIs de Docs y Sheets operan por id y sí funcionan; el corte está en las llamadas Drive `files.*`.
+
+### 22.2 Corrección
+
+- Todas las llamadas Drive `files.*` pasan `supportsAllDrives: true`; los `files.list` añaden además
+  `includeItemsFromAllDrives: true`. Se amplían las interfaces inyectables (`DriveApi` en `client.ts`,
+  `SheetsDriveApi` en `sheets-client.ts`) para aceptar estos campos.
+- Los flags son inocuos en «Mi unidad»; no cambian el comportamiento fuera de unidades compartidas.
+- No se toca la fachada (`index.ts`): ya reenvía los `args` a `google.drive().files.*`, así que basta con que el
+  cliente los incluya.
+- Las APIs de Docs/Sheets no llevan flag de unidades compartidas (operan por id); no se modifican.
+
+### 22.3 Tests
+
+- `client.spec.ts`: `listManagedFiles`, `createManagedDocument`, `readManagedContent`, `deleteFile` y
+  `ensureFeatureFolder` pasan `supportsAllDrives: true` (y `includeItemsFromAllDrives: true` en los list).
+- `sheets-client.spec.ts`: `findManaged` y `createManaged` pasan los flags.
+
+### 22.4 Impacto / ficheros
+
+- `src/main/connectors/google-drive/client.ts` (interface `DriveApi` + todas las llamadas `files.*`).
+- `src/main/connectors/google-drive/sheets-client.ts` (interface `SheetsDriveApi` + `findManaged`/`createManaged`).
+- `client.spec.ts`, `sheets-client.spec.ts`.
+- Requiere **rebuild de la app** para que el binario en uso recoja el cambio.
+
+### 22.5 Estado
+
+IMPLEMENTADO (2026-06-25). `client.ts`: `DriveApi` amplía `filesCreate/filesGet/filesExport/filesDelete` con
+`supportsAllDrives?`; `listManagedFiles`, `ensureFeatureFolder`, `createManagedDocument` (+ limpieza), `readManagedContent`
+y `deleteFile` pasan `supportsAllDrives: true` (y `includeItemsFromAllDrives: true` en los list). `sheets-client.ts`:
+`SheetsDriveApi` ampliada; `findManaged` y `createManaged` pasan los flags. Tests nuevos en `client.spec.ts` y
+`sheets-client.spec.ts` (y `filesDelete` de limpieza actualizado). Docs/Sheets API sin cambios (operan por id). Fachada
+`index.ts` sin cambios (reenvía args). Requiere **rebuild de la app**. test:unit/typecheck en la máquina del usuario —
+el espejo del sandbox trunca los ficheros editados; originales verificados sanos vía lectura directa.

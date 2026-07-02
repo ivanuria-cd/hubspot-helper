@@ -255,6 +255,14 @@
   "sections": {
     "placeholder": "Esta sección completarase nun SPEC posterior."
   },
+  "errorBoundary": {
+    "title": "Algo fallou nesta pantalla",
+    "body": "Un dato do proxecto pode estar mal formado. Podes recargar; se persiste, revisa os datos desta sección.",
+    "reload": "Recargar"
+  },
+  "errors": {
+    "entryValidation": "Non se puido gardar a entrada: {{detail}}"
+  },
   "properties": {
     "title": "CRM / Propiedades",
     "syncHs": "Sincronizar HubSpot",
@@ -307,12 +315,27 @@
       "type": "Tipo",
       "origin": "Orixe",
       "status": "Estado",
-      "all": "Todos"
+      "all": "Todos",
+      "search": "Buscar por nome"
     },
     "status": {
       "exists": "existe",
       "divergent": "diverxe",
-      "missing": "falta"
+      "missing": "falta",
+      "missingTooltip": "Non existe en HubSpot; convértea a «Nova» para creala"
+    },
+    "actions": {
+      "convertToNew": "Converter a Nova"
+    },
+    "blocked": {
+      "banner": "{{count}} propiedades referencian campos que non existen en HubSpot e non se crearán automaticamente.",
+      "convertAll": "Converter todas a Nova ({{count}})"
+    },
+    "convert": {
+      "confirmTitle": "Converter a Nova",
+      "confirmBody": "Convertiranse {{count}} propiedades a modo «Nova» para poder creala. Despois sincroniza para xerar os cambios.",
+      "done": "{{converted}} convertidas. Sincroniza para crear as propiedades.",
+      "seededWarning": "{{seeded}} sen definición previa: revísaas antes de aplicar."
     },
     "panel": {
       "definition": "Definición",
@@ -338,7 +361,11 @@
       "close": "Pechar",
       "applyTitle": "Aplicar cambio en HubSpot",
       "applyHint": "Esta acción escribe en HubSpot. Escolle o contorno.",
-      "applied": "Aplicado"
+      "applied": "Aplicado",
+      "formField": "En formularios e chatbots",
+      "formFieldOn": "Si",
+      "formFieldOff": "Non",
+      "formFieldDefault": "Por defecto de HubSpot"
     },
     "addDialog": {
       "title": "Engadir propiedade",
@@ -517,8 +544,10 @@
         "textDisplayHint": "Formato do texto en HubSpot (simple, multiliña, email, teléfono, etc.).",
         "calculationFormula": "Fórmula de cálculo coa sintaxe da API de HubSpot (p. ex. closed - started).",
         "dataSensitivity": "Nivel de sensibilidade do dato; afecta ao seu tratamento e visibilidade en HubSpot.",
-        "hasUniqueValue": "Obriga a que o valor sexa único entre rexistros. Non se pode modificar tras crear a propiedade."
-      }
+        "hasUniqueValue": "Obriga a que o valor sexa único entre rexistros. Non se pode modificar tras crear a propiedade.",
+        "formField": "Permite usar a propiedade como campo en formularios de HubSpot e en bots/chatflows. Se se deixa sen marcar, HubSpot aplica o seu valor por defecto."
+      },
+      "formField": "Dispoñible en formularios e chatbots"
     },
     "numberHints": {
       "unformatted": "Sen formato",

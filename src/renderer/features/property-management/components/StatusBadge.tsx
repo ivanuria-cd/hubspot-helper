@@ -1,3 +1,4 @@
+import { Tooltip } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import type { HsPropertyStatus } from '@shared/types/properties';
 import { StatusBadge as SharedStatusBadge, type StatusTone } from '@shared/components/StatusBadge';
@@ -8,7 +9,21 @@ const TONE: Record<HsPropertyStatus, StatusTone> = {
   missing: 'negative',
 };
 
-export function StatusBadge({ status }: { status: HsPropertyStatus }): JSX.Element {
+export function StatusBadge({
+  status,
+  blocked,
+}: {
+  status: HsPropertyStatus;
+  blocked?: boolean;
+}): JSX.Element {
   const { t } = useTranslation('common');
-  return <SharedStatusBadge tone={TONE[status]} label={t(`properties.status.${status}`)} />;
+  const badge = <SharedStatusBadge tone={TONE[status]} label={t(`properties.status.${status}`)} />;
+  if (status === 'missing' && blocked) {
+    return (
+      <Tooltip title={t('properties.status.missingTooltip')}>
+        <span>{badge}</span>
+      </Tooltip>
+    );
+  }
+  return badge;
 }

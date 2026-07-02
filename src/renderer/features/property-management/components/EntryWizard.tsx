@@ -61,6 +61,7 @@ function hasAdvancedContent(def: HubSpotPropertyDef): boolean {
       def.calculationFormula ||
       def.dataSensitivity ||
       def.hasUniqueValue ||
+      def.formField !== undefined ||
       def.fieldType === 'calculation_equation',
   );
 }
@@ -439,6 +440,19 @@ export function EntryWizard({
                 <FieldTooltip helpKey="properties.advanced.fieldHelp.hasUniqueValue" />
               </Stack>
             ) : null}
+
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={Boolean(def.formField)}
+                    onChange={(e) => setDef({ ...def, formField: e.target.checked })}
+                  />
+                }
+                label={t('properties.advanced.formField')}
+              />
+              <FieldTooltip helpKey="properties.advanced.fieldHelp.formField" />
+            </Stack>
           </Stack>
         </AccordionDetails>
       </Accordion>

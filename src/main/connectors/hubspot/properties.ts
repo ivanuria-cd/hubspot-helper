@@ -34,6 +34,7 @@ export interface RemoteProperty {
   dataSensitivity?: DataSensitivity;
   externalOptions?: boolean;
   referencedObjectType?: string;
+  formField?: boolean;
 }
 
 /** Grupo de propiedades de un objeto. */
@@ -67,6 +68,7 @@ interface RawProperty {
   dataSensitivity?: DataSensitivity;
   externalOptions?: boolean;
   referencedObjectType?: string;
+  formField?: boolean;
 }
 
 interface RawGroup {
@@ -108,6 +110,7 @@ export function toRemoteProperty(raw: RawProperty, objectType = ''): RemotePrope
     dataSensitivity: raw.dataSensitivity,
     externalOptions: raw.externalOptions,
     referencedObjectType: raw.referencedObjectType,
+    formField: raw.formField,
   };
 }
 

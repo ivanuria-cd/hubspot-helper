@@ -28,10 +28,20 @@ export interface SpreadsheetWriteInput {
 
 /** Subconjunto de Drive Files API necesario para localizar/crear el libro. */
 export interface SheetsDriveApi {
-  filesList(args: { q: string; fields: string; spaces?: string }): Promise<{
+  filesList(args: {
+    q: string;
+    fields: string;
+    spaces?: string;
+    supportsAllDrives?: boolean;
+    includeItemsFromAllDrives?: boolean;
+  }): Promise<{
     files?: Array<{ id: string; name: string }>;
   }>;
-  filesCreate(args: { requestBody: Record<string, unknown>; fields: string }): Promise<{ id: string }>;
+  filesCreate(args: {
+    requestBody: Record<string, unknown>;
+    fields: string;
+    supportsAllDrives?: boolean;
+  }): Promise<{ id: string }>;
 }
 
 /** Subconjunto de Google Sheets API v4. */
@@ -59,6 +69,8 @@ export function createSheetsClient(drive: SheetsDriveApi, sheets: SheetsRawApi) 
       q: `'${folderId}' in parents and mimeType = '${MIME_SPREADSHEET}' and appProperties has { key='${APP_PROP_FEATURE}' and value='${quote(featureKey)}' } and trashed = false`,
       fields: 'files(id,name)',
       spaces: 'drive',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
     });
     return result.files?.[0]?.id ?? null;
   }
@@ -76,6 +88,7 @@ export function createSheetsClient(drive: SheetsDriveApi, sheets: SheetsRawApi) 
         },
       },
       fields: 'id',
+      supportsAllDrives: true,
     });
     return file.id;
   }

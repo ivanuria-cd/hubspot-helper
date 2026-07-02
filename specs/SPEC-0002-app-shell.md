@@ -744,3 +744,20 @@ quedan intactos. Sustitución 1:1 sin cambio de lógica, variantes ni claves i18
 `npm run typecheck` + `npm run test:unit` **pendientes en máquina** — el espejo del sandbox corrompe la
 codificación de los ficheros editados (la `→` y otros no-ASCII; también afecta a `ipc.ts` y los `common.json` no
 tocados), por lo que el typecheck no es fiable en sandbox; los originales se verificaron sanos vía lectura directa.
+
+---
+
+## 20. ErrorBoundary de ruta (IMPLEMENTADO, 2026-06-25)
+
+Origen: informe `2026-06-25-revopshelper-bugs.md` — un dato malformado (p. ej. un `hubspotProperty` inválido) provocaba
+un `TypeError` en el render que dejaba **toda la app** en pantalla de error.
+
+Componente compartido `renderer/shared/components/RouteErrorBoundary.tsx`: usa `useRouteError` de React Router y
+renderiza un `Alert` accesible (`role="alert"`) con título/cuerpo i18n (`errorBoundary.title`/`body`/`reload` en los 7
+locales) y un botón **Recargar** (`navigate(0)`). Se registra como `errorElement` en las rutas de proyecto del router
+(`index`/Dashboard, `crm`, `crm/properties`, `crm/objects`, `crm/forms`), de modo que un fallo de render se contiene en
+la pantalla afectada y **mantiene el layout** (sidebar/topbar) en lugar de tumbar la app.
+
+Complementa, no sustituye, las defensas de datos (SPEC-0006 §39: validación en `entries_upsert` + `destName`
+defensivo). i18n añadido en `es`/`ca`/`eu`/`en`/`gl`/`pt`/`fr`. typecheck/test/e2e en la máquina del usuario — el
+espejo del sandbox trunca los ficheros editados; originales verificados sanos.

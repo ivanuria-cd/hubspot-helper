@@ -23,9 +23,10 @@ import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
-import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
+import { BusyButton, LoadingState, useConfirm, useSnackbar } from '@shared/components/feedback';
 import { EmptyState } from '@shared/components/EmptyState';
 import { useDriveDoc } from '@shared/hooks/useDriveDoc';
+import { useHubspotEnvironmentChange } from '@shared/hooks/useHubspotEnvironmentChange';
 import { DriveDocActions } from '@shared/components/DriveDocActions';
 import { DriveDirtyGuard } from '@shared/components/DriveDirtyGuard';
 import type { PropertyEntry } from '@shared/types/properties';
@@ -40,20 +41,45 @@ import { OriginsModal } from './OriginsModal';
 import { GroupsModal } from './GroupsModal';
 import { PendingChangesView } from './PendingChangesView';
 
+/** Normaliza para búsqueda: minúsculas y sin acentos. */
+function norm(value: string): string {
+  return value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
 function destName(entry: PropertyEntry): string {
-  return entry.hubspotProperty.mode === 'existing'
-    ? entry.hubspotProperty.hubspotName
-    : entry.hubspotProperty.definition.hubspotName;
+  // Defensivo (SPEC-0006 §39): un dato malformado no debe romper el render.
+  const ref = entry.hubspotProperty as unknown as {
+    mode?: string;
+    hubspotName?: string;
+    definition?: { hubspotName?: string };
+  };
+  if (!ref || typeof ref !== 'object') return '';
+  if (ref.mode === 'existing') return ref.hubspotName ?? '';
+  return ref.definition?.hubspotName ?? '';
 }
 
 export function PropertyManagementScreen(): JSX.Element | null {
   const { t } = useTranslation('common');
   const { notify } = useSnackbar();
+  const askConfirm = useConfirm();
   const activeProject = useShellStore((state) => state.activeProject);
   const projectId = activeProject?.id ?? '';
 
-  const { entries, loading, syncing, lastSync, error, load, sync, upsert, remove, applyChange, discardChange } =
-    useEntriesStore();
+  const {
+    entries,
+    loading,
+    syncing,
+    lastSync,
+    error,
+    load,
+    sync,
+    convertToNew,
+    convertMissing,
+    upsert,
+    remove,
+    applyChange,
+    discardChange,
+  } = useEntriesStore();
   const { objects, load: loadObjects } = useObjectsStore();
   const { origins, load: loadOrigins, create: createOrigin, update: updateOrigin, remove: removeOrigin } =
     useOriginsStore();
@@ -67,6 +93,7 @@ export function PropertyManagementScreen(): JSX.Element | null {
   const [groupsOpen, setGroupsOpen] = useState(false);
   const [exportAnchor, setExportAnchor] = useState<null | HTMLElement>(null);
   const [busy, setBusy] = useState(false);
+  const [search, setSearch] = useState('');
 
   const driveDoc = useDriveDoc({
     hasData: (entries?.length ?? 0) > 0,
@@ -88,16 +115,52 @@ export function PropertyManagementScreen(): JSX.Element | null {
     void loadOrigins(projectId);
   }, [projectId, load, loadObjects, loadOrigins]);
 
+  // Al cambiar el entorno activo, refresca los datos dependientes del entorno (SPEC-0003 §16).
+  useHubspotEnvironmentChange(() => {
+    if (!projectId) return;
+    void load(projectId);
+    void loadObjects(projectId);
+  });
+
   const objectEntries = useMemo(
     () => (entries ?? []).filter((entry) => entry.objectType === objectType),
     [entries, objectType],
   );
+  const filteredEntries = useMemo(() => {
+    const q = norm(search.trim());
+    if (!q) return objectEntries;
+    return objectEntries.filter(
+      (entry) => norm(entry.name).includes(q) || norm(destName(entry)).includes(q),
+    );
+  }, [objectEntries, search]);
   const pendingCount = useMemo(
     () => (entries ?? []).reduce((sum, e) => sum + (e.pendingChanges?.length ?? 0), 0),
     [entries],
   );
+  const isBlocked = (entry: PropertyEntry): boolean =>
+    entry.hubspotStatus === 'missing' && entry.hubspotProperty.mode === 'existing';
+  const blockedCount = useMemo(
+    () =>
+      objectEntries.filter(
+        (e) => e.hubspotStatus === 'missing' && e.hubspotProperty.mode === 'existing',
+      ).length,
+    [objectEntries],
+  );
 
   if (!activeProject) return null;
+
+  const handleConvertAll = async (): Promise<void> => {
+    const ok = await askConfirm({
+      title: t('properties.convert.confirmTitle'),
+      body: t('properties.convert.confirmBody', { count: blockedCount }),
+    });
+    if (!ok) return;
+    const result = await convertMissing(projectId, objectType);
+    notify({ message: t('properties.convert.done', { converted: result.converted }), severity: 'success' });
+    if (result.seeded > 0) {
+      notify({ message: t('properties.convert.seededWarning', { seeded: result.seeded }), severity: 'warning' });
+    }
+  };
 
   const handleApply = async (changeId: string, environment: HubSpotEnvironment): Promise<void> => {
     setBusy(true);
@@ -168,7 +231,10 @@ export function PropertyManagementScreen(): JSX.Element | null {
               size="small"
               label={t('properties.filters.object')}
               value={objectType}
-              onChange={(event) => setObjectType(event.target.value)}
+              onChange={(event) => {
+                setObjectType(event.target.value);
+                setSearch('');
+              }}
               sx={{ minWidth: 200 }}
             >
               {(objects ?? []).map((object) => (
@@ -178,6 +244,16 @@ export function PropertyManagementScreen(): JSX.Element | null {
                 </MenuItem>
               ))}
             </TextField>
+            <TextField
+              type="search"
+              size="small"
+              label={t('properties.filters.search')}
+              placeholder={t('properties.search')}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              inputProps={{ 'aria-label': t('properties.filters.search') }}
+              sx={{ minWidth: 220 }}
+            />
             <Button
               variant="contained"
               startIcon={<AddIcon />}
@@ -220,13 +296,29 @@ export function PropertyManagementScreen(): JSX.Element | null {
             </Menu>
           </Stack>
 
+          {blockedCount > 0 ? (
+            <Alert
+              severity="warning"
+              sx={{ mb: 2 }}
+              action={
+                <Button color="inherit" size="small" startIcon={<AddIcon />} onClick={handleConvertAll}>
+                  {t('properties.blocked.convertAll', { count: blockedCount })}
+                </Button>
+              }
+            >
+              {t('properties.blocked.banner', { count: blockedCount })}
+            </Alert>
+          ) : null}
+
           {loading ? (
             <LoadingState variant="list" rows={4} label={t('properties.loading')} />
           ) : objectEntries.length === 0 ? (
             <EmptyState message={t('properties.empty')} />
+          ) : filteredEntries.length === 0 ? (
+            <EmptyState message={t('properties.noResults')} />
           ) : (
             <List aria-label={t('properties.title')} disablePadding>
-              {objectEntries.map((entry) => (
+              {filteredEntries.map((entry) => (
                 <ListItemButton
                   key={entry.id}
                   onClick={() => setSelected(entry)}
@@ -237,7 +329,7 @@ export function PropertyManagementScreen(): JSX.Element | null {
                     <Typography color="text.primary" sx={{ minWidth: 160 }}>
                       {destName(entry)}
                     </Typography>
-                    <StatusBadge status={entry.hubspotStatus} />
+                    <StatusBadge status={entry.hubspotStatus} blocked={isBlocked(entry)} />
                     <Box sx={{ flexGrow: 1 }} />
                     <Chip size="small" variant="outlined" label={t('properties.entry.sourceCount', { count: entry.sources.length })} />
                     <IconButton
@@ -270,8 +362,17 @@ export function PropertyManagementScreen(): JSX.Element | null {
           setEditing(null);
         }}
         onSubmit={async (entry) => {
-          await upsert({ projectId, entry });
-          await sync(projectId);
+          try {
+            await upsert({ projectId, entry });
+            await sync(projectId);
+          } catch (error) {
+            notify({
+              message: t('errors.entryValidation', {
+                detail: error instanceof Error ? error.message : '',
+              }),
+              severity: 'error',
+            });
+          }
         }}
       />
 
@@ -294,6 +395,16 @@ export function PropertyManagementScreen(): JSX.Element | null {
         onDelete={async (entryId) => {
           await remove(projectId, entryId);
           setSelected(null);
+        }}
+        onConvert={async (entryId) => {
+          const result = await convertToNew(projectId, entryId);
+          notify({ message: t('properties.convert.done', { converted: 1 }), severity: 'success' });
+          if (result.seeded) {
+            notify({ message: t('properties.convert.seededWarning', { seeded: 1 }), severity: 'warning' });
+          }
+          setSelected((prev) =>
+            prev ? useEntriesStore.getState().entries.find((e) => e.id === prev.id) ?? null : null,
+          );
         }}
       />
 

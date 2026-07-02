@@ -59,13 +59,23 @@ describe('reconcileEntries', () => {
   it('entrada existente con remoto presente -> exists', () => {
     const result = reconcileEntries([existingEntry()], [remote()], deps);
     expect(result.entries[0]?.hubspotStatus).toBe('exists');
-    expect(result.summary).toEqual({ updated: 1, divergent: 0, missing: 0 });
+    expect(result.summary).toEqual({ updated: 1, divergent: 0, missing: 0, blocked: 0 });
   });
 
-  it('entrada existente sin remoto -> missing (sin cambio create)', () => {
+  it('entrada existente sin remoto -> missing (sin cambio create) + blocker', () => {
     const result = reconcileEntries([existingEntry()], [], deps);
     expect(result.entries[0]?.hubspotStatus).toBe('missing');
     expect(result.entries[0]?.pendingChanges).toEqual([]);
+    expect(result.summary.blocked).toBe(1);
+    expect(result.blockers[0]?.reason).toBe('existing-missing-remote');
+    expect(result.blockers[0]?.remediation).toBe('convert-to-new');
+    expect(result.blockers[0]?.hubspotName).toBe('custom_tier');
+  });
+
+  it('entrada nueva sin remoto no genera blocker', () => {
+    const result = reconcileEntries([newEntry(newDef)], [], deps);
+    expect(result.summary.blocked).toBe(0);
+    expect(result.blockers).toEqual([]);
   });
 
   it('entrada nueva sin remoto -> missing + cambio create', () => {
@@ -119,8 +129,20 @@ describe('reconcileEntries', () => {
     ];
     const result = reconcileEntries([contacts, companies], remotes, deps);
     expect(result.entries.every((e) => e.hubspotStatus === 'exists')).toBe(true);
-    expect(result.summary).toEqual({ updated: 2, divergent: 0, missing: 0 });
+    expect(result.summary).toEqual({ updated: 2, divergent: 0, missing: 0, blocked: 0 });
   });
+  it('propiedad de sistema sin remoto -> blocker system-property/relink (no convert-to-new)', () => {
+    const owner = existingEntry({
+      id: 'sys',
+      name: 'Propietario',
+      hubspotProperty: { mode: 'existing', hubspotName: 'hubspot_owner_id' },
+    });
+    const result = reconcileEntries([owner], [], deps);
+    expect(result.summary.blocked).toBe(1);
+    expect(result.blockers[0]?.reason).toBe('system-property');
+    expect(result.blockers[0]?.remediation).toBe('relink');
+  });
+
   it('entrada existente editada (definition difiere) -> divergent + update', () => {
     const edited = existingEntry({
       id: 'ee',

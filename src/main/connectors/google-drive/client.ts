@@ -38,10 +38,14 @@ export interface DriveApi {
     includeItemsFromAllDrives?: boolean;
   }): Promise<{ files?: RawDriveFile[] }>;
   drivesList(args: { pageSize?: number; fields: string }): Promise<{ drives?: Array<{ id: string; name: string }> }>;
-  filesCreate(args: { requestBody: Record<string, unknown>; fields: string }): Promise<RawDriveFile>;
-  filesGet(args: { fileId: string; fields: string }): Promise<RawDriveFile>;
-  filesExport(args: { fileId: string; mimeType: string }): Promise<string>;
-  filesDelete(args: { fileId: string }): Promise<void>;
+  filesCreate(args: {
+    requestBody: Record<string, unknown>;
+    fields: string;
+    supportsAllDrives?: boolean;
+  }): Promise<RawDriveFile>;
+  filesGet(args: { fileId: string; fields: string; supportsAllDrives?: boolean }): Promise<RawDriveFile>;
+  filesExport(args: { fileId: string; mimeType: string; supportsAllDrives?: boolean }): Promise<string>;
+  filesDelete(args: { fileId: string; supportsAllDrives?: boolean }): Promise<void>;
   docsGet(args: { documentId: string }): Promise<RawDoc>;
   docsBatchUpdate(args: {
     documentId: string;
@@ -106,6 +110,8 @@ export function createDriveClient(api: DriveApi) {
       q: `'${folderId}' in parents and appProperties has { key='${APP_PROP_MANAGED}' and value='true' } and trashed = false`,
       fields: 'files(id,name,mimeType,modifiedTime,appProperties)',
       spaces: 'drive',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
     });
     return (result.files ?? []).map(toRemoteFile);
   }
@@ -165,12 +171,15 @@ export function createDriveClient(api: DriveApi) {
       q: `'${parentId}' in parents and mimeType = '${MIME_FOLDER}' and name = '${featureName}' and trashed = false`,
       fields: 'files(id,name)',
       spaces: 'drive',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
     });
     const found = existing.files?.[0];
     if (found) return found.id;
     const created = await api.filesCreate({
       requestBody: { name: featureName, mimeType: MIME_FOLDER, parents: [parentId] },
       fields: 'id',
+      supportsAllDrives: true,
     });
     return created.id;
   }
@@ -195,6 +204,7 @@ export function createDriveClient(api: DriveApi) {
         },
       },
       fields: 'id,modifiedTime',
+      supportsAllDrives: true,
     });
     // SPEC-0004 §21: si el cuerpo no se inserta, el Doc recién creado quedaría vacío y huérfano.
     // Se borra antes de propagar el error para no acumular duplicados vacíos.
@@ -208,7 +218,7 @@ export function createDriveClient(api: DriveApi) {
       });
     } catch (error) {
       try {
-        await api.filesDelete({ fileId: file.id });
+        await api.filesDelete({ fileId: file.id, supportsAllDrives: true });
       } catch {
         // El borrado de limpieza puede fallar; se prioriza propagar el error original.
       }
@@ -237,12 +247,16 @@ export function createDriveClient(api: DriveApi) {
   }
 
   async function readManagedContent(driveId: string): Promise<string> {
-    const text = await api.filesExport({ fileId: driveId, mimeType: 'text/plain' });
+    const text = await api.filesExport({
+      fileId: driveId,
+      mimeType: 'text/plain',
+      supportsAllDrives: true,
+    });
     return extractManagedContent(text);
   }
 
   function deleteFile(driveId: string): Promise<void> {
-    return api.filesDelete({ fileId: driveId });
+    return api.filesDelete({ fileId: driveId, supportsAllDrives: true });
   }
 
   return {

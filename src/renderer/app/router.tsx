@@ -1,4 +1,5 @@
 import { createMemoryRouter, Navigate, type RouteObject } from 'react-router-dom';
+import { RouteErrorBoundary } from '@shared/components/RouteErrorBoundary';
 import { MainLayout } from './components/layout/MainLayout';
 import { WelcomeRoute } from './components/welcome/WelcomeRoute';
 import { ConfigSection } from './components/sections/ConfigSection';
@@ -18,11 +19,11 @@ export const routes: RouteObject[] = [
     path: '/project/:projectId',
     element: <MainLayout />,
     children: [
-      { index: true, element: <DashboardScreen /> },
-      { path: 'crm', element: <CrmOverviewScreen /> },
-      { path: 'crm/properties', element: <PropertyManagementScreen /> },
-      { path: 'crm/objects', element: <CustomObjectsScreen /> },
-      { path: 'crm/forms', element: <FormsManagementScreen /> },
+      { index: true, element: <DashboardScreen />, errorElement: <RouteErrorBoundary /> },
+      { path: 'crm', element: <CrmOverviewScreen />, errorElement: <RouteErrorBoundary /> },
+      { path: 'crm/properties', element: <PropertyManagementScreen />, errorElement: <RouteErrorBoundary /> },
+      { path: 'crm/objects', element: <CustomObjectsScreen />, errorElement: <RouteErrorBoundary /> },
+      { path: 'crm/forms', element: <FormsManagementScreen />, errorElement: <RouteErrorBoundary /> },
       { path: 'config', element: <ConfigSection /> },
       { path: 'config/connectors/hubspot', element: <HubSpotConnectorScreen /> },
       { path: 'config/connectors/google-drive', element: <GoogleDriveConnectorScreen /> },

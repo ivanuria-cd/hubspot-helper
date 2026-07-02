@@ -161,6 +161,36 @@ describe('PropertyService (entradas)', () => {
     expect(meta.lastChangedAt).toBe(meta.lastWrittenAt);
   });
 
+  it('§39: upsertEntry rechaza hubspotProperty como string', () => {
+    const service = createPropertyService(deps(createMemoryPropertyStore(), fakeProperties(), fakeObjects()));
+    expect(() =>
+      service.upsertEntry({
+        projectId: 'p1',
+        entry: {
+          objectType: 'contacts',
+          name: 'X',
+          hubspotProperty: 'firstname' as never,
+          sources: [],
+        },
+      }),
+    ).toThrow(/hubspotProperty/);
+  });
+
+  it('§39: upsertEntry rechaza sources como array de strings', () => {
+    const service = createPropertyService(deps(createMemoryPropertyStore(), fakeProperties(), fakeObjects()));
+    expect(() =>
+      service.upsertEntry({
+        projectId: 'p1',
+        entry: {
+          objectType: 'contacts',
+          name: 'X',
+          hubspotProperty: { mode: 'existing', hubspotName: 'firstname' },
+          sources: ['0bc11910' as never],
+        },
+      }),
+    ).toThrow(/sources/);
+  });
+
   it('upsertEntry rechaza un originId inexistente en sources', () => {
     const store = createMemoryPropertyStore();
     const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));
@@ -191,6 +221,57 @@ describe('PropertyService (entradas)', () => {
       },
     });
     expect(entry.sources[0]?.originId).toBe(origin.id);
+  });
+
+  it('§41: editar el destino de una entrada limpia los cambios pendientes huérfanos', async () => {
+    const store = createMemoryPropertyStore();
+    const service = createPropertyService(deps(store, fakeProperties([]), fakeObjects()));
+    const created = service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'contacts',
+        name: 'Nueva',
+        hubspotProperty: {
+          mode: 'new',
+          definition: { hubspotName: 'np_old', label: 'Nueva', type: 'string', fieldType: 'text', groupName: 'g' },
+        },
+        sources: [],
+      },
+    });
+    await service.syncHubspot({ projectId: 'p1' });
+    expect((service.listEntries({ projectId: 'p1' })[0]?.pendingChanges ?? []).length).toBeGreaterThan(0);
+
+    service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        id: created.id,
+        objectType: 'contacts',
+        name: 'Nueva',
+        hubspotProperty: {
+          mode: 'new',
+          definition: { hubspotName: 'np_new', label: 'Nueva', type: 'string', fieldType: 'text', groupName: 'g' },
+        },
+        sources: [],
+      },
+    });
+    expect(service.listEntries({ projectId: 'p1' })[0]?.pendingChanges).toEqual([]);
+  });
+
+  it('§44: rechaza dos entradas nuevas que crean el mismo hubspotName', () => {
+    const store = createMemoryPropertyStore();
+    const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));
+    const def = (hubspotName: string) =>
+      ({ mode: 'new', definition: { hubspotName, label: 'X', type: 'string', fieldType: 'text', groupName: 'g' } }) as const;
+    service.upsertEntry({
+      projectId: 'p1',
+      entry: { objectType: 'contacts', name: 'A', hubspotProperty: def('dup_name'), sources: [] },
+    });
+    expect(() =>
+      service.upsertEntry({
+        projectId: 'p1',
+        entry: { objectType: 'contacts', name: 'B', hubspotProperty: def('dup_name'), sources: [] },
+      }),
+    ).toThrow(/dup_name/);
   });
 
   it('H1: syncHubspot salta un objeto cuyo listProperties falla, sin abortar', async () => {
@@ -306,6 +387,192 @@ describe('PropertyService (entradas)', () => {
       success: false,
       error: 'Cambio no encontrado',
     });
+  });
+
+  it('§38: applyChange (create) ya existente en el entorno reconcilia y aplica el update', async () => {
+    const store = createMemoryPropertyStore();
+    // En producción no existe (estado §37); en sandbox existe con etiqueta distinta.
+    const props = fakeProperties([]);
+    (props.listProperties as ReturnType<typeof vi.fn>).mockImplementation(
+      (objectType: string, environment?: string) => {
+        if (environment === 'sandbox') {
+          return Promise.resolve([
+            { name: 'x', objectType, label: 'Vieja', type: 'string', fieldType: 'text', groupName: 'g', options: [] },
+          ]);
+        }
+        return Promise.resolve([]);
+      },
+    );
+    (props.createProperty as ReturnType<typeof vi.fn>).mockRejectedValue({
+      response: { status: 409, data: { category: 'OBJECT_ALREADY_EXISTS', message: "A property named 'x' already exists." } },
+    });
+    const service = createPropertyService(deps(store, props, fakeObjects()));
+    service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'contacts',
+        name: 'X',
+        hubspotProperty: {
+          mode: 'new',
+          definition: { hubspotName: 'x', label: 'X', type: 'string', fieldType: 'text', groupName: 'g' },
+        },
+        sources: [],
+      },
+    });
+    await service.syncHubspot({ projectId: 'p1' });
+    const change = service.listEntries({ projectId: 'p1' }).flatMap((e) => e.pendingChanges ?? [])[0];
+    const result = await service.applyChange({ projectId: 'p1', changeId: change.id, environment: 'sandbox' });
+    expect(result.success).toBe(true);
+    // La etiqueta difiere ('X' vs 'Vieja') → se aplica un patch de actualización en sandbox.
+    expect(props.patchProperty).toHaveBeenCalledWith('contacts', 'x', { label: 'X' }, 'sandbox');
+    const applied = service
+      .listEntries({ projectId: 'p1' })
+      .flatMap((e) => e.pendingChanges ?? [])
+      .find((c) => c.id === change.id);
+    expect(applied?.appliedToSandbox).toBe(true);
+  });
+
+  it('§37: syncHubspot reconcilia contra producción (listProperties con \'production\')', async () => {
+    const store = createMemoryPropertyStore();
+    const props = fakeProperties([]);
+    const service = createPropertyService(deps(store, props, fakeObjects()));
+    service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'contacts',
+        name: 'Tier',
+        hubspotProperty: { mode: 'existing', hubspotName: 'custom_tier' },
+        sources: [],
+      },
+    });
+    await service.syncHubspot({ projectId: 'p1' });
+    expect(props.listProperties).toHaveBeenCalledWith('contacts', 'production');
+  });
+
+  it('sync expone blockers para entradas existing sin remoto (SPEC-0006 §35)', async () => {
+    const store = createMemoryPropertyStore();
+    const service = createPropertyService(deps(store, fakeProperties([]), fakeObjects()));
+    service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'contacts',
+        name: 'Numero de historia',
+        hubspotProperty: { mode: 'existing', hubspotName: 'h_clinica' },
+        sources: [],
+      },
+    });
+    const summary = await service.syncHubspot({ projectId: 'p1' });
+    expect(summary.blocked).toBe(1);
+    expect(summary.blockers[0]?.hubspotName).toBe('h_clinica');
+    expect(summary.blockers[0]?.remediation).toBe('convert-to-new');
+  });
+
+  it('convertEntryToNew sin definición cacheada siembra una mínima válida y genera create al sincronizar', async () => {
+    const store = createMemoryPropertyStore();
+    const service = createPropertyService(deps(store, fakeProperties([]), fakeObjects()));
+    const entry = service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'contacts',
+        name: 'Primer apellido',
+        hubspotProperty: { mode: 'existing', hubspotName: 'primer_apellido' },
+        sources: [],
+      },
+    });
+
+    const res = service.convertEntryToNew({ projectId: 'p1', entryId: entry.id });
+    expect(res).toEqual({ success: true, seeded: true });
+
+    const converted = service.listEntries({ projectId: 'p1' })[0];
+    expect(converted?.hubspotProperty.mode).toBe('new');
+    expect(
+      converted?.hubspotProperty.mode === 'new' && converted.hubspotProperty.definition.hubspotName,
+    ).toBe('primer_apellido');
+
+    const summary = await service.syncHubspot({ projectId: 'p1' });
+    expect(summary.blocked).toBe(0);
+    const change = service
+      .listEntries({ projectId: 'p1' })
+      .flatMap((e) => e.pendingChanges ?? [])
+      .find((c) => c.operation === 'create');
+    expect(change).toBeTruthy();
+  });
+
+  it('convertEntryToNew reutiliza la definición cacheada (no seeded)', () => {
+    const store = createMemoryPropertyStore();
+    const service = createPropertyService(deps(store, fakeProperties([]), fakeObjects()));
+    const entry = service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'contacts',
+        name: 'Tier',
+        hubspotProperty: {
+          mode: 'existing',
+          hubspotName: 'custom_tier',
+          definition: {
+            hubspotName: 'custom_tier',
+            label: 'Tier',
+            type: 'string',
+            fieldType: 'text',
+            groupName: 'g',
+          },
+        },
+        sources: [],
+      },
+    });
+    const res = service.convertEntryToNew({ projectId: 'p1', entryId: entry.id });
+    expect(res).toEqual({ success: true, seeded: false });
+  });
+
+  it('convertEntryToNew es idempotente sobre una entrada ya new', () => {
+    const store = createMemoryPropertyStore();
+    const service = createPropertyService(deps(store, fakeProperties([]), fakeObjects()));
+    const entry = service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'contacts',
+        name: 'Nueva',
+        hubspotProperty: {
+          mode: 'new',
+          definition: { hubspotName: 'np', label: 'Nueva', type: 'string', fieldType: 'text', groupName: 'g' },
+        },
+        sources: [],
+      },
+    });
+    expect(service.convertEntryToNew({ projectId: 'p1', entryId: entry.id })).toEqual({
+      success: true,
+      seeded: false,
+    });
+  });
+
+  it('convertMissingToNew convierte en bloque y respeta el filtro por objeto', async () => {
+    const store = createMemoryPropertyStore();
+    const service = createPropertyService(deps(store, fakeProperties([]), fakeObjects()));
+    service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'contacts',
+        name: 'A',
+        hubspotProperty: { mode: 'existing', hubspotName: 'a' },
+        sources: [],
+      },
+    });
+    service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'companies',
+        name: 'B',
+        hubspotProperty: { mode: 'existing', hubspotName: 'b' },
+        sources: [],
+      },
+    });
+    // El estado `missing` lo fija la sincronización (ambos objetos sin remoto).
+    await service.syncHubspot({ projectId: 'p1' });
+    const res = service.convertMissingToNew({ projectId: 'p1', objectType: 'contacts' });
+    expect(res).toEqual({ converted: 1, seeded: 1 });
+    const byObject = service.listEntries({ projectId: 'p1' });
+    expect(byObject.find((e) => e.objectType === 'contacts')?.hubspotProperty.mode).toBe('new');
+    expect(byObject.find((e) => e.objectType === 'companies')?.hubspotProperty.mode).toBe('existing');
   });
 
   it('CRUD de origenes y exportacion JSON v2', () => {

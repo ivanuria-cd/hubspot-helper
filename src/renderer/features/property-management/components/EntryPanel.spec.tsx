@@ -66,3 +66,27 @@ describe('EntryPanel — descripción', () => {
     expect(screen.queryByText('Descripción')).not.toBeInTheDocument();
   });
 });
+
+describe('EntryPanel — formField (§46)', () => {
+  function withFormField(formField?: boolean): PropertyEntry {
+    const e = makeEntry();
+    (e.hubspotProperty.definition as { formField?: boolean }).formField = formField;
+    return e;
+  }
+
+  it('muestra «Sí» cuando formField es true', () => {
+    renderPanel(withFormField(true));
+    expect(screen.getByText('En formularios y chatbots')).toBeInTheDocument();
+    expect(screen.getByText('Sí')).toBeInTheDocument();
+  });
+
+  it('muestra «No» cuando formField es false', () => {
+    renderPanel(withFormField(false));
+    expect(screen.getByText('No')).toBeInTheDocument();
+  });
+
+  it('muestra el default de HubSpot cuando formField es undefined', () => {
+    renderPanel(withFormField(undefined));
+    expect(screen.getByText('Por defecto de HubSpot')).toBeInTheDocument();
+  });
+});

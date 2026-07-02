@@ -1402,3 +1402,566 @@ IMPLEMENTADO (2026-06-24). `EntryWizard.tsx` (campo descripción movido al núcl
 `EntryPanel.spec.tsx` (2 casos). i18n sin cambios. La suite del renderer **no es ejecutable en el sandbox**
 por el truncado del espejo del clonado (`src/renderer/i18n/index.ts` queda cortado a mitad de línea; original
 sano, 50 líneas) — typecheck/test:unit/e2e en la máquina del usuario.
+
+---
+
+## 35. Diagnóstico de entradas en `falta` y acción «Convertir a Nueva» (BORRADOR, 2026-06-25)
+
+### 35.1 Diagnóstico
+
+La reconciliación (`reconcile.ts`) clasifica como `missing` dos casos que **no son equivalentes**:
+
+1. **`missing` con remedio** — entrada en modo `new` sin remoto en HubSpot: genera un cambio pendiente `create`
+   (`reconcile.ts` :52-59). Aparece en *Cambios pendientes*, se aplica y se crea la propiedad. Flujo normal.
+2. **`missing` sin remedio (bloqueo)** — entrada en modo `existing` que apunta a una propiedad **inexistente** en
+   HubSpot (`reconcile.ts` :71-73): estado `missing`/`falta` pero `pendingChanges: []`. **No genera ningún cambio**,
+   por eso *Cambios pendientes (0)* y no hay nada que sincronizar. Es un callejón sin salida: la entrada asume que la
+   propiedad ya existe, pero no existe.
+
+El caso 2 es invisible en el resumen actual `{ updated, divergent, missing }`: el usuario (y un consumidor LLM) ve
+`N sin crear` sin saber que esas N no se crearán nunca por sí solas. **Esta casuística debe destaparse
+explícitamente** y ofrecer remedio. Detectado en el portal con 30 entradas en `falta` y `Cambios pendientes (0)`.
+
+Esta sección complementa el gate de guía del MCP (**[SPEC-0005 §15](SPEC-0005-capa-mcp-api.md)**): §35.6 aporta el
+contenido de guía que explica la casuística; aquí se añaden el diagnóstico en la salida y la acción de remedio.
+
+### 35.2 Clasificación en la reconciliación
+
+`reconcileEntries` distingue el subtipo de `missing` y reporta los bloqueos sin cambiar el `hubspotStatus` (sigue
+siendo `missing` para no romper la UI ni los tests existentes de estado):
+
+- `ReconcileResult.summary` añade `blocked: number` (cuenta del caso 2). `missing` sigue contando el total de
+  faltantes (casos 1 + 2) para no alterar el `syncSummary` actual; `blocked` es un subconjunto informativo.
+- `ReconcileResult` añade `blockers: Blocker[]`:
+
+  ```ts
+  export interface Blocker {
+    entryId: string;
+    entry: string;        // nombre legible de la entrada
+    objectType: string;
+    hubspotName: string;  // propiedad destino inexistente
+    reason: 'existing-missing-remote';
+    remediation: 'convert-to-new';
+  }
+  ```
+
+- El caso 2 se detecta en la rama `ref.mode === 'existing' && !remote` (`reconcile.ts` :71-73): se añade a `blockers`
+  y se incrementa `summary.blocked`.
+
+### 35.3 Propagación a `syncHubspot` y al MCP
+
+- `PropertiesSyncResult` (tipo de retorno de `service.syncHubspot`) pasa de devolver solo `summary` a
+  `{ ...summary, blocked, blockers }`. `properties_sync` (MCP) y el IPC de sync devuelven esa estructura ampliada.
+  Así la salida de `properties_sync` **levanta la liebre**: incluye la lista de entradas que están en `falta` y no se
+  van a crear, con el remedio.
+- `properties_pending_changes` (MCP, `mcp-tools.ts` :56-74) añade, junto a los cambios, un campo `blockers` con la
+  misma lista (recalculada del estado), para que un consumidor que solo mire los pendientes también vea el bloqueo.
+
+### 35.4 Acción «Convertir a Nueva»
+
+Convierte una entrada de modo `existing` (que apunta a algo inexistente) a modo `new`, de modo que la siguiente
+sincronización genere el cambio `create`.
+
+- Servicio `convertEntryToNew({ projectId, entryId })`:
+  - Solo aplica a entradas en modo `existing`. Si ya es `new`, no-op idempotente.
+  - Construye `hubspotProperty = { mode:'new', definition }` reutilizando la `definition` cacheada si existe
+    (§25.3/§32); si no hay definición, **siembra** una mínima válida: `hubspotName` = el `hubspotName` actual de la
+    referencia `existing`, `label` = nombre de la entrada, `type`/`fieldType` por defecto `string`/`text`, `groupName`
+    = el grupo existente si lo hubiera. La definición sembrada es un punto de partida; el usuario la completa en el
+    wizard antes de aplicar.
+  - Devuelve `{ success, seeded: boolean }` (`seeded:true` si no había definición cacheada → avisar al usuario de que
+    revise la definición antes de aplicar).
+- Servicio masivo `convertMissingToNew({ projectId, objectType? })`: aplica `convertEntryToNew` a todas las entradas
+  actualmente en estado `missing` y modo `existing` (opcionalmente filtradas por objeto). Devuelve
+  `{ converted: number, seeded: number }`.
+- Tras convertir, **no** se sincroniza automáticamente: la UI invita a sincronizar para materializar los `create`
+  (coherente con §22.2: los cambios pendientes los genera `properties_sync`).
+
+### 35.5 MCP
+
+Dos tools nuevas (escritura), **con `requiresGuidance: true`** (SPEC-0005 §15.5):
+
+- `properties_convert_to_new` — `{ entryId }` requerido. Convierte una entrada.
+- `properties_convert_missing_to_new` — `{ objectType? }` opcional. Convierte en bloque.
+
+`description` de ambas: deben explicar que solo afectan a entradas en modo `existing` sin remoto y que la creación
+real requiere `properties_sync` + `properties_apply_change`. **Requiere rebuild del MCP.**
+
+### 35.6 Contenido de guía (registro de SPEC-0005 §15.4)
+
+`registerPropertyTools` (o el wiring del feature) registra una `GuidanceSection` `{ featureKey:'property-management',
+order:10, title:'Propiedades: estados y sincronización' }` con cuerpo (texto literal, castellano) que cubre:
+
+- Distinción `existing` (mapea a propiedad que ya existe) vs `new` (crea la propiedad).
+- Casuística del bloqueo: `existing` + propiedad inexistente → estado `falta` **sin** cambio pendiente; **no se crea
+  sola**. Hay que avisar al usuario y usar «Convertir a Nueva».
+- Cómo leer `properties_sync`: `blocked > 0` y `blockers[]` señalan entradas que **no** se sincronizarán; el flujo
+  correcto es `properties_convert_*` → `properties_sync` → `properties_apply_change` (por entorno).
+- Que `Cambios pendientes (0)` con `missing > 0` **no** significa «todo en orden».
+
+### 35.7 Interfaz de usuario
+
+- **Aviso de bloqueo** en `PropertyManagementScreen`: cuando `blocked > 0`, banner `Alert severity="warning"` sobre la
+  lista: «N propiedades referencian campos que no existen en HubSpot y no se crearán automáticamente.» con botón
+  **«Convertir todas a Nueva (N)»** (acotado al objeto activo del selector). El botón abre `ConfirmDialog`
+  (SPEC-0002 §11) antes de la conversión masiva; tras convertir, `Snackbar` (SPEC-0002 §10) con resultado e
+  invitación a sincronizar.
+- **Acción por entrada**: en `EntryPanel` (panel lateral) y/o en la fila, para entradas en `falta` + modo `existing`,
+  botón **«Convertir a Nueva»** (`startIcon`, SPEC-0002 §19). Si la conversión fue `seeded`, el `Snackbar` advierte de
+  revisar la definición.
+- **Badge**: `StatusBadge` para estas entradas mantiene `falta` pero expone un `title`/tooltip («No existe en HubSpot;
+  conviértela a Nueva para crearla»). No se crea un estado nuevo.
+- i18n: claves nuevas en los **7 locales** (`es` canónico, `ca`/`eu`/`en`/`gl`/`pt`/`fr`): `properties.blocked.banner`,
+  `properties.blocked.convertAll`, `properties.actions.convertToNew`, `properties.convert.confirmTitle`,
+  `properties.convert.confirmBody`, `properties.convert.done`, `properties.convert.seededWarning`,
+  `properties.status.missingTooltip`.
+
+### 35.8 Tests
+
+- `reconcile.spec.ts`: entrada `existing` sin remoto → `summary.blocked === 1`, `blockers[0].reason ===
+  'existing-missing-remote'`; entrada `new` sin remoto → `blocked === 0` y genera `create` (regresión).
+- `service.spec.ts`: `convertEntryToNew` con definición cacheada (no `seeded`) y sin ella (`seeded:true`, definición
+  mínima válida); idempotencia sobre entrada ya `new`; `convertMissingToNew` cuenta `converted`/`seeded` y respeta el
+  filtro por `objectType`; tras convertir + sync se genera el `create`.
+- `mcp-tools` / `registry.spec.ts`: ambas tools registradas con `requiresGuidance:true` y `WRITE_SCOPES`; sección de
+  guía registrada.
+- e2e: banner de bloqueo visible con datos mock; «Convertir todas a Nueva» reduce el bloqueo y, tras sync, aparecen
+  cambios `create`.
+- typecheck/test:unit/e2e en la máquina del usuario.
+
+### 35.9 Impacto / ficheros
+
+- `src/main/property-management/reconcile.ts` (clasificación + `blockers`) y `reconcile.spec.ts`.
+- `src/main/property-management/service.ts` (`convertEntryToNew`, `convertMissingToNew`; `syncHubspot` devuelve
+  `blockers`) y `service.spec.ts`.
+- `src/shared/types/properties.ts` (`Blocker`, ampliación de `PropertiesSyncResult`, `ReconcileResult.summary.blocked`).
+- `src/main/property-management/mcp-tools.ts` (2 tools nuevas con `requiresGuidance`; `blockers` en
+  `properties_pending_changes`; registro de la `GuidanceSection`).
+- IPC + preload (`properties:convert-to-new`, `properties:convert-missing-to-new`).
+- `renderer/features/property-management/components/` (`PropertyManagementScreen` banner, `EntryPanel`/fila acción,
+  `StatusBadge` tooltip).
+- i18n: claves nuevas §35.7 en los 7 locales.
+- **Requiere rebuild del MCP.**
+
+### 35.10 Estado
+
+IMPLEMENTADO (2026-06-25). Tipos `Blocker`/`ConvertEntry*`/`ConvertMissing*` y `PropertiesSyncResult` ampliado
+(`blocked`, `blockers`); `reconcile.ts` (clasificación + `blockers`, `summary.blocked`) y `reconcile.spec.ts`
+(blocker + regresión new); `service.ts` (`convertEntryToNew`, `convertMissingToNew`, `syncHubspot` devuelve
+`blockers`) y `service.spec.ts` (5 casos: blockers, seeded/no-seeded, idempotencia, bulk con filtro); `mcp-tools.ts`
+(2 tools convert con `requiresGuidance`, `blockers` en `properties_pending_changes`, sección de guía registrada,
+`requiresGuidance` en tools de escritura); IPC/preload `properties:convert-to-new` / `properties:convert-missing-to-new`;
+UI: banner de bloqueo en `PropertyManagementScreen` + «Convertir todas a Nueva», botón «Convertir a Nueva» en
+`EntryPanel`, tooltip en `StatusBadge`, acciones en `entries-store`; i18n en los 7 locales (`status.missingTooltip`,
+`actions.convertToNew`, `blocked.*`, `convert.*`). Adopta el gate de **[SPEC-0005 §15](SPEC-0005-capa-mcp-api.md)**.
+**Requiere rebuild del MCP.** typecheck/test:unit/e2e en la máquina del usuario — el espejo del sandbox no sincroniza
+los ficheros editados (trunca); originales verificados sanos vía lectura directa.
+
+---
+
+## 36. Divergencia perpetua en enumeraciones — `hidden` no normalizado (BORRADOR, 2026-06-25)
+
+### 36.1 Diagnóstico
+
+Síntoma: propiedades `enumeration` con definición cacheada y muchas opciones (catálogos: «País de Nacimiento»,
+«Compañía») aparecen **siempre** como `diverge`, con un cambio `update_options` que no desaparece al aplicarse.
+
+Causa raíz (confirmada vía MCP en producción, `properties_pending_changes`):
+
+- `optionsEqual` (`pending-changes.ts`) compara `match.hidden === option.hidden`.
+- Las opciones **remotas** se normalizan con `hidden: false` (`connectors/hubspot/properties.ts` `normalizeOptions`).
+- Las opciones de la definición **local** de esos catálogos llegan **sin** `hidden` (`undefined`) porque provienen de
+  import/CSV/Sheets, no del selector del wizard (que usa `toDef`/`normalizeOptions`, ya con `hidden:false`).
+- `false === undefined` → las opciones nunca se consideran iguales → `update_options` perpetuo. Al aplicarlo, el payload
+  va **sin** `hidden`; HubSpot guarda `hidden:false`; la siguiente sync vuelve a divergir → bucle infinito.
+
+Esto explica que solo afecte a los desplegables grandes (definición importada) y no a los enums pequeños mapeados
+desde el wizard. `displayOrder` no interviene (`optionsEqual` ya lo ignora).
+
+### 36.2 Corrección
+
+- `optionsEqual`: comparar `(a.hidden ?? false) === (b.hidden ?? false)` (normalizar ambos lados). Comparar también
+  el conjunto en ambos sentidos para no pasar por alto que el remoto tenga opciones que el local no (igualdad de
+  conjuntos por `value`, además de la longitud).
+- `cleanOptions`: normalizar cada opción a forma canónica `{ label, value, displayOrder: i, hidden: hidden ?? false }`,
+  para que las opciones almacenadas y el payload de `create`/`update_options` lleven siempre `hidden` y no
+  reintroduzcan la divergencia.
+- Sin cambio de contrato ni de superficie MCP; afecta solo a la comparación y al saneo.
+
+### 36.3 Tests
+
+- `pending-changes.spec.ts`: `optionsEqual` con opciones idénticas salvo `hidden` `undefined` vs `false` → iguales;
+  `diffDefinition` de una `enumeration` cuya def carece de `hidden` frente a remota con `hidden:false` → **sin**
+  `update_options`; `cleanOptions` rellena `hidden:false` cuando falta.
+
+### 36.4 Impacto / ficheros
+
+- `src/main/property-management/pending-changes.ts` (`optionsEqual`, `cleanOptions`) + `pending-changes.spec.ts`.
+- Requiere **rebuild de la app/MCP** para que el binario en uso recoja el cambio (la lógica la comparte el servicio
+  con las tools MCP). No cambia la lista de tools.
+
+### 36.5 Estado
+
+IMPLEMENTADO (2026-06-25). `pending-changes.ts`: `optionsEqual` normaliza `(hidden ?? false)` en ambos lados;
+`cleanOptions` rellena `hidden: hidden ?? false`. `pending-changes.spec.ts`: 2 casos nuevos (cleanOptions normaliza
+hidden; `diffDefinition` no emite `update_options` con def sin hidden vs remoto `hidden:false`). Requiere rebuild de
+la app/MCP para que el binario en uso recoja el cambio. test:unit/typecheck en la máquina del usuario — el espejo del
+sandbox trunca los ficheros editados; originales verificados sanos vía lectura directa.
+
+---
+
+## 37. El estado (exists/missing/divergent) se reconcilia siempre contra Producción (BORRADOR, 2026-06-25)
+
+### 37.1 Diagnóstico
+
+El estado de cada entrada (`exists`/`missing`/`divergent`), que se muestra en la lista, en el panel y en la columna
+«Estado» del Sheets, lo calcula `syncHubspot` (`service.ts`) reconciliando contra las propiedades remotas obtenidas con
+`api.listProperties(objectType)` **sin entorno** → usa el **entorno activo** (sandbox o production según el conector).
+
+Requisito: el «existe o no» debe reflejar **siempre Producción**, con independencia del entorno activo. La existencia de
+una propiedad es una verdad de negocio que se evalúa contra producción; el entorno activo solo gobierna a qué entorno se
+**aplican** los cambios (`properties_apply_change`, sin cambios).
+
+### 37.2 Corrección
+
+- `syncHubspot`: obtener las remotas con `api.listProperties(objectType, 'production')` (forzar producción). El resto de
+  la reconciliación no cambia. `listProperties` ya acepta el parámetro de entorno.
+- `applyChange`/`applyGroupChange` mantienen el entorno explícito elegido por el usuario (sandbox/production): el estado se
+  lee de producción, pero los cambios se aplican donde el usuario decida.
+- Si el token de producción no está configurado o un objeto no es accesible en producción, el objeto se salta (mecanismo
+  `failedObjects` existente) y sus entradas quedan intactas, sin abortar el sync.
+
+Fuera de alcance: el selector de propiedades existentes del wizard (`listHubSpotProperties`) y el catálogo de objetos
+(`listObjects`) siguen usando el entorno activo; solo se fuerza producción en el cálculo del estado.
+
+### 37.3 Tests
+
+- `service.spec.ts`: `syncHubspot` invoca `listProperties` con `'production'` (aunque el conector mock no distinga
+  entorno, se verifica el argumento).
+
+### 37.4 Impacto / ficheros
+
+- `src/main/property-management/service.ts` (`syncHubspot`) + `service.spec.ts`.
+- Requiere **rebuild de la app/MCP**.
+
+### 37.5 Estado
+
+IMPLEMENTADO (2026-06-25). `service.ts` `syncHubspot`: `api.listProperties(objectType, 'production')`. `service.spec.ts`:
+caso §37 que verifica el argumento `'production'`. Requiere **rebuild de la app/MCP**. test:unit/typecheck en la máquina
+del usuario — el espejo del sandbox trunca los ficheros editados; originales verificados sanos.
+
+---
+
+## 38. `create` ya existente en el entorno → reconciliar y aplicar update (BORRADOR, 2026-06-25)
+
+### 38.1 Diagnóstico
+
+Consecuencia de §37: el estado se reconcilia contra **Producción**, así que una propiedad ausente en producción genera un
+cambio `create` aunque ya exista en **sandbox**. Al pulsar «Aplicar en Sandbox», HubSpot responde `A property named
+'<x>' already exists.` y la operación falla. Síntoma del usuario: «dice que en sandbox no existe cuando sí existe».
+
+### 38.2 Corrección
+
+- `applyChange`, operación `create`: si `createProperty` falla porque la propiedad **ya existe en el entorno destino**
+  (no se propaga el error), se **reconcilia contra la propiedad existente en ESE entorno** y se aplica el `update`
+  equivalente:
+  - se obtiene la remota del entorno destino (`listProperties(objectType, environment)`), se busca por `hubspotName`;
+  - se calcula el diff con `diffDefinition(def, remote)` (la `def` es la definición de la entrada) y se aplica cada
+    `patch` resultante (`patchProperty`) en ese entorno;
+  - si no hay diferencias, es un no-op (la propiedad ya coincide).
+  - en cualquiera de los casos el cambio se marca aplicado en ese entorno.
+- Detección `isAlreadyExists(error)`: `response.status === 409`, o `response.data.category === 'OBJECT_ALREADY_EXISTS'`,
+  o el mensaje contiene `already exists` (case-insensitive).
+- El diff es **inherentemente por entorno** (se compara contra la propiedad real de ese entorno); por eso se resuelve en
+  el momento de aplicar, no como cambio pendiente global. Aplicar en producción sigue creando de verdad donde falta.
+- No cambia el comportamiento de `update_*`/`delete` ya existentes.
+
+### 38.3 Tests
+
+- `service.spec.ts`: `create` cuya `createProperty` rechaza con `409 OBJECT_ALREADY_EXISTS` y cuya remota en sandbox
+  tiene la etiqueta distinta → se llama a `patchProperty('contacts','x',{label:'X'},'sandbox')` y el cambio queda
+  `appliedToSandbox:true`.
+
+### 38.4 Impacto / ficheros
+
+- `src/main/property-management/service.ts` (`applyChange` + helper `isAlreadyExists` + reconciliación con
+  `diffDefinition`) + `service.spec.ts`.
+- Requiere **rebuild de la app/MCP**.
+
+### 38.5 Estado
+
+IMPLEMENTADO (2026-06-25). `applyChange` absorbe «ya existe» y reconcilia contra la propiedad del entorno destino
+aplicando el `update` equivalente (`diffDefinition` + `patchProperty`); no-op si coincide. `service.spec.ts`: caso §38
+(verifica el `patchProperty`). Requiere rebuild. test:unit/typecheck en la máquina del usuario — el espejo del sandbox
+trunca los ficheros editados; originales verificados sanos.
+
+---
+
+## 39. Endurecimiento de `entries_upsert` y definición real de propiedades vía MCP (BORRADOR, 2026-06-25)
+
+Origen: informe `2026-06-25-revopshelper-bugs.md` (HC Marbella). Un payload malformado en `entries_upsert`
+(`hubspotProperty` como string, `sources` como strings/`originIds`) se persistía sin validar y reventaba aguas abajo:
+`Cannot read properties of undefined (reading 'hubspotName')` en `reconcile` y en `PropertyManagementScreen`.
+
+### 39.1 Validación del `entry` (raíz)
+
+`service.upsertEntry` valida la forma antes de persistir (`assertValidEntryInput`), con error accionable:
+
+- `objectType` y `name`: string no vacío.
+- `hubspotProperty`: objeto (nunca string) con `mode` `'existing'` (requiere `hubspotName`) o `'new'` (requiere
+  `definition` con `hubspotName`/`label`/`type`/`fieldType`; `groupName` opcional, string si está).
+- `sources`: array de `EntrySource` (objetos) con `originId`/`sourceField`/`definition.kind`; nunca strings ni `originIds`.
+
+### 39.2 `inputSchema` enriquecido
+
+`entries_upsert` documenta el discriminated union `HubSpotPropertyRef` (`oneOf` por `mode`) y `EntrySource` con
+`required`, para que el cliente MCP conozca la forma. La `description` lo recuerda explícitamente.
+
+### 39.3 Defensa aguas abajo
+
+`destName` se hace defensivo en `reconcile.ts`, `PropertyManagementScreen.tsx` y `EntryPanel.tsx` (lee `mode`/
+`definition` con `?.` y devuelve `''` ante datos malformados), de modo que un dato heredado inválido no tumbe el sync ni
+el render (complementa la validación, que evita nuevos datos malos).
+
+### 39.4 Tool de lectura `hubspot_properties_list`
+
+Nueva tool de solo lectura (scopes `*.read`, **sin** `requiresGuidance`) que expone `service.listHubSpotProperties`:
+devuelve `HubSpotPropertyDef` completo (`type`, `fieldType`, `groupName`, `options`, atributos) del **entorno activo**.
+Input `{ objectType, name? }`. Resuelve la inferencia de `fieldType` que causaba divergencias (`phonenumber`,
+`checkbox`): el cliente toma el `fieldType`/`groupName`/`options` reales en vez de inferirlos desde `type`.
+
+### 39.5 Guía MCP
+
+`revops_guidance` (sección `property-management`) añade la «Forma del entry» (objeto, no string; `sources` objetos) y la
+instrucción de consultar `hubspot_properties_list` antes de crear, para no inferir `fieldType`.
+
+### 39.6 Tests
+
+- `service.spec.ts`: `upsertEntry` lanza con `hubspotProperty` string y con `sources` de strings.
+- (UI) `destName` defensivo cubierto por no-crash; e2e en máquina.
+
+### 39.7 Impacto / ficheros
+
+- `service.ts` (`assertValidEntryInput`, `entryDestName` defensivo) + `service.spec.ts`.
+- `reconcile.ts`, `PropertyManagementScreen.tsx`, `EntryPanel.tsx` (`destName` defensivo).
+- `mcp-tools.ts` (schema de `entries_upsert`, tool `hubspot_properties_list`, guía).
+- Requiere **rebuild de la app/MCP**.
+
+### 39.8 Estado
+
+IMPLEMENTADO (2026-06-25). Validación + schema + tool de lectura + guía + destName defensivo. ErrorBoundary de ruta en
+**[SPEC-0002 §20](SPEC-0002-app-shell.md)**. test:unit/typecheck/e2e en la máquina del usuario — el espejo del sandbox
+trunca los ficheros editados; originales verificados sanos.
+
+### 39.9 Pulido de mensajes de error (IMPLEMENTADO, 2026-06-25)
+
+Iteración sobre §39.1/§39.2 para mensajes accionables (informe punto 6):
+
+- **Errores estructurados + acumulativos**: nuevo `entry-validation.ts` con `validateEntryInput(entry)` que devuelve
+  **todas** las `ValidationIssue` (no solo la primera), cada una con `code`, `field`, `message` y `example` de la forma
+  correcta; y `EntryValidationError` (`code:'ENTRY_VALIDATION'`, `issues[]`). `service.upsertEntry` lanza
+  `EntryValidationError`. `entry-validation.spec.ts` (4 casos, en verde en sandbox).
+- **Respuesta MCP estructurada**: el handler de `entries_upsert` captura `EntryValidationError` y devuelve
+  `{ error: { code, message, issues } }` en lugar de una excepción opaca, para que el LLM corrija el payload.
+- **Mapeo de errores de la API de HubSpot**: `hubspotErrorMessage` traduce `401` (token caducado/ inválido), `403`
+  (faltan scopes), `429` (rate limit), `409`/`OBJECT_ALREADY_EXISTS` (ya existe) y `400` (datos inválidos) a mensajes
+  accionables conservando el detalle del body. Fluye a la UI por el `Snackbar` de apply ya existente.
+- **i18n en la UI**: clave `errors.entryValidation` en los 7 locales; `PropertyManagementScreen.onSubmit` captura el
+  fallo de `upsert` y lo muestra localizado (con el detalle técnico como `{{detail}}`).
+
+Ficheros: `entry-validation.ts` (+spec), `service.ts` (`upsertEntry`, `hubspotErrorMessage`), `mcp-tools.ts`
+(`entries_upsert`), `PropertyManagementScreen.tsx`, `locales/*/common.json` (`errors.entryValidation`). Requiere rebuild
+de la app/MCP.
+
+---
+
+## 40. Documentación del mapeo de valores (`valueMap`) en la guía (IMPLEMENTADO, 2026-06-30)
+
+Del informe de remapeo de erratas (Pipedrive→HubSpot): el mapeo valor-origen → opción corregida no estaba documentado en
+`revops_guidance`, lo que obligó a descubrirlo por prueba y error.
+
+Aclaración de errata (no se renombra el campo): el informe lo llama `valueMap`; el campo real del helper es
+`EntrySource.definition.options[]` con `{ sourceValue, sourceLabel?, hubspotValue? }` (kind `enum`) y
+`EntrySource.definition.boolean { truthy, falsy }` (kind `boolean`). Vive en `sources[].definition`, no en la propiedad.
+
+`PROPERTY_GUIDANCE` (en `mcp-tools.ts`) se amplía documentando: el bloque `sources[].definition` con `options`
+(remapeo `sourceValue`→`hubspotValue`, ejemplo `Spain`→`España`) y `boolean`; y las reglas del nombre interno
+(minúsculas/números/`_`, máx. 100, no truncar). Sin cambios de contrato. Requiere rebuild del MCP.
+
+---
+
+## 41. Consistencia e idempotencia de cambios pendientes al editar (IMPLEMENTADO, 2026-06-30)
+
+Del informe (puntos 2 y 3): al cambiar el `hubspotName`/definición de una entrada, la creación anterior quedaba como
+cambio huérfano y `properties_pending_changes` (que lee el snapshot del estado, recalculado solo en `syncHubspot`)
+seguía mostrándola, con riesgo de crear propiedades duplicadas al aplicar.
+
+Fix en `service.upsertEntry`: si el `hubspotProperty` entrante difiere del de la entrada existente (comparación
+estructural), se resetean `pendingChanges = []`, `hubspotStatus` a su valor por modo (`exists`/`missing`) y
+`pendingDelete = undefined`, de modo que la siguiente `syncHubspot` los regenere limpios (idempotente, sin huérfanos).
+Editar solo `name`/`sources` preserva los cambios. Test `§41` en `service.spec.ts`. Sin tool nueva.
+
+---
+
+## 42. Operaciones en batch (IMPLEMENTADO, 2026-06-30)
+
+Del informe (punto 5): `entries_upsert`/`entries_delete`/`properties_discard_change` operaban de una en una; para ~150
+entradas suponía cientos de llamadas, agravado por el gate de guía entre lotes.
+
+Tres tools MCP nuevas que reutilizan los servicios existentes y devuelven un resultado por ítem (un fallo no aborta el lote):
+
+- `entries_upsert_batch` (`entries[]`) → `{ results: [{ index, ok, id?, error? }] }`; el `error` de validación conserva
+  `code`/`issues` (§39.9). Lleva `requiresGuidance: true`.
+- `entries_delete_batch` (`entryIds[]`) → `{ results: [{ id, ok, error? }] }`. `requiresGuidance: true`.
+- `properties_discard_changes_batch` (`changeIds[]`) → `{ results: [{ changeId, ok, error? }] }`. Útil para limpiar
+  huérfanos en bloque.
+
+Ficheros: `mcp-tools.ts`. Requiere rebuild del MCP.
+
+---
+
+## 43. Propiedades de sistema no-creables (IMPLEMENTADO, 2026-06-30)
+
+Del informe (punto 6): Owner, `createdate`, `closedate`, etc. aparecían como `existing-missing-remote` con remediación
+`convert-to-new`, incorrecta (no deben recrearse).
+
+- Nuevo módulo `system-properties.ts` con `isSystemProperty(objectType, name)`: lista curada (`createdate`, `closedate`,
+  `lastmodifieddate`, `hubspot_owner_id`, `hs_object_id`, owners/teams, …) + heurística de prefijo `hs_`.
+- `reconcile.ts`: una entrada `existing` sin remoto que sea de sistema produce un blocker con `reason: 'system-property'`
+  y `remediation: 'relink'` (probable error de nombre interno), nunca `convert-to-new`. El enum `Blocker` se amplía en
+  `shared/types/properties.ts` (`reason: 'existing-missing-remote' | 'system-property'`,
+  `remediation: 'convert-to-new' | 'relink'`).
+- `properties_pending_changes` (mcp-tools) usa la misma clasificación; `convertMissingToNew` excluye las de sistema de
+  la conversión en bloque.
+
+Tests: `system-properties.spec.ts` (4) y caso nuevo en `reconcile.spec.ts`. Requiere rebuild del MCP.
+
+---
+
+## 44. Validación de longitud y patrón de `hubspotName` (IMPLEMENTADO, 2026-06-30)
+
+Del informe (punto 7): el helper no avisaba del límite de longitud; al truncar nombres largos se produjeron colisiones
+entre propiedades distintas.
+
+- `entry-validation.ts`: `HUBSPOT_PROPERTY_NAME_MAX = 100` y patrón `^[a-z][a-z0-9_]*$`. `pushNameIssues` añade
+  `HUBSPOTNAME_TOO_LONG` y `HUBSPOTNAME_PATTERN` (con `example`) tanto en modo `existing` como `new`.
+- Colisión: el modelo permite que varias entradas compartan una propiedad **existente**, pero dos entradas que **crean**
+  (`mode: 'new'`) el mismo `hubspotName` en el mismo objeto son un duplicado real → `service.upsertEntry` lanza
+  `HUBSPOTNAME_COLLISION`. El remedio es acortar el nombre en origen, no truncar.
+- Límite de 100 caracteres: valor documentado de la Properties API; pendiente de confirmación final contra la doc
+  (conector Chrome) — la constante está centralizada para ajustarla en un punto.
+
+Tests: casos `§44` en `entry-validation.spec.ts` y `service.spec.ts`. Requiere rebuild del MCP.
+
+---
+
+## 45. Filtro por nombre en el listado (IMPLEMENTADO, 2026-06-30)
+
+Buscar a mano en listados largos era complejo. En `PropertyManagementScreen` se añade un `TextField` (`type="search"`,
+`aria-label`) que filtra `objectEntries` por `name` y por nombre de propiedad destino (`destName`), insensible a
+mayúsculas y acentos (`norm` con `NFD`). Estado local que se resetea al cambiar de objeto; si el filtro no devuelve nada
+se muestra `properties.noResults`. i18n: clave `properties.filters.search` añadida en los 7 locales (reutiliza
+`properties.search`/`properties.noResults`, ya presentes). Solo UI; no toca lógica de negocio.
+
+---
+
+## 46. Exposición formal de `formField` (disponibilidad en formularios y chatbots) por MCP y UI (BORRADOR, 2026-07-02)
+
+### 46.1 Diagnóstico
+
+El atributo `formField` (booleano) controla si una propiedad puede usarse como campo en formularios de HubSpot **y** en
+bots/chatflows (HubSpot lo gobierna con un único flag; no hay flag separado para chatbots). Hoy el atributo está
+soportado en el núcleo pero **no expuesto formalmente**:
+
+- Modelo: `HubSpotPropertyDef.formField?: boolean` ya existe (`properties.ts`).
+- Backend: está en `ATTRIBUTE_KEYS` de `pending-changes.ts`, por lo que `createBody` y `diffDefinition` lo envían y
+  detectan. `reconcile.ts` pasa `ref.definition` íntegra. Es columna de la hoja `Definicion` de Drive (§32,
+  `sheets-model.ts`).
+- MCP: el `inputSchema` de `entries_upsert` (§39.2) **no declara** `formField`; funciona por no fijar
+  `additionalProperties: false`, pero el cliente MCP no sabe que puede activarlo y la guía no lo menciona.
+- UI: el `EntryWizard` **no ofrece control** para `formField` (igual que `hidden`, que tampoco se expone). El `EntryPanel`
+  de solo lectura tampoco lo muestra.
+
+Esta sección lo expone como campo de primera clase en MCP y UI, sin tocar el pipeline de reconciliación (ya lo soporta).
+
+### 46.2 Semántica y valor por defecto (tri-estado)
+
+Se mantiene la semántica de `hasUniqueValue` (§25) y `showCurrencySymbol`:
+
+- `formField === undefined` → **no se envía**; HubSpot aplica su valor por defecto. Es el estado inicial de una entrada
+  nueva y de las entradas heredadas que no lo fijaron.
+- `formField === true | false` → se envía explícito en `create`/`patch` y participa en el diff.
+
+Aplica tanto a `mode: 'new'` (create) como a `mode: 'existing'` (patch): a diferencia de `hasUniqueValue` (inmutable),
+`formField` es editable vía `PATCH`, por lo que el control se muestra en **ambos** modos.
+
+### 46.3 MCP
+
+- `entries_upsert` e `entries_upsert_batch`: el `inputSchema` de la rama `definition` (modos `new` y `existing`) declara
+  `formField: { type: 'boolean' }`. Sin cambio de validación en `entry-validation.ts` (booleano opcional; si viene con
+  tipo incorrecto se ignora aguas arriba como el resto de atributos opcionales).
+- `hubspot_properties_list` (§39.4): el parseo remoto **no** capturaba `formField` (`RawProperty`/`RemoteProperty`/
+  `toRemoteProperty` en `connectors/hubspot/properties.ts` y `toDef` en `service.ts`). Se añade `formField?` a esa cadena.
+  Es imprescindible: sin ello el diff vería el remoto siempre como `undefined` y produciría un `update` perpetuo tras
+  aplicar (mismo patrón que el bug §36 de `hidden`).
+- Guía `revops_guidance` (sección `property-management`): se documenta `formField` — qué controla (formularios y bots),
+  que es opcional y tri-estado, y que se puede fijar en `create` y `update`.
+
+### 46.4 UI — `EntryWizard`
+
+- Nuevo `Switch` dentro del `Accordion` «Opciones avanzadas», junto a `hasUniqueValue`, visible en ambos modos
+  (`editableName` y selección de existente). `checked={Boolean(def.formField)}`,
+  `onChange={(e) => setDef({ ...def, formField: e.target.checked })}`. Con `FieldTooltip` (SPEC-0002 §18).
+- `hasAdvancedContent` incluye `def.formField !== undefined` para auto-expandir la sección al editar una entrada que ya
+  lo tenga fijado.
+
+### 46.5 UI — `EntryPanel` (solo lectura)
+
+Bloque de solo lectura que muestra el estado de `formField` (p. ej. «Disponible en formularios y chatbots: Sí/No/—»
+para `true`/`false`/`undefined`), siguiendo el patrón de §34.
+
+### 46.6 i18n
+
+Claves nuevas en los **7 locales** (`es`/`ca`/`eu`/`en`/`gl`/`pt`/`fr`):
+
+- `properties.advanced.formField` (etiqueta del Switch).
+- `properties.advanced.fieldHelp.formField` (tooltip).
+- `properties.panel.formField` (etiqueta en `EntryPanel`).
+- `properties.panel.formFieldOn` / `formFieldOff` / `formFieldDefault` (valor de solo lectura: Sí / No / default de
+  HubSpot para `true`/`false`/`undefined`).
+
+Nota: se detectó un desfase **preexistente** (ajeno a esta sección) de 76 claves en `ca`/`eu`/`en` respecto a `es`
+(incluida `common.loading`); `gl`/`pt`/`fr` están a paridad. Las 6 claves de `formField` sí están en los 7.
+
+### 46.7 Sheets
+
+Sin cambios: la hoja `Definicion` ya incluye la columna `formField` (§32); no cambia `SHEETS_SCHEMA_VERSION`.
+
+### 46.8 Tests
+
+- `pending-changes.spec.ts` (§46): `createBody` incluye `formField` true/false y lo omite si `undefined`;
+  `diffDefinition` marca `update_attributes` al cambiar y no diverge si coincide.
+- `EntryPanel.spec.tsx` (§46): render del bloque con los tres estados (Sí/No/default).
+- Paridad de claves de locales verificada por script (las 6 claves en los 7 locales).
+
+### 46.9 Impacto / ficheros
+
+- `connectors/hubspot/properties.ts` (`formField?` en `RawProperty`/`RemoteProperty`/`toRemoteProperty`).
+- `service.ts` (`formField` en `toDef`).
+- `mcp-tools.ts` (schema de `entries_upsert` modos new/existing, guía `PROPERTY_GUIDANCE`).
+- `EntryWizard.tsx` (`Switch` + `hasAdvancedContent`).
+- `EntryPanel.tsx` (bloque de solo lectura).
+- `locales/{es,ca,eu,en,gl,pt,fr}/common.json` (6 claves).
+- Requiere **rebuild de la app/MCP**.
+
+### 46.10 Fuera de alcance
+
+- No se expone `hidden` ni ningún otro atributo no solicitado.
+- No se altera el pipeline de reconciliación/diff (ya soporta `formField`).
+- No cambia el mecanismo del conector Drive ni el esquema de Sheets.
+
+### 46.11 Estado
+
+IMPLEMENTADO (2026-07-02). MCP (schema + guía + parseo remoto de `formField`), UI (`EntryWizard` + `EntryPanel`) e i18n
+(6 claves × 7 locales). `pending-changes` 16/16 + `EntryPanel` 5/5 + suite property-management/mcp 109/109, typecheck
+node/web en verde en sandbox. Requiere **rebuild de la app/MCP**.

@@ -15,11 +15,11 @@ export interface ChangeFactoryDeps {
   now: () => string;
 }
 
-/** Descarta opciones vacías y reindexa el orden (HubSpot rechaza label/value vacíos). */
+/** Descarta opciones vacías, reindexa el orden y normaliza `hidden` (HubSpot rechaza label/value vacíos). */
 export function cleanOptions(options?: HsPropertyOption[]): HsPropertyOption[] {
   return (options ?? [])
     .filter((o) => o.label.trim() && o.value.trim())
-    .map((o, i) => ({ ...o, displayOrder: i }));
+    .map((o, i) => ({ ...o, displayOrder: i, hidden: o.hidden ?? false }));
 }
 
 /** Atributos escalares opcionales que HubSpot acepta en create/patch además del núcleo. */
@@ -76,7 +76,12 @@ function optionsEqual(a?: HsPropertyOption[], b?: HsPropertyOption[]): boolean {
   const byValue = new Map(right.map((option) => [option.value, option]));
   return left.every((option) => {
     const match = byValue.get(option.value);
-    return Boolean(match) && match?.label === option.label && match?.hidden === option.hidden;
+    // `hidden` se normaliza: las opciones remotas traen `false` y las locales importadas pueden traer `undefined`.
+    return (
+      Boolean(match) &&
+      match?.label === option.label &&
+      (match?.hidden ?? false) === (option.hidden ?? false)
+    );
   });
 }
 

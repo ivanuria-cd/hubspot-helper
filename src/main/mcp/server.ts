@@ -12,9 +12,13 @@ import type {
   McpTokenResult,
   McpToolSummary,
 } from './types';
+import type { GuidanceBlocked } from './types';
 import { toSummary } from './types';
 import { startHttpSse, type HttpSseHandle } from './transport/http-sse';
 import { connectStdio } from './transport/stdio';
+
+/** Nombre de la tool de guía que levanta el acuse de sesión (SPEC-0005 §15.3). */
+export const GUIDANCE_TOOL = 'revops_guidance';
 
 /** Persistencia de la configuración del servidor MCP (habilitado, puerto). */
 export interface McpConfigStore {
@@ -48,14 +52,46 @@ export interface McpService {
   startStdio(): Promise<void>;
   /** Expuesto para tests: crea un servidor MCP cableado al registry. */
   buildServer(): Server;
+  /** Despacha una tool aplicando el gate de guía por sesión (SPEC-0005 §15.5). Expuesto para tests. */
+  callTool(name: string, args: unknown, sessionId: string): Promise<unknown>;
+  /** Purga el acuse de guía de una sesión (al cerrarse). Expuesto para tests. */
+  purgeSession(sessionId: string): void;
 }
 
 export function createMcpService(deps: McpServiceDeps): McpService {
   const log = deps.log ?? (() => undefined);
   let httpHandle: HttpSseHandle | null = null;
+  const guidanceAck = new Set<string>();
+
+  function blocked(): GuidanceBlocked {
+    return {
+      blocked: true,
+      reason: 'guidance-required',
+      message:
+        'Operación bloqueada. Llama a revops_guidance para leer las reglas de operación antes de continuar. ' +
+        'El acuse es por sesión MCP (no hay umbral por número de escrituras): una vez leída la guía, esta sesión ' +
+        'queda desbloqueada hasta que se cierre o se reinicie el servidor; al reconectar hay que leerla de nuevo.',
+      next: GUIDANCE_TOOL,
+    };
+  }
+
+  async function callTool(name: string, args: unknown, sessionId: string): Promise<unknown> {
+    const tool = deps.registry.get(name);
+    if (!tool) throw new Error(`Tool MCP desconocida: ${name}`);
+    if (tool.requiresGuidance && !guidanceAck.has(sessionId)) return blocked();
+    log(`tool MCP llamada: ${tool.name}`);
+    const result = await tool.handler(args ?? {}, { ...deps.contextProvider(), sessionId });
+    if (name === GUIDANCE_TOOL) guidanceAck.add(sessionId);
+    return result;
+  }
+
+  function purgeSession(sessionId: string): void {
+    guidanceAck.delete(sessionId);
+  }
 
   function buildServer(): Server {
     const server = new Server(deps.serverInfo, { capabilities: { tools: {} } });
+    let sessionId = 'stdio';
 
     server.setRequestHandler(ListToolsRequestSchema, () => ({
       tools: deps.registry.getAll().map((tool) => ({
@@ -65,17 +101,14 @@ export function createMcpService(deps: McpServiceDeps): McpService {
       })),
     }));
 
-    server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const tool = deps.registry.get(request.params.name);
-      if (!tool) {
-        throw new Error(`Tool MCP desconocida: ${request.params.name}`);
-      }
-      // Log a nivel info de qué tool se llamó, sin registrar los datos de respuesta.
-      log(`tool MCP llamada: ${tool.name}`);
-      const result = await tool.handler(request.params.arguments ?? {}, deps.contextProvider());
+    server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+      sessionId = extra?.sessionId ?? sessionId;
+      const result = await callTool(request.params.name, request.params.arguments ?? {}, sessionId);
       const text = typeof result === 'string' ? result : JSON.stringify(result);
       return { content: [{ type: 'text', text }] };
     });
+
+    server.onclose = () => purgeSession(sessionId);
 
     return server;
   }
@@ -150,5 +183,7 @@ export function createMcpService(deps: McpServiceDeps): McpService {
     getToken,
     startStdio,
     buildServer,
+    callTool,
+    purgeSession,
   };
 }

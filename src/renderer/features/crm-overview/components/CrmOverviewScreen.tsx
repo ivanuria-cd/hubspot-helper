@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useShellStore } from '@renderer/app/store/shell-store';
 import { LoadingState } from '@shared/components/feedback';
+import { useHubspotEnvironmentChange } from '@shared/hooks/useHubspotEnvironmentChange';
 import { useCrmOverview } from '../hooks/useCrmOverview';
 
 const GRID = {
@@ -27,6 +28,11 @@ export function CrmOverviewScreen(): JSX.Element | null {
   const activeProject = useShellStore((state) => state.activeProject);
   const projectId = activeProject?.id ?? '';
   const overview = useCrmOverview(projectId);
+
+  // Refresca al cambiar el entorno activo (SPEC-0003 §16).
+  useHubspotEnvironmentChange(() => {
+    void overview.reload();
+  });
 
   const cards = useMemo(
     () => [

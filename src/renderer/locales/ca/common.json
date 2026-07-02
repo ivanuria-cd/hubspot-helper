@@ -250,6 +250,14 @@
   "sections": {
     "placeholder": "Aquesta secció es completarà en un SPEC posterior."
   },
+  "errorBoundary": {
+    "title": "Alguna cosa ha fallat en aquesta pantalla",
+    "body": "Una dada del projecte pot estar mal formada. Pots recarregar; si persisteix, revisa les dades d'aquesta secció.",
+    "reload": "Recarregar"
+  },
+  "errors": {
+    "entryValidation": "No s'ha pogut desar l'entrada: {{detail}}"
+  },
   "properties": {
     "title": "CRM / Propietats",
     "syncHs": "Sincronitza HubSpot",
@@ -302,12 +310,27 @@
       "type": "Tipus",
       "origin": "Origen",
       "status": "Estat",
-      "all": "Tots"
+      "all": "Tots",
+      "search": "Cerca per nom"
     },
     "status": {
       "exists": "existeix",
       "divergent": "divergeix",
-      "missing": "falta"
+      "missing": "falta",
+      "missingTooltip": "No existeix a HubSpot; converteix-la a «Nova» per crear-la"
+    },
+    "actions": {
+      "convertToNew": "Convertir a Nova"
+    },
+    "blocked": {
+      "banner": "{{count}} propietats referencien camps que no existeixen a HubSpot i no es crearan automàticament.",
+      "convertAll": "Convertir-les totes a Nova ({{count}})"
+    },
+    "convert": {
+      "confirmTitle": "Convertir a Nova",
+      "confirmBody": "Es convertiran {{count}} propietats a mode «Nova» per poder crear-les. Després sincronitza per generar els canvis.",
+      "done": "{{converted}} convertides. Sincronitza per crear les propietats.",
+      "seededWarning": "{{seeded}} sense definició prèvia: revisa-les abans d'aplicar."
     },
     "panel": {
       "definition": "Definició",
@@ -330,7 +353,11 @@
       "addMapping": "Afegeix origen",
       "save": "Desa",
       "delete": "Elimina",
-      "close": "Tanca"
+      "close": "Tanca",
+      "formField": "En formularis i chatbots",
+      "formFieldOn": "Sí",
+      "formFieldOff": "No",
+      "formFieldDefault": "Per defecte de HubSpot"
     },
     "addDialog": {
       "title": "Afegeix propietat",
@@ -434,8 +461,10 @@
         "textDisplayHint": "Format del text a HubSpot (simple, multilínia, correu electrònic, telèfon, etc.).",
         "calculationFormula": "Fórmula de càlcul amb la sintaxi de l'API de HubSpot (p. ex. closed - started).",
         "dataSensitivity": "Nivell de sensibilitat de la dada; afecta el seu tractament i visibilitat a HubSpot.",
-        "hasUniqueValue": "Obliga que el valor sigui únic entre registres. No es pot modificar després de crear la propietat."
-      }
+        "hasUniqueValue": "Obliga que el valor sigui únic entre registres. No es pot modificar després de crear la propietat.",
+        "formField": "Permet usar la propietat com a camp en formularis de HubSpot i en bots/chatflows. Si es deixa sense marcar, HubSpot aplica el seu valor per defecte."
+      },
+      "formField": "Disponible en formularis i chatbots"
     },
     "numberHints": {
       "unformatted": "Sense format",

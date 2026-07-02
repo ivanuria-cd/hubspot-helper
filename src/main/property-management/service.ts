@@ -7,6 +7,10 @@
 import type {
   ApplyChangeInput,
   ApplyChangeResult,
+  ConvertEntryInput,
+  ConvertEntryResult,
+  ConvertMissingInput,
+  ConvertMissingResult,
   DataOrigin,
   DiscardChangeInput,
   EntriesListInput,
@@ -39,7 +43,9 @@ import type { PropertyStore } from './store';
 import type { HubSpotPropertyRef } from '@shared/types/properties';
 import type { DriveDocMeta } from '@shared/types/gdrive';
 import { reconcileEntries } from './reconcile';
-import { markApplied, cleanOptions } from './pending-changes';
+import { markApplied, cleanOptions, diffDefinition } from './pending-changes';
+import { EntryValidationError, validateEntryInput } from './entry-validation';
+import { isSystemProperty } from './system-properties';
 import { buildOriginExport } from './origin-export';
 import type { PropertyDriveState } from './drive-state';
 
@@ -63,10 +69,16 @@ export interface PropertyServiceDeps {
 }
 
 function entryDestName(entry: PropertyEntry): string {
-  return entry.hubspotProperty.mode === 'existing'
-    ? entry.hubspotProperty.hubspotName
-    : entry.hubspotProperty.definition.hubspotName;
+  const ref = entry.hubspotProperty as unknown as {
+    mode?: string;
+    hubspotName?: string;
+    definition?: { hubspotName?: string };
+  };
+  if (!ref || typeof ref !== 'object') return '';
+  if (ref.mode === 'existing') return ref.hubspotName ?? '';
+  return ref.definition?.hubspotName ?? '';
 }
+
 
 function toDef(remote: RemoteProperty): HubSpotPropertyDef {
   return {
@@ -86,20 +98,49 @@ function toDef(remote: RemoteProperty): HubSpotPropertyDef {
     dataSensitivity: remote.dataSensitivity,
     externalOptions: remote.externalOptions,
     referencedObjectType: remote.referencedObjectType,
+    formField: remote.formField,
   };
 }
 
-/** Extrae el mensaje de error útil que devuelve HubSpot (body de la respuesta 4xx). */
+/**
+ * Traduce el error de HubSpot a un mensaje accionable según el status/categoría (SPEC-0006 §39.9),
+ * conservando el detalle del body.
+ */
 function hubspotErrorMessage(error: unknown): string {
   const e = error as {
-    response?: { data?: { message?: string; errors?: Array<{ message?: string }> } };
+    response?: {
+      status?: number;
+      data?: { message?: string; category?: string; errors?: Array<{ message?: string }> };
+    };
     message?: string;
   };
+  const status = e?.response?.status;
   const data = e?.response?.data;
-  if (data?.message) return data.message;
-  const detail = (data?.errors ?? []).map((x) => x.message).filter(Boolean).join('; ');
-  if (detail) return detail;
-  return e?.message ?? 'Error en HubSpot';
+  const base =
+    data?.message ||
+    (data?.errors ?? []).map((x) => x.message).filter(Boolean).join('; ') ||
+    e?.message ||
+    'Error en HubSpot';
+  if (status === 401) return `Token de HubSpot no válido o caducado: revisa el PAT del entorno. (${base})`;
+  if (status === 403)
+    return `Permisos insuficientes: al token le faltan scopes para esta operación. (${base})`;
+  if (status === 429) return `Límite de peticiones de HubSpot alcanzado; reintenta en unos segundos. (${base})`;
+  if (status === 409 || data?.category === 'OBJECT_ALREADY_EXISTS')
+    return `La propiedad ya existe en el entorno destino. (${base})`;
+  if (status === 400) return `HubSpot rechazó la petición (datos inválidos): ${base}`;
+  return base;
+}
+
+/** Detecta el error de HubSpot «la propiedad ya existe» para tratar el create como idempotente (§38). */
+function isAlreadyExists(error: unknown): boolean {
+  const e = error as {
+    response?: { status?: number; data?: { category?: string; message?: string } };
+    message?: string;
+  };
+  const status = e?.response?.status;
+  const category = e?.response?.data?.category;
+  const message = e?.response?.data?.message ?? e?.message ?? '';
+  return status === 409 || category === 'OBJECT_ALREADY_EXISTS' || /already exists/i.test(message);
 }
 
 export function createPropertyService(deps: PropertyServiceDeps) {
@@ -141,6 +182,8 @@ export function createPropertyService(deps: PropertyServiceDeps) {
   }
 
   function upsertEntry(input: EntryUpsertInput): PropertyEntry {
+    const issues = validateEntryInput(input.entry);
+    if (issues.length > 0) throw new EntryValidationError(issues);
     const state = deps.store.get(input.projectId);
     const incoming = input.entry;
     const validOrigins = new Set(state.origins.map((o) => o.id));
@@ -150,16 +193,48 @@ export function createPropertyService(deps: PropertyServiceDeps) {
       }
     }
     const existing = incoming.id ? state.entries.find((e) => e.id === incoming.id) : undefined;
+    const ref = sanitizeRef(incoming.hubspotProperty);
+
+    // Colisión: dos entradas distintas que CREAN la misma propiedad nueva son un duplicado real
+    // (varias entradas pueden compartir una propiedad existente, pero no dos creaciones del mismo
+    // nombre). Evita los `create` duplicados por truncado de nombre (SPEC-0006 §44).
+    if (ref.mode === 'new') {
+      const dup = state.entries.find(
+        (e) =>
+          e.id !== existing?.id &&
+          e.objectType === incoming.objectType &&
+          e.hubspotProperty.mode === 'new' &&
+          e.hubspotProperty.definition.hubspotName === ref.definition.hubspotName,
+      );
+      if (dup) {
+        throw new EntryValidationError([
+          {
+            code: 'HUBSPOTNAME_COLLISION',
+            field: 'hubspotProperty.definition.hubspotName',
+            message: `otra entrada nueva («${dup.name}») ya crea «${ref.definition.hubspotName}» en ${incoming.objectType}.`,
+          },
+        ]);
+      }
+    }
+
+    // Idempotencia: si cambia el destino o la definición respecto a la entrada existente, los
+    // cambios pendientes previos quedan huérfanos; se resetean para que `syncHubspot` los regenere
+    // limpios (SPEC-0006 §41). Editar solo `name`/`sources` los preserva.
+    const refUnchanged =
+      existing !== undefined && JSON.stringify(existing.hubspotProperty) === JSON.stringify(ref);
     const entry: PropertyEntry = {
       id: existing?.id ?? deps.newId(),
       objectType: incoming.objectType,
       name: incoming.name,
-      hubspotProperty: sanitizeRef(incoming.hubspotProperty),
+      hubspotProperty: ref,
       sources: incoming.sources.map((source) => ({ ...source, id: source.id || deps.newId() })),
-      hubspotStatus:
-        existing?.hubspotStatus ?? (incoming.hubspotProperty.mode === 'existing' ? 'exists' : 'missing'),
-      pendingChanges: existing?.pendingChanges ?? [],
-      pendingDelete: existing?.pendingDelete,
+      hubspotStatus: refUnchanged
+        ? (existing as PropertyEntry).hubspotStatus
+        : incoming.hubspotProperty.mode === 'existing'
+          ? 'exists'
+          : 'missing',
+      pendingChanges: refUnchanged ? (existing?.pendingChanges ?? []) : [],
+      pendingDelete: refUnchanged ? existing?.pendingDelete : undefined,
     };
     const entries = existing
       ? state.entries.map((e) => (e.id === entry.id ? entry : e))
@@ -188,7 +263,9 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     const failedObjects = new Set<string>();
     for (const objectType of objectTypes) {
       try {
-        remotes.push(...(await api.listProperties(objectType)));
+        // El estado (exists/missing/divergent) se reconcilia SIEMPRE contra producción (SPEC-0006 §37),
+        // con independencia del entorno activo. Aplicar cambios sigue usando el entorno elegido.
+        remotes.push(...(await api.listProperties(objectType, 'production')));
       } catch {
         // Un objeto inaccesible (p. ej. custom archivado/inexistente) no debe abortar el sync;
         // se salta y sus entradas quedan intactas (no se reconcilian contra remotos vacíos).
@@ -201,7 +278,64 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     const result = reconcileEntries(reconcilable, remotes, changeFactory());
     deps.store.set(input.projectId, { ...state, entries: [...result.entries, ...skipped] });
     markChanged(input.projectId);
-    return result.summary;
+    return { ...result.summary, blockers: result.blockers };
+  }
+
+  /**
+   * Convierte una entrada de modo `existing` (que apunta a algo inexistente) a modo `new`
+   * para que la siguiente sincronización genere el cambio `create` (SPEC-0006 §35.4).
+   */
+  function convertEntryToNew(input: ConvertEntryInput): ConvertEntryResult {
+    const state = deps.store.get(input.projectId);
+    const target = state.entries.find((e) => e.id === input.entryId);
+    if (!target) return { success: false, error: 'Entrada no encontrada' };
+    const ref = target.hubspotProperty;
+    if (ref.mode === 'new') return { success: true, seeded: false };
+
+    const seeded = !ref.definition;
+    const base: HubSpotPropertyDef = ref.definition ?? {
+      hubspotName: ref.hubspotName,
+      label: target.name,
+      type: 'string',
+      fieldType: 'text',
+      groupName: '',
+    };
+    const definition: HubSpotPropertyDef = {
+      ...base,
+      hubspotName: base.hubspotName || ref.hubspotName,
+    };
+    const entries = state.entries.map((e) =>
+      e.id === target.id
+        ? { ...e, hubspotProperty: { mode: 'new' as const, definition }, hubspotStatus: 'missing' as const }
+        : e,
+    );
+    deps.store.set(input.projectId, { ...state, entries });
+    markChanged(input.projectId);
+    return { success: true, seeded };
+  }
+
+  /** Convierte en bloque todas las entradas en `missing` + modo `existing` (SPEC-0006 §35.4). */
+  function convertMissingToNew(input: ConvertMissingInput): ConvertMissingResult {
+    const targets = deps.store
+      .get(input.projectId)
+      .entries.filter(
+        (e) =>
+          e.hubspotStatus === 'missing' &&
+          e.hubspotProperty.mode === 'existing' &&
+          // Las propiedades de sistema no se recrean (§43): se excluyen de la conversión en bloque.
+          !isSystemProperty(e.objectType, entryDestName(e)) &&
+          (!input.objectType || e.objectType === input.objectType),
+      );
+    let converted = 0;
+    let seeded = 0;
+    for (const t of targets) {
+      const r = convertEntryToNew({ projectId: input.projectId, entryId: t.id });
+      if (r.success) {
+        converted += 1;
+        if (r.seeded) seeded += 1;
+      }
+    }
+    return { converted, seeded };
   }
 
   /** Garantiza que el grupo de la propiedad existe en el entorno destino antes de crearla (H2). */
@@ -230,7 +364,24 @@ export function createPropertyService(deps: PropertyServiceDeps) {
       if (change.operation === 'create') {
         const groupName = (change.payload as { groupName?: string }).groupName;
         await ensureGroup(api, entry.objectType, groupName, input.environment);
-        await api.createProperty(entry.objectType, change.payload, input.environment);
+        try {
+          await api.createProperty(entry.objectType, change.payload, input.environment);
+        } catch (error) {
+          // El estado se reconcilia contra producción (§37); la propiedad puede existir ya en el
+          // entorno destino (p. ej. sandbox). En ese caso, en vez de fallar, se reconcilia contra la
+          // propiedad existente en ESE entorno y se aplica el update equivalente (§38).
+          if (!isAlreadyExists(error)) throw error;
+          const def = entry.hubspotProperty.definition;
+          if (def) {
+            const remotes = await api.listProperties(entry.objectType, input.environment);
+            const remote = remotes.find((r) => r.name === def.hubspotName);
+            if (remote) {
+              for (const update of diffDefinition(entry.id, def, remote, changeFactory())) {
+                await api.patchProperty(entry.objectType, def.hubspotName, update.payload, input.environment);
+              }
+            }
+          }
+        }
       } else if (change.operation === 'delete') {
         await api.deleteProperty(entry.objectType, entryDestName(entry), input.environment);
       } else {
@@ -448,6 +599,8 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     upsertEntry,
     deleteEntry,
     syncHubspot,
+    convertEntryToNew,
+    convertMissingToNew,
     applyChange,
     discardChange,
     requestDelete,

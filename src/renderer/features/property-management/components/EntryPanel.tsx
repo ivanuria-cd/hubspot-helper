@@ -20,6 +20,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import { useTranslation } from 'react-i18next';
 import type { DataOrigin, HsPropertyChange, PropertyEntry } from '@shared/types/properties';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
@@ -35,15 +36,21 @@ interface EntryPanelProps {
   onEdit: (entry: PropertyEntry) => void;
   onDelete: (entryId: string) => void;
   onApply: (changeId: string, environment: HubSpotEnvironment) => Promise<void>;
+  onConvert?: (entryId: string) => void;
 }
 
 function destName(entry: PropertyEntry): string {
-  return entry.hubspotProperty.mode === 'existing'
-    ? entry.hubspotProperty.hubspotName
-    : entry.hubspotProperty.definition.hubspotName;
+  const ref = entry.hubspotProperty as unknown as {
+    mode?: string;
+    hubspotName?: string;
+    definition?: { hubspotName?: string };
+  };
+  if (!ref || typeof ref !== 'object') return '';
+  if (ref.mode === 'existing') return ref.hubspotName ?? '';
+  return ref.definition?.hubspotName ?? '';
 }
 
-export function EntryPanel({ entry, origins, busy, onClose, onEdit, onDelete, onApply }: EntryPanelProps): JSX.Element {
+export function EntryPanel({ entry, origins, busy, onClose, onEdit, onDelete, onApply, onConvert }: EntryPanelProps): JSX.Element {
   const { t } = useTranslation('common');
   const askConfirm = useConfirm();
   const originName = new Map(origins.map((o) => [o.id, o.name]));
@@ -99,6 +106,17 @@ export function EntryPanel({ entry, origins, busy, onClose, onEdit, onDelete, on
               {destName(entry)}
               {entry.hubspotProperty.mode === 'new' ? ` (${t('properties.wizard.new')})` : ''}
             </Typography>
+            {entry.hubspotStatus === 'missing' && entry.hubspotProperty.mode === 'existing' && onConvert ? (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<SwapHorizIcon />}
+                sx={{ mt: 1 }}
+                onClick={() => onConvert(entry.id)}
+              >
+                {t('properties.actions.convertToNew')}
+              </Button>
+            ) : null}
             {entry.hubspotProperty.definition?.description ? (
               <>
                 <Typography variant="caption" color="text.primary">
@@ -109,6 +127,16 @@ export function EntryPanel({ entry, origins, busy, onClose, onEdit, onDelete, on
                 </Typography>
               </>
             ) : null}
+            <Typography variant="caption" color="text.primary">
+              {t('properties.panel.formField')}
+            </Typography>
+            <Typography variant="body2">
+              {entry.hubspotProperty.definition?.formField === true
+                ? t('properties.panel.formFieldOn')
+                : entry.hubspotProperty.definition?.formField === false
+                  ? t('properties.panel.formFieldOff')
+                  : t('properties.panel.formFieldDefault')}
+            </Typography>
 
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" gutterBottom>

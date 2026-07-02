@@ -1,7 +1,8 @@
 import Store from 'electron-store';
 import { mcpRegistry } from './registry';
+import { guidanceRegistry } from './guidance';
 import { createAuth, type TokenStorage } from './auth';
-import { createMcpService, type McpConfigStore, type McpService } from './server';
+import { createMcpService, GUIDANCE_TOOL, type McpConfigStore, type McpService } from './server';
 import { DEFAULT_MCP_PORT } from './types';
 
 interface McpSettingsSchema {
@@ -76,7 +77,26 @@ function registerCoreTools(): void {
     handler: (_input, context) =>
       Promise.resolve({ ok: true, projectId: context.projectId, ts: new Date().toISOString() }),
   });
+
+  mcpRegistry.register({
+    name: GUIDANCE_TOOL,
+    description:
+      'LÉEME PRIMERO. Devuelve las reglas de operación del MCP revops. ' +
+      'Las tools de escritura/sincronización están bloqueadas hasta llamar a esta tool en la sesión.',
+    inputSchema: { type: 'object', properties: { section: { type: 'string' } } },
+    featureKey: 'mcp-core',
+    handler: (input) => {
+      const { section } = (input ?? {}) as { section?: string };
+      const content = guidanceRegistry.assemble(section ? { featureKey: section } : undefined);
+      return Promise.resolve({
+        content,
+        sections: guidanceRegistry.getAll().map((s) => s.featureKey),
+        acknowledged: true,
+      });
+    },
+  });
 }
 
 export { mcpRegistry } from './registry';
+export { guidanceRegistry } from './guidance';
 export type { McpService } from './server';
