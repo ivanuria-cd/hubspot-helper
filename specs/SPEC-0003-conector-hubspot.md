@@ -338,3 +338,32 @@ una tool MCP) alteraba la ruta. Todos los segmentos dinámicos pasan por `encode
 ### 17.3 Estado
 
 IMPLEMENTADO (2026-07-02). Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 18. Reintentos coherentes con el rate limiting (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgo 2.1.
+
+### 18.1 Problema
+
+El retry del interceptor (`client.ts`) llamaba `instance.request(config)` directamente: los reintentos no
+consumían reservoir del Bottleneck, el backoff (100/200/400 ms) era inútil frente a la ventana de 10 s del rate
+limit de HubSpot y se ignoraba la cabecera `Retry-After`.
+
+### 18.2 Diseño
+
+- `retryDelayMs(status, retryAfterHeader, attempt)` (exportada, testeable): `Retry-After` en segundos si llega;
+  si no, 10 s fijos para 429 (ventana de HubSpot) o backoff exponencial en segundos (1/2/4 s) para 5xx.
+- Opción nueva `onRetry` en `createHubSpotClient`: hook previo a cada reintento. El conector (`index.ts`) lo usa
+  para `limiter.incrementReservoir(-1)`, de modo que cada reintento cuenta contra la cuota.
+- Decisión: NO se reencola vía `limiter.schedule` desde el interceptor — reencolar desde dentro de un job en
+  curso puede producir deadlock cuando `maxConcurrent` está agotado por jobs que esperan a sus propios
+  reintentos. El descuento de reservoir + la espera larga logran el mismo efecto sin ese riesgo.
+
+### 18.3 Tests
+
+`client.spec.ts`: tabla de `retryDelayMs` (Retry-After > 429 sin header > backoff 5xx) y verificación de que
+`onRetry` se invoca una vez por reintento. Los 4 casos previos siguen válidos.
+
+### 18.4 Estado
+
+IMPLEMENTADO (2026-07-02). Requiere rebuild de la app/MCP; typecheck/test en la máquina del usuario.

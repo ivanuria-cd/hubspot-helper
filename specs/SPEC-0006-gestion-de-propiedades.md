@@ -1965,3 +1965,32 @@ Sin cambios: la hoja `Definicion` ya incluye la columna `formField` (§32); no c
 IMPLEMENTADO (2026-07-02). MCP (schema + guía + parseo remoto de `formField`), UI (`EntryWizard` + `EntryPanel`) e i18n
 (6 claves × 7 locales). `pending-changes` 16/16 + `EntryPanel` 5/5 + suite property-management/mcp 109/109, typecheck
 node/web en verde en sandbox. Requiere **rebuild de la app/MCP**.
+
+## 47. Correctitud del servicio: concurrencia y validación de orígenes (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgos 2.4 y 2.8.
+
+### 47.1 Relectura del store tras los await de red (§2.4)
+
+`applyChange` y `syncHubspot` capturaban `state` antes de varios `await` de red y escribían ese snapshot completo
+al final: una edición concurrente (UI + tool MCP simultáneas) se perdía (last-write-wins). Se adopta el patrón ya
+usado por formularios (`forms-management/service.ts`, relectura `fresh` antes de escribir):
+
+- `applyChange`: la escritura final mapea sobre `deps.store.get(...)` releído; solo toca la entrada y el cambio
+  afectados.
+- `syncHubspot`: las entradas reconciliadas se indexan por id (`reconciledById`) y se sustituyen sobre el estado
+  releído; las entradas creadas durante el sync se conservan y las borradas no resucitan. Las entradas de objetos
+  fallidos (`failedObjects`) quedan como estén en el estado fresco (equivalente al comportamiento previo de
+  `skipped`). `reconcileEntries` solo transforma las entradas de entrada (verificado), así que el mapeo por id no
+  pierde resultados.
+
+### 47.2 `updateOrigin` valida el id (§2.8)
+
+Antes devolvía `input.origin` aunque el id no existiera (sin tocar el store). Ahora valida la existencia (lanza
+`Error('Origen no encontrado')`, que el IPC propaga) y devuelve el origen fusionado real (`{ ...existing,
+...input.origin }`), no el input.
+
+### 47.3 Estado
+
+IMPLEMENTADO (2026-07-02). Sin cambios de API ni de UI. Requiere rebuild de la app/MCP; typecheck/test en la
+máquina del usuario.

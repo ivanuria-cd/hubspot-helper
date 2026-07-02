@@ -1137,3 +1137,44 @@ valores interpolados; `searchFolders` lo reutiliza.
 
 IMPLEMENTADO (2026-07-02). Sin cambios de comportamiento para valores sin comillas. Requiere rebuild de la app;
 typecheck/test en la máquina del usuario.
+
+## 25. Correctitud del conector: paginación, OAuth, refresco y reintentos (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgos 2.2, 2.3, 2.5 y 2.6.
+
+### 25.1 Paginación de listados (§2.2)
+
+Ninguna llamada `files.list`/`drives.list` paginaba: carpetas con >100 hijos quedaban invisibles en el selector
+y `listManagedFiles` podía truncarse (rompiendo la deduplicación del §21). `DriveApi.filesList`/`drivesList`
+aceptan `pageToken`/`pageSize` y devuelven `nextPageToken`; helper `listAllFiles` en `client.ts` itera hasta
+agotar (usado por `listManagedFiles`, `listFolders`, `searchFolders`; `pageSize: 1000` y `nextPageToken` añadido
+a `fields`). `listSharedDrives` itera igualmente. `ensureFeatureFolder` y `findManaged` (sheets) solo necesitan
+el primer resultado y no cambian. El façade de googleapis pasa los args tal cual, sin cambios.
+
+### 25.2 Timeout del loopback OAuth (§2.3)
+
+Si el usuario no completaba el flujo, la Promise no resolvía nunca y el puerto quedaba escuchando.
+`OAUTH_CALLBACK_TIMEOUT_MS` (5 min): al vencer, cierra el servidor y rechaza con mensaje claro; el callback
+legítimo hace `clearTimeout`.
+
+### 25.3 Refresco de token deduplicado + `invalid_grant` (§2.5)
+
+`getValidAccessToken` memoiza la promesa de refresco por `projectId` (`refreshInFlight`): dos operaciones
+paralelas comparten un único refresh (antes podían persistir un token invalidado por rotación). Un
+`invalid_grant` del endpoint de token se traduce a un error legible que indica re-conectar la cuenta.
+
+### 25.4 Reintentos con backoff (§2.6)
+
+Módulo nuevo `retry.ts`: `withDriveRetry` (429/5xx retriables, backoff exponencial 1/2/4 s, `maxRetries` 3,
+`delayFn` inyectable) y `retried(api)` que envuelve cada método async de un objeto. Aplicado en el wiring real a
+los façades de Drive/Docs (`googleDriveClientFor`) y Drive/Sheets (`googleSheetsClientFor`). Un 429 a mitad de
+`writeSpreadsheet` ya no deja el libro a medias por un transitorio.
+
+### 25.5 Tests
+
+- `client.spec.ts`: caso nuevo de paginación con `nextPageToken` (2 páginas, `pageToken` en la segunda).
+- `retry.spec.ts` (nuevo): 429 reintentado, 5xx agota `maxRetries`, 404 no reintenta, `retried` envuelve métodos.
+
+### 25.6 Estado
+
+IMPLEMENTADO (2026-07-02). Requiere rebuild de la app; typecheck/test en la máquina del usuario.

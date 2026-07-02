@@ -30,6 +30,7 @@ import {
   type TokenSet,
 } from './auth';
 import { createDriveClient, type DriveApi, type DriveClient } from './client';
+import { retried } from './retry';
 import {
   createSheetsClient,
   type SheetsClient,
@@ -124,18 +125,46 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
   const now = deps.now ?? (() => Date.now());
   const isoNow = deps.isoNow ?? (() => new Date().toISOString());
 
+  // SPEC-0004 §25: los refrescos concurrentes del mismo proyecto comparten una única promesa
+  // (dos refrescos paralelos podían persistir un token ya invalidado por rotación).
+  const refreshInFlight = new Map<string, Promise<string>>();
+
+  function isInvalidGrant(error: unknown): boolean {
+    const data = (error as { response?: { data?: { error?: string } } })?.response?.data;
+    return data?.error === 'invalid_grant';
+  }
+
   async function getValidAccessToken(projectId: string): Promise<string> {
     const tokens = await deps.tokens.get(projectId);
     if (!tokens) throw new Error('Proyecto sin cuenta de Google conectada');
     if (!shouldRefresh(tokens, now()) || !tokens.refreshToken) return tokens.accessToken;
-    const env = deps.getEnv();
-    const refreshed = await refreshAccessToken(deps.http, {
-      clientId: env.clientId,
-      clientSecret: env.clientSecret,
-      refreshToken: tokens.refreshToken,
-    });
-    await deps.tokens.save(projectId, refreshed);
-    return refreshed.accessToken;
+    const inFlight = refreshInFlight.get(projectId);
+    if (inFlight) return inFlight;
+    const refreshToken = tokens.refreshToken;
+    const promise = (async () => {
+      try {
+        const env = deps.getEnv();
+        const refreshed = await refreshAccessToken(deps.http, {
+          clientId: env.clientId,
+          clientSecret: env.clientSecret,
+          refreshToken,
+        });
+        await deps.tokens.save(projectId, refreshed);
+        return refreshed.accessToken;
+      } catch (error) {
+        if (isInvalidGrant(error)) {
+          // SPEC-0004 §25: refresh token revocado/caducado — la conexión requiere re-autenticar.
+          throw new Error(
+            'La conexión con Google ha caducado. Vuelve a conectar la cuenta en Conectores → Google Drive.',
+          );
+        }
+        throw error;
+      } finally {
+        refreshInFlight.delete(projectId);
+      }
+    })();
+    refreshInFlight.set(projectId, promise);
+    return promise;
   }
 
   async function startAuth(
@@ -496,7 +525,8 @@ function googleDriveClientFor(accessToken: string): DriveClient {
       return res.data;
     },
   };
-  return createDriveClient(api);
+  // SPEC-0004 §25: retry con backoff ante 429/5xx en todas las llamadas Drive/Docs.
+  return createDriveClient(retried(api));
 }
 
 function googleSheetsClientFor(accessToken: string): SheetsClient {
@@ -505,8 +535,9 @@ function googleSheetsClientFor(accessToken: string): SheetsClient {
   auth.setCredentials({ access_token: accessToken });
   const drive = google.drive({ version: 'v3', auth }) as any;
   const sheets = google.sheets({ version: 'v4', auth }) as any;
+  // SPEC-0004 §25: retry con backoff ante 429/5xx en todas las llamadas Drive/Sheets.
   return createSheetsClient(
-    {
+    retried({
       async filesList(args) {
         const res = await drive.files.list(args);
         return res.data;
@@ -515,8 +546,8 @@ function googleSheetsClientFor(accessToken: string): SheetsClient {
         const res = await drive.files.create(args);
         return res.data;
       },
-    },
-    {
+    }),
+    retried({
       async get(args) {
         const res = await sheets.spreadsheets.get({
           spreadsheetId: args.spreadsheetId,
@@ -546,10 +577,13 @@ function googleSheetsClientFor(accessToken: string): SheetsClient {
           range: args.range,
         });
       },
-    },
+    }),
   );
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
+
+/** Tiempo máximo de espera del callback OAuth antes de liberar el puerto (SPEC-0004 §25). */
+const OAUTH_CALLBACK_TIMEOUT_MS = 5 * 60_000;
 
 /** Flujo OAuth interactivo: abre el navegador del sistema y escucha el callback en loopback. */
 function runElectronAuthFlow(http: OAuthHttpClient) {
@@ -559,6 +593,12 @@ function runElectronAuthFlow(http: OAuthHttpClient) {
       const challenge = generateCodeChallenge(verifier);
       const state = randomUUID();
       let redirectUri = '';
+      // SPEC-0004 §25: si el usuario no completa el flujo, se cierra el servidor y se rechaza
+      // (sin esto el puerto quedaba escuchando y la UI en «authorizing» indefinidamente).
+      const timeout = setTimeout(() => {
+        server.close();
+        reject(new Error('Tiempo de espera agotado en la autenticación con Google'));
+      }, OAUTH_CALLBACK_TIMEOUT_MS);
       const server = createServer((req, res) => {
         const params = parseCallbackUrl(`http://127.0.0.1${req.url ?? '/'}`);
         // Ignora peticiones espurias (p. ej. favicon) que no traen ni code ni error.
@@ -567,6 +607,7 @@ function runElectronAuthFlow(http: OAuthHttpClient) {
           res.end();
           return;
         }
+        clearTimeout(timeout);
         res.end('Puedes volver a RevOps Assistant. Esta pestaña ya puede cerrarse.');
         server.close();
         if (params.error || !params.code || params.state !== state) {

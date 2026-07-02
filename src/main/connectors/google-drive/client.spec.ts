@@ -109,6 +109,19 @@ describe('cliente Drive', () => {
     );
   });
 
+  it('pagina con nextPageToken hasta agotar los resultados (§25)', async () => {
+    const filesList = vi
+      .fn()
+      .mockResolvedValueOnce({ files: [{ id: 'a', name: 'Alfa' }], nextPageToken: 'p2' })
+      .mockResolvedValueOnce({ files: [{ id: 'b', name: 'Beta' }] });
+    const api = fakeApi({ filesList });
+    const client = createDriveClient(api);
+    const folders = await client.listFolders('parent-1');
+    expect(filesList).toHaveBeenCalledTimes(2);
+    expect(filesList).toHaveBeenLastCalledWith(expect.objectContaining({ pageToken: 'p2' }));
+    expect(folders.map((f) => f.id)).toEqual(['a', 'b']);
+  });
+
   it('listSharedDrives consulta drivesList y mapea id/name', async () => {
     const api = fakeApi({
       drivesList: vi.fn().mockResolvedValue({

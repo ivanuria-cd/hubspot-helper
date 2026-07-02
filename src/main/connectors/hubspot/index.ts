@@ -118,7 +118,13 @@ export function createHubSpotConnector(deps: HubSpotConnectorDeps) {
     const environment = req.environment ?? config.activeEnvironment;
     const token = await deps.tokens.get(req.projectId, environment);
     if (!token) throw new Error(`Sin token para el entorno ${environment}`);
-    const client = createHubSpotClient({ token });
+    // SPEC-0003 §18: cada reintento descuenta reservoir del limiter (cuenta contra la cuota).
+    const client = createHubSpotClient({
+      token,
+      onRetry: async () => {
+        await limiter.incrementReservoir(-1);
+      },
+    });
     const response = await limiter.schedule(() =>
       client.request({ method: req.method, url: req.path, params: req.params, data: req.body }),
     );

@@ -274,9 +274,16 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     }
 
     const reconcilable = state.entries.filter((e) => !failedObjects.has(e.objectType));
-    const skipped = state.entries.filter((e) => failedObjects.has(e.objectType));
     const result = reconcileEntries(reconcilable, remotes, changeFactory());
-    deps.store.set(input.projectId, { ...state, entries: [...result.entries, ...skipped] });
+    // SPEC-0006 §47: se relee el store tras los await de red (como forms §applyChange) para no
+    // pisar ediciones concurrentes (UI + MCP); solo se sustituyen las entradas reconciliadas
+    // que sigan existiendo, y las creadas/borradas durante el sync se respetan.
+    const reconciledById = new Map(result.entries.map((e) => [e.id, e]));
+    const fresh = deps.store.get(input.projectId);
+    deps.store.set(input.projectId, {
+      ...fresh,
+      entries: fresh.entries.map((e) => reconciledById.get(e.id) ?? e),
+    });
     markChanged(input.projectId);
     return { ...result.summary, blockers: result.blockers };
   }
@@ -399,7 +406,9 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     const updatedChange = markApplied(change, input.environment);
     // Un archivado aplicado a producción se completa: se limpia la solicitud para no regenerarlo.
     const clearDelete = change.operation === 'delete' && input.environment === 'production';
-    const entries = state.entries.map((e) =>
+    // SPEC-0006 §47: relectura del store tras los await de red (evita last-write-wins).
+    const fresh = deps.store.get(input.projectId);
+    const entries = fresh.entries.map((e) =>
       e.id === entry.id
         ? {
             ...e,
@@ -410,7 +419,7 @@ export function createPropertyService(deps: PropertyServiceDeps) {
           }
         : e,
     );
-    deps.store.set(input.projectId, { ...state, entries });
+    deps.store.set(input.projectId, { ...fresh, entries });
     markChanged(input.projectId);
     return { success: true };
   }
@@ -537,12 +546,14 @@ export function createPropertyService(deps: PropertyServiceDeps) {
 
   function updateOrigin(input: OriginUpdateInput): DataOrigin {
     const state = deps.store.get(input.projectId);
-    const origins = state.origins.map((origin) =>
-      origin.id === input.origin.id ? { ...origin, ...input.origin } : origin,
-    );
+    // SPEC-0006 §47: valida que el origen exista (antes devolvía input.origin sin comprobar).
+    const existing = state.origins.find((origin) => origin.id === input.origin.id);
+    if (!existing) throw new Error('Origen no encontrado');
+    const updated = { ...existing, ...input.origin };
+    const origins = state.origins.map((origin) => (origin.id === updated.id ? updated : origin));
     deps.store.set(input.projectId, { ...state, origins });
     markChanged(input.projectId);
-    return input.origin;
+    return updated;
   }
 
   function deleteOrigin(input: OriginDeleteInput): OperationResult {

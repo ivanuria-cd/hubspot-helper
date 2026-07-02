@@ -704,6 +704,17 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-app.on('before-quit', () => {
-  void mcpService?.stop();
+// SPEC-0005 §17: se espera el cierre del servidor MCP antes de salir (antes era fire-and-forget).
+let mcpStopped = false;
+app.on('before-quit', (event) => {
+  if (mcpStopped || !mcpService) return;
+  event.preventDefault();
+  const finish = (): void => {
+    mcpStopped = true;
+    app.quit();
+  };
+  Promise.race([
+    mcpService.stop(),
+    new Promise<void>((resolve) => setTimeout(resolve, 3000)),
+  ]).then(finish, finish);
 });

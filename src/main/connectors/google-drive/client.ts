@@ -36,8 +36,14 @@ export interface DriveApi {
     spaces?: string;
     supportsAllDrives?: boolean;
     includeItemsFromAllDrives?: boolean;
-  }): Promise<{ files?: RawDriveFile[] }>;
-  drivesList(args: { pageSize?: number; fields: string }): Promise<{ drives?: Array<{ id: string; name: string }> }>;
+    pageSize?: number;
+    pageToken?: string;
+  }): Promise<{ files?: RawDriveFile[]; nextPageToken?: string }>;
+  drivesList(args: {
+    pageSize?: number;
+    fields: string;
+    pageToken?: string;
+  }): Promise<{ drives?: Array<{ id: string; name: string }>; nextPageToken?: string }>;
   filesCreate(args: {
     requestBody: Record<string, unknown>;
     fields: string;
@@ -110,15 +116,35 @@ function quote(value: string): string {
 }
 
 export function createDriveClient(api: DriveApi) {
+  /** Itera `nextPageToken` hasta agotar los resultados (SPEC-0004 §25). */
+  async function listAllFiles(args: {
+    q: string;
+    fields: string;
+  }): Promise<RawDriveFile[]> {
+    const files: RawDriveFile[] = [];
+    let pageToken: string | undefined;
+    do {
+      const result = await api.filesList({
+        q: args.q,
+        fields: `nextPageToken,${args.fields}`,
+        spaces: 'drive',
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
+        pageSize: 1000,
+        pageToken,
+      });
+      files.push(...(result.files ?? []));
+      pageToken = result.nextPageToken;
+    } while (pageToken);
+    return files;
+  }
+
   async function listManagedFiles(folderId: string): Promise<RemoteFile[]> {
-    const result = await api.filesList({
+    const files = await listAllFiles({
       q: `'${quote(folderId)}' in parents and appProperties has { key='${APP_PROP_MANAGED}' and value='true' } and trashed = false`,
       fields: 'files(id,name,mimeType,modifiedTime,appProperties)',
-      spaces: 'drive',
-      supportsAllDrives: true,
-      includeItemsFromAllDrives: true,
     });
-    return (result.files ?? []).map(toRemoteFile);
+    return files.map(toRemoteFile);
   }
 
   function toFolders(files?: RawDriveFile[]): DriveFolder[] {
@@ -139,20 +165,24 @@ export function createDriveClient(api: DriveApi) {
       parent === 'sharedWithMe'
         ? `sharedWithMe = true and mimeType = '${MIME_FOLDER}' and trashed = false`
         : `'${quote(parent)}' in parents and mimeType = '${MIME_FOLDER}' and trashed = false`;
-    const result = await api.filesList({
-      q,
-      fields: 'files(id,name)',
-      spaces: 'drive',
-      supportsAllDrives: true,
-      includeItemsFromAllDrives: true,
-    });
-    return toFolders(result.files);
+    const files = await listAllFiles({ q, fields: 'files(id,name)' });
+    return toFolders(files);
   }
 
   /** Lista las unidades compartidas accesibles (§14.11). El id es la raíz de cada unidad. */
   async function listSharedDrives(): Promise<DriveFolder[]> {
-    const result = await api.drivesList({ pageSize: 100, fields: 'drives(id,name)' });
-    return (result.drives ?? [])
+    const drives: Array<{ id: string; name: string }> = [];
+    let pageToken: string | undefined;
+    do {
+      const result = await api.drivesList({
+        pageSize: 100,
+        fields: 'nextPageToken,drives(id,name)',
+        pageToken,
+      });
+      drives.push(...(result.drives ?? []));
+      pageToken = result.nextPageToken;
+    } while (pageToken);
+    return drives
       .map((drive) => ({ id: drive.id, name: drive.name }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }
@@ -161,14 +191,11 @@ export function createDriveClient(api: DriveApi) {
   async function searchFolders(query: string): Promise<DriveFolder[]> {
     const term = quote(query.trim());
     if (!term) return [];
-    const result = await api.filesList({
+    const files = await listAllFiles({
       q: `name contains '${term}' and mimeType = '${MIME_FOLDER}' and trashed = false`,
       fields: 'files(id,name)',
-      spaces: 'drive',
-      supportsAllDrives: true,
-      includeItemsFromAllDrives: true,
     });
-    return toFolders(result.files);
+    return toFolders(files);
   }
 
   async function ensureFeatureFolder(parentId: string, featureName: string): Promise<string> {

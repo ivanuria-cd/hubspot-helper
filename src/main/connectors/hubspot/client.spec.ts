@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { AxiosError, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios';
-import { createHubSpotClient, redactToken } from './client';
+import { createHubSpotClient, redactToken, retryDelayMs } from './client';
 
 function adapterReturning(handler: (config: InternalAxiosRequestConfig) => { status: number; data?: unknown }): {
   adapter: AxiosAdapter;
@@ -59,5 +59,37 @@ describe('cliente HTTP de HubSpot', () => {
     expect(redactToken('falló con token abc-123 en el header', 'abc-123')).toBe(
       'falló con token [REDACTED] en el header',
     );
+  });
+
+  // SPEC-0003 §18
+  it('calcula la espera del reintento: Retry-After > 429 sin header (10 s) > backoff 5xx', () => {
+    expect(retryDelayMs(429, '3', 0)).toBe(3000);
+    expect(retryDelayMs(429, undefined, 0)).toBe(10_000);
+    expect(retryDelayMs(503, undefined, 0)).toBe(1000);
+    expect(retryDelayMs(503, undefined, 2)).toBe(4000);
+    expect(retryDelayMs(503, 'no-numérico', 1)).toBe(2000);
+  });
+
+  it('invoca onRetry antes de cada reintento (descuento de reservoir)', async () => {
+    let calls = 0;
+    let retries = 0;
+    const { adapter } = adapterReturning(() => {
+      calls += 1;
+      return { status: calls < 3 ? 503 : 200 };
+    });
+    const client = createHubSpotClient({
+      token: 't',
+      adapter,
+      delayFn: () => Promise.resolve(),
+      onRetry: () => {
+        retries += 1;
+        return Promise.resolve();
+      },
+    });
+
+    const res = await client.get('/x');
+
+    expect(res.status).toBe(200);
+    expect(retries).toBe(2);
   });
 });

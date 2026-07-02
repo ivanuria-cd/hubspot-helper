@@ -274,6 +274,59 @@ describe('PropertyService (entradas)', () => {
     ).toThrow(/dup_name/);
   });
 
+  it('§47: syncHubspot no pisa una entrada creada durante el sync (relectura del store)', async () => {
+    const store = createMemoryPropertyStore();
+    const props = fakeProperties([]);
+    const service = createPropertyService(deps(store, props, fakeObjects()));
+    service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'contacts',
+        name: 'Previa',
+        hubspotProperty: { mode: 'existing', hubspotName: 'prev' },
+        sources: [],
+      },
+    });
+    // listProperties inserta una entrada nueva "en mitad" del sync (simula UI/MCP concurrentes).
+    (props.listProperties as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      service.upsertEntry({
+        projectId: 'p1',
+        entry: {
+          objectType: 'deals',
+          name: 'Concurrente',
+          hubspotProperty: { mode: 'existing', hubspotName: 'conc' },
+          sources: [],
+        },
+      });
+      return Promise.resolve([]);
+    });
+    await service.syncHubspot({ projectId: 'p1' });
+    const names = service.listEntries({ projectId: 'p1' }).map((e) => e.name);
+    expect(names).toContain('Concurrente');
+    expect(names).toContain('Previa');
+  });
+
+  it('§47: updateOrigin lanza si el id no existe y devuelve el origen fusionado si existe', () => {
+    const store = createMemoryPropertyStore();
+    const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));
+    expect(() =>
+      service.updateOrigin({
+        projectId: 'p1',
+        origin: { id: 'no-existe', name: 'X', type: 'user', createdAt: '2026-06-11T00:00:00.000Z' },
+      }),
+    ).toThrow('Origen no encontrado');
+    const created = service.createOrigin({
+      projectId: 'p1',
+      origin: { name: 'CRM', type: 'integration', description: 'desc' },
+    });
+    const updated = service.updateOrigin({
+      projectId: 'p1',
+      origin: { id: created.id, name: 'CRM v2', type: 'integration', createdAt: created.createdAt },
+    });
+    expect(updated.name).toBe('CRM v2');
+    expect(updated.description).toBe('desc');
+  });
+
   it('H1: syncHubspot salta un objeto cuyo listProperties falla, sin abortar', async () => {
     const store = createMemoryPropertyStore();
     const props = fakeProperties([]);

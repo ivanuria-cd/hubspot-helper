@@ -451,3 +451,11 @@ El token se persistía en claro en `mcp.json` (electron-store), mientras PAT y t
 
 IMPLEMENTADO (2026-07-02). Sin cambios de API ni de UI; `auth.ts` intacto. Requiere rebuild del MCP/app;
 typecheck/test en la máquina del usuario.
+
+## 17. Cierre limpio del servidor MCP al salir (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgo 2.7. `before-quit` hacía `void mcpService.stop()` sin
+esperar: el cierre del servidor HTTP podía no completarse antes de salir. Ahora `before-quit` hace
+`event.preventDefault()`, espera `mcpService.stop()` con un tope de 3 s (`Promise.race`) y relanza `app.quit()`
+(guard `mcpStopped` para no reentrar). Sin cambios de API. Requiere rebuild de la app; typecheck/test en la
+máquina del usuario.
