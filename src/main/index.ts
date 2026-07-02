@@ -456,6 +456,7 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   ipcMain.handle(IpcChannels.propertiesDriveMeta, (_event, input: ProjectScopedInput) => ({
     ...properties.getDriveMeta(input),
     fileId: managedSpreadsheetId(input.projectId, PROPERTY_MAP_FEATURE_KEY),
+    configured: Boolean(gdrive.getStatus(input.projectId)?.folderId),
   }));
   ipcMain.handle(IpcChannels.originsList, (_event, input: ProjectScopedInput) =>
     properties.listOrigins(input),
@@ -542,6 +543,7 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   ipcMain.handle(IpcChannels.customObjectsDriveMeta, (_event, input: ObjectsListSchemasInput) => ({
     ...customObjects.getDriveMeta(input),
     fileId: managedSpreadsheetId(input.projectId, CUSTOM_OBJECTS_FEATURE_KEY),
+    configured: Boolean(gdrive.getStatus(input.projectId)?.folderId),
   }));
   ipcMain.handle(IpcChannels.formsList, (_event, input: FormsListInput) => forms.listForms(input));
   ipcMain.handle(IpcChannels.formsPendingChanges, (_event, input: FormsListInput) =>
@@ -641,6 +643,7 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   ipcMain.handle(IpcChannels.formsDriveMeta, (_event, input: FormsListInput) => ({
     ...forms.getDriveMeta(input),
     fileId: managedSpreadsheetId(input.projectId, FORMS_FEATURE_KEY),
+    configured: Boolean(gdrive.getStatus(input.projectId)?.folderId),
   }));
 
   return mcp;

@@ -98,8 +98,11 @@ export function useDriveDoc(args: UseDriveDocArgs): DriveDocController {
 
   const clearMessage = useCallback(() => setMessage(null), []);
 
+  // Solo un `configured: false` explícito bloquea; `undefined` mantiene el comportamiento previo (SPEC-0004 §23).
+  const configured = meta.configured !== false;
   const dirty =
     args.hasData &&
+    configured &&
     (meta.lastWrittenAt === null ||
       (meta.lastChangedAt !== null && meta.lastChangedAt > meta.lastWrittenAt));
 

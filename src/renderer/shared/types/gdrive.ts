@@ -129,6 +129,8 @@ export interface DriveDocMeta {
   lastChangedAt: string | null;
   /** Id del Sheets legible del feature en Drive (SPEC-0004 §18); null si aún no se ha escrito. */
   fileId?: string | null;
+  /** El proyecto tiene carpeta de Drive asociada (SPEC-0004 §23); si es `false`, no hay documento que actualizar. */
+  configured?: boolean;
 }
 
 /** Resultado de cargar el estado local desde el documento Drive de una característica (§15). */

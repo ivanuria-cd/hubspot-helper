@@ -1064,3 +1064,54 @@ y `deleteFile` pasan `supportsAllDrives: true` (y `includeItemsFromAllDrives: tr
 `sheets-client.spec.ts` (y `filesDelete` de limpieza actualizado). Docs/Sheets API sin cambios (operan por id). Fachada
 `index.ts` sin cambios (reenvía args). Requiere **rebuild de la app**. test:unit/typecheck en la máquina del usuario —
 el espejo del sandbox trunca los ficheros editados; originales verificados sanos vía lectura directa.
+
+---
+
+## 23. Corrección — El `DriveDirtyGuard` aparece sin carpeta de Drive asociada (BORRADOR, 2026-07-02)
+
+### 23.1 Diagnóstico
+
+Síntoma: al salir de una pantalla (p. ej. CRM / Propiedades) en un proyecto **sin carpeta de Drive asociada**, aparece el
+modal «Cambios sin guardar en Drive» (§15.3). No debería: si no hay Drive configurado, no hay archivo que actualizar.
+
+Causa raíz: en `useDriveDoc` (`renderer/shared/hooks/useDriveDoc.ts`) el estado `dirty` se calcula como
+
+```
+dirty = hasData && (lastWrittenAt === null || (lastChangedAt !== null && lastChangedAt > lastWrittenAt))
+```
+
+`lastWrittenAt === null` («nunca escrito») es también el estado de un proyecto que **nunca** ha tenido carpeta de Drive.
+El `DriveDirtyGuard` solo mira `dirty && !skip`, sin comprobar si Drive está configurado. La ruta de refresco
+(`gdriveRefreshProject`, `index.ts`) sí se protege con `connected = Boolean(config?.folderId && config?.accountEmail)`;
+este camino no.
+
+### 23.2 Corrección
+
+- `DriveDocMeta` (`shared/types/gdrive.ts`) añade `configured?: boolean` (Drive tiene carpeta asociada al proyecto).
+- Los tres handlers IPC `*DriveMeta` (`propertiesDriveMeta`, `customObjectsDriveMeta`, `formsDriveMeta` en `index.ts`)
+  rellenan `configured: Boolean(gdrive.getStatus(projectId)?.folderId)`.
+- `useDriveDoc`: `dirty` exige además Drive configurado. Compatibilidad: `const configured = meta.configured !== false;`
+  (solo un `false` explícito lo bloquea; `undefined` mantiene el comportamiento previo). Resultado:
+  `dirty = hasData && configured && (…)`.
+- El `DriveDirtyGuard` no cambia (sigue recibiendo `dirty`).
+
+### 23.3 Tests
+
+- `useDriveDoc.spec.tsx`: `dirty` es `false` cuando `configured: false` aunque `hasData` y `lastWrittenAt === null`;
+  sigue `true` cuando `configured: true`/ausente y hay cambios.
+
+### 23.4 Impacto / ficheros
+
+- `shared/types/gdrive.ts` (`configured?` en `DriveDocMeta`).
+- `main/index.ts` (los tres handlers `*DriveMeta`).
+- `shared/hooks/useDriveDoc.ts` (`dirty`).
+- `shared/hooks/useDriveDoc.spec.tsx`.
+- Requiere **rebuild de la app**.
+
+### 23.5 Estado
+
+IMPLEMENTADO (2026-07-02). `DriveDocMeta.configured?`; los tres handlers `*DriveMeta` (`index.ts`) lo rellenan con
+`Boolean(gdrive.getStatus(projectId)?.folderId)`; `useDriveDoc.dirty` exige `configured !== false`. Test `§23` en
+`useDriveDoc.spec.tsx` (dirty false con `configured:false`, true con `configured:true`). Requiere **rebuild de la app**.
+Verificación en la máquina del usuario si el espejo del sandbox trunca los ficheros editados (originales verificados
+sanos vía lectura directa).

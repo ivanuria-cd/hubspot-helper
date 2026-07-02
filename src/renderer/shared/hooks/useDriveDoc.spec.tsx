@@ -25,3 +25,17 @@ describe('useDriveDoc fileUrl', () => {
     );
   });
 });
+
+describe('useDriveDoc dirty (§23)', () => {
+  it('no marca dirty sin carpeta de Drive (configured:false) aunque haya datos sin escribir', async () => {
+    const fetchMeta = vi.fn().mockResolvedValue({ lastWrittenAt: null, lastChangedAt: null, configured: false });
+    const { result } = renderHook(() => useDriveDoc(baseArgs({ fetchMeta })));
+    await waitFor(() => expect(result.current.dirty).toBe(false));
+  });
+
+  it('marca dirty con carpeta asociada (configured:true) y sin escribir', async () => {
+    const fetchMeta = vi.fn().mockResolvedValue({ lastWrittenAt: null, lastChangedAt: null, configured: true });
+    const { result } = renderHook(() => useDriveDoc(baseArgs({ fetchMeta })));
+    await waitFor(() => expect(result.current.dirty).toBe(true));
+  });
+});
