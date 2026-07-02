@@ -316,3 +316,25 @@ jsdom, 3 casos: no dispara en montaje, dispara al cambiar, no dispara sin cambio
 (re-`load`+`loadRefs`+`loadSubscriptionTypes`), `DashboardScreen` (`status.reload`) y `CrmOverviewScreen`
 (`overview.reload`). El spec del hook (fichero nuevo) recoge las 3 pruebas en sandbox; verificación completa/typecheck en
 la máquina del usuario — el espejo del sandbox trunca los ficheros editados; originales verificados sanos.
+
+## 17. Endurecimiento del proxy IPC y de los paths del conector (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgos 1.3 y 1.7.
+
+### 17.1 Allowlist del canal `hubspot:request`
+
+El canal IPC genérico (`hubspotRequest`) admitía método/path/body arbitrarios con el PAT: un renderer
+comprometido tenía acceso total al portal. El handler de `src/main/index.ts` valida ahora el path contra la
+allowlist de prefijos `['/crm/', '/marketing/v3/forms', '/account-info/']` y responde `403` con
+`{ message: 'Path no permitido' }` en caso contrario. El canal no tiene hoy ningún consumidor en el renderer
+(verificado por grep), por lo que la restricción no afecta a ninguna pantalla.
+
+### 17.2 Codificación de segmentos de path
+
+`objectType`/`propertyName`/`groupName` (`connectors/hubspot/properties.ts`), `objectType` (`schemas.ts`) y
+`formId` (`forms.ts`) se interpolaban sin codificar: un valor con `/` o `?` (procedente de estado importado o de
+una tool MCP) alteraba la ruta. Todos los segmentos dinámicos pasan por `encodeURIComponent`.
+
+### 17.3 Estado
+
+IMPLEMENTADO (2026-07-02). Requiere rebuild de la app; typecheck/test en la máquina del usuario.

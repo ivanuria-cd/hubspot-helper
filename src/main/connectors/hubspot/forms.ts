@@ -156,7 +156,7 @@ export function createFormsApi(deps: FormsApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'GET',
-      path: `${BASE}/${formId}`,
+      path: `${BASE}/${encodeURIComponent(formId)}`,
     });
     return toHubSpotForm(response.data as RawForm);
   }
@@ -180,7 +180,7 @@ export function createFormsApi(deps: FormsApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'PATCH',
-      path: `${BASE}/${formId}`,
+      path: `${BASE}/${encodeURIComponent(formId)}`,
       body: payload,
     });
   }

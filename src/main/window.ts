@@ -24,9 +24,31 @@ export function createMainWindow(): BrowserWindow {
 
   window.on('ready-to-show', () => window.show());
 
+  const isSafeExternalUrl = (url: string): boolean => {
+    try {
+      const { protocol } = new URL(url);
+      return protocol === 'http:' || protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
   window.webContents.setWindowOpenHandler(({ url }) => {
-    void shell.openExternal(url);
+    if (isSafeExternalUrl(url)) {
+      void shell.openExternal(url);
+    }
     return { action: 'deny' };
+  });
+
+  window.webContents.on('will-navigate', (event, url) => {
+    const isInternal =
+      (RENDERER_DEV_URL && url.startsWith(RENDERER_DEV_URL)) || url.startsWith('file://');
+    if (!isInternal) {
+      event.preventDefault();
+      if (isSafeExternalUrl(url)) {
+        void shell.openExternal(url);
+      }
+    }
   });
 
   if (RENDERER_DEV_URL) {

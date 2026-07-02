@@ -332,8 +332,13 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
       return { success: true, driveId };
     } catch (error) {
       // SPEC-0004 §21.3.5: registra el error real (p. ej. de docsBatchUpdate) para diagnosticar la causa
-      // del documento de estado vacío.
-      console.error(`[gdrive] writeFile falló para featureKey="${input.featureKey}":`, error);
+      // del documento de estado vacío. SPEC-0004 §24: solo el mensaje — el GaxiosError completo
+      // incluye la cabecera Authorization con el access token.
+      console.error(
+        `[gdrive] writeFile falló para featureKey="${input.featureKey}": ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
       return { success: false, error: error instanceof Error ? error.message : 'Error al escribir' };
     }
   }

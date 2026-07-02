@@ -66,7 +66,7 @@ function quote(value: string): string {
 export function createSheetsClient(drive: SheetsDriveApi, sheets: SheetsRawApi) {
   async function findManaged(folderId: string, featureKey: string): Promise<string | null> {
     const result = await drive.filesList({
-      q: `'${folderId}' in parents and mimeType = '${MIME_SPREADSHEET}' and appProperties has { key='${APP_PROP_FEATURE}' and value='${quote(featureKey)}' } and trashed = false`,
+      q: `'${quote(folderId)}' in parents and mimeType = '${MIME_SPREADSHEET}' and appProperties has { key='${APP_PROP_FEATURE}' and value='${quote(featureKey)}' } and trashed = false`,
       fields: 'files(id,name)',
       spaces: 'drive',
       supportsAllDrives: true,

@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, session } from 'electron';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, stat, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { IpcChannels } from '@shared/types/ipc';
 import {
@@ -232,8 +232,21 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
     });
     return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
   });
+  // SPEC-0013 §12: el path llega del renderer; se valida extensión y tamaño antes de leer.
+  const MAX_RVPROJ_BYTES = 50 * 1024 * 1024;
+  const readProjectFile = async (filePath: string): Promise<Buffer> => {
+    if (typeof filePath !== 'string' || !filePath.toLowerCase().endsWith('.rvproj')) {
+      throw new Error('El archivo debe tener extensión .rvproj');
+    }
+    const info = await stat(filePath);
+    if (!info.isFile()) throw new Error('La ruta no es un archivo');
+    if (info.size > MAX_RVPROJ_BYTES) {
+      throw new Error('El archivo supera el tamaño máximo permitido (50 MB)');
+    }
+    return readFile(filePath);
+  };
   ipcMain.handle(IpcChannels.projectsImportValidate, async (_event, input: ImportValidateInput) => {
-    const buffer = await readFile(input.filePath);
+    const buffer = await readProjectFile(input.filePath);
     const entries = unpackZip(buffer);
     const manifest = readManifest(entries);
     return buildImportSummary(
@@ -244,7 +257,7 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
     );
   });
   ipcMain.handle(IpcChannels.projectsImportApply, async (_event, input: ImportApplyInput) => {
-    const buffer = await readFile(input.filePath);
+    const buffer = await readProjectFile(input.filePath);
     const entries = unpackZip(buffer);
     const manifest = readManifest(entries);
     const built = applyImport(manifest, entries, projectFileRegistry, {
@@ -268,9 +281,16 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   ipcMain.handle(IpcChannels.hubspotSetEnvironment, (_event, input: HubSpotEnvironmentInput) =>
     hubspot.setEnvironment(input),
   );
-  ipcMain.handle(IpcChannels.hubspotRequest, (_event, request: HubSpotRequest) =>
-    hubspot.request(request),
-  );
+  // SPEC-0003 §17: el proxy genérico solo admite paths de la allowlist; evita que un renderer
+  // comprometido use el PAT contra endpoints arbitrarios del portal.
+  const HUBSPOT_ALLOWED_PATH_PREFIXES = ['/crm/', '/marketing/v3/forms', '/account-info/'];
+  ipcMain.handle(IpcChannels.hubspotRequest, (_event, request: HubSpotRequest) => {
+    const path = typeof request?.path === 'string' ? request.path : '';
+    if (!HUBSPOT_ALLOWED_PATH_PREFIXES.some((prefix) => path.startsWith(prefix))) {
+      return Promise.resolve({ status: 403, data: { message: 'Path no permitido' } });
+    }
+    return hubspot.request(request);
+  });
   ipcMain.handle(IpcChannels.gdriveStartAuth, (event, input: GoogleDriveProjectInput) =>
     gdrive.startAuth(input.projectId, (status) =>
       event.sender.send(IpcChannels.gdriveAuthStatus, status),

@@ -272,3 +272,18 @@ Ficheros creados/modificados:
 - Tutoriales `doc/tutoriales/project-file/<locale>/{exportar,importar}-proyecto.md`.
 
 Fix posterior (typecheck en máquina, 2026-06-23): `import.spec.ts` fijaba el tipo del array `portableSections` con una primera asignación (`data: { entries: [] }`) que chocaba con la reasignación posterior (`data: { items: [...] }`). Resuelto anotando `const proj: Project` y dejando una única sección desconocida (`future-x`). `tsc` del módulo (incl. specs) y 14/14 tests en verde en sandbox.
+
+## 12. Validación del archivo en el import (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgo 1.6.
+
+`projectsImportValidate`/`projectsImportApply` leían y parseaban cualquier `filePath` recibido del renderer sin
+validación. Helper `readProjectFile(filePath)` en `main/index.ts`, usado por ambos handlers antes de `unpackZip`:
+
+- Extensión obligatoria `.rvproj` (case-insensitive).
+- `stat` previo: debe ser un archivo regular y no superar 50 MB (`MAX_RVPROJ_BYTES`), evitando cargar en memoria
+  rutas arbitrarias o archivos desmesurados.
+- Cualquier incumplimiento lanza un `Error` con mensaje claro, que llega al renderer por el canal IPC existente.
+
+Estado: IMPLEMENTADO (2026-07-02). Sin cambios de UI; el flujo normal (path procedente de
+`projectsImportDialog`) no se ve afectado. Requiere rebuild de la app; typecheck/test en la máquina del usuario.

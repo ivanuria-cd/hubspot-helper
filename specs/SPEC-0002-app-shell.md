@@ -788,3 +788,29 @@ Verificación: ficheros reales sanos (Read directo); `tsc` del renderer en verde
 (`configured` de SPEC-0004 §23) — el espejo del sandbox trunca/corrompe de forma intermitente los `.ts` con no-ASCII
 al editarlos (originales completos y balanceados verificados vía lectura directa); typecheck final en la máquina del
 usuario. Requiere **rebuild de la app**.
+
+---
+
+## 22. Endurecimiento de navegación y apertura de enlaces externos (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgo 1.4.
+
+### 22.1 Problema
+
+`setWindowOpenHandler` hacía `shell.openExternal(url)` con cualquier URL sin validar el esquema: un enlace
+`file://`/`smb://` en contenido renderizado (p. ej. markdown del visor de Ayuda) se abriría en el SO. Además no
+existía guard `will-navigate`, por lo que la webview podía navegar fuera de la app.
+
+### 22.2 Diseño
+
+En `src/main/window.ts`:
+
+- `isSafeExternalUrl(url)`: solo `http:`/`https:` (parseo con `URL`; URL no parseable = rechazada).
+- `setWindowOpenHandler`: mantiene `action: 'deny'` y solo llama a `openExternal` si la URL es segura.
+- Guard `will-navigate`: la navegación interna se permite (dev server `ELECTRON_RENDERER_URL` o `file://` del
+  bundle); cualquier otra URL se cancela con `preventDefault()` y, si es segura, se abre en el navegador externo.
+
+### 22.3 Estado
+
+IMPLEMENTADO (2026-07-02). Sin cambios de UI ni i18n. Requiere rebuild de la app; typecheck/test en la máquina del
+usuario.

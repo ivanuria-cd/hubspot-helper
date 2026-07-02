@@ -424,3 +424,30 @@ pocas escrituras» es el churn de sesiones (cada reconexión = sesión nueva = a
 Fix (diagnóstico, sin cambiar la lógica del gate): el `message` de la respuesta `guidance-required` (`server.ts`,
 `blocked()`) explicita la semántica real — acuse por sesión, sin umbral de escrituras, rearme al reconectar/reiniciar.
 `server.spec.ts` solo afirma `blocked === true`, así que el cambio de texto no rompe tests. Requiere rebuild del MCP.
+
+## 16. Endurecimiento de seguridad de la capa MCP (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgos 1.1 y 1.5.
+
+### 16.1 Captura de rechazos en el transporte HTTP/SSE
+
+Los handlers async de Express 4 (`GET /sse`, `POST /messages` en `transport/http-sse.ts`) no capturaban
+rechazos: si `server.connect(transport)` o `handlePostMessage` lanzaban, el unhandled rejection podía tumbar el
+proceso main de Electron completo. Ambos handlers se envuelven en try/catch: registran vía `deps.log` y
+responden `500 { error: 'Internal server error' }` si las cabeceras no se han enviado (en SSE ya abierto,
+`res.end()`).
+
+### 16.2 Token MCP cifrado con `safeStorage`
+
+El token se persistía en claro en `mcp.json` (electron-store), mientras PAT y tokens de Google van al llavero.
+`keytar` es async y la interfaz `TokenStorage` es síncrona, así que se usa `safeStorage` de Electron (síncrono):
+
+- Clave nueva `tokenEncrypted` (ciphertext base64); `setToken` cifra si `isEncryptionAvailable()` y limpia la
+  clave `token` en claro; si no hay cifrado disponible en el SO, fallback al comportamiento anterior.
+- `getToken` descifra `tokenEncrypted`; si el ciphertext es ilegible (cambio de usuario/llavero) lo descarta y
+  el token se regenerará. Migración transparente: un token en claro preexistente se recifra en la primera lectura.
+
+### 16.3 Estado
+
+IMPLEMENTADO (2026-07-02). Sin cambios de API ni de UI; `auth.ts` intacto. Requiere rebuild del MCP/app;
+typecheck/test en la máquina del usuario.

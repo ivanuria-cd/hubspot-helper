@@ -1115,3 +1115,25 @@ IMPLEMENTADO (2026-07-02). `DriveDocMeta.configured?`; los tres handlers `*Drive
 `useDriveDoc.spec.tsx` (dirty false con `configured:false`, true con `configured:true`). Requiere **rebuild de la app**.
 Verificación en la máquina del usuario si el espejo del sandbox trunca los ficheros editados (originales verificados
 sanos vía lectura directa).
+
+## 24. Endurecimiento de logs y de queries de Drive (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgos 1.2 y 1.8.
+
+### 24.1 Redacción de errores en logs
+
+El `console.error` de `writeFile` (`index.ts`, diagnóstico §21.3.5) volcaba el `GaxiosError` completo, cuyo
+`config.headers` incluye `Authorization: Bearer <access_token>`: fuga del token en logs. Se registra solo
+`error.message` (o `String(error)`), manteniendo el diagnóstico del §21.
+
+### 24.2 Escapado de valores en queries
+
+`listManagedFiles`, `listFolders` y `ensureFeatureFolder` (`client.ts`) y `findManaged` (`sheets-client.ts`)
+interpolaban `folderId`/`parentId`/`featureName` en la query `q` sin escapar comillas simples (a diferencia de
+`searchFolders` y del `quote()` de sheets-client). Helper `quote()` propio en `client.ts` aplicado a todos los
+valores interpolados; `searchFolders` lo reutiliza.
+
+### 24.3 Estado
+
+IMPLEMENTADO (2026-07-02). Sin cambios de comportamiento para valores sin comillas. Requiere rebuild de la app;
+typecheck/test en la máquina del usuario.

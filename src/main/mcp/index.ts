@@ -1,4 +1,5 @@
 import Store from 'electron-store';
+import { safeStorage } from 'electron';
 import { mcpRegistry } from './registry';
 import { guidanceRegistry } from './guidance';
 import { createAuth, type TokenStorage } from './auth';
@@ -9,12 +10,14 @@ interface McpSettingsSchema {
   enabled: boolean;
   port: number;
   token: string | null;
+  /** Token cifrado con safeStorage (base64). SPEC-0005 §16. */
+  tokenEncrypted: string | null;
 }
 
 class ElectronMcpStore implements McpConfigStore, TokenStorage {
   private readonly store = new Store<McpSettingsSchema>({
     name: 'mcp',
-    defaults: { enabled: false, port: DEFAULT_MCP_PORT, token: null },
+    defaults: { enabled: false, port: DEFAULT_MCP_PORT, token: null, tokenEncrypted: null },
   });
 
   isEnabled(): boolean {
@@ -33,12 +36,33 @@ class ElectronMcpStore implements McpConfigStore, TokenStorage {
     this.store.set('port', port);
   }
 
+  // SPEC-0005 §16: el token se persiste cifrado con safeStorage; si el SO no ofrece
+  // cifrado se mantiene el comportamiento anterior (claro) como fallback.
   getToken(): string | null {
-    return this.store.get('token', null);
+    const encrypted = this.store.get('tokenEncrypted', null);
+    if (encrypted && safeStorage.isEncryptionAvailable()) {
+      try {
+        return safeStorage.decryptString(Buffer.from(encrypted, 'base64'));
+      } catch {
+        // Ciphertext ilegible (p. ej. cambio de usuario/llavero): se regenerará.
+        this.store.set('tokenEncrypted', null);
+      }
+    }
+    // Migración desde el token en claro de versiones anteriores.
+    const plain = this.store.get('token', null);
+    if (plain && safeStorage.isEncryptionAvailable()) {
+      this.setToken(plain);
+    }
+    return plain;
   }
 
   setToken(token: string): void {
-    this.store.set('token', token);
+    if (safeStorage.isEncryptionAvailable()) {
+      this.store.set('tokenEncrypted', safeStorage.encryptString(token).toString('base64'));
+      this.store.set('token', null);
+    } else {
+      this.store.set('token', token);
+    }
   }
 }
 

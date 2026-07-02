@@ -75,7 +75,7 @@ export function createSchemasApi(deps: SchemasApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'GET',
-      path: `${BASE}/${objectType}`,
+      path: `${BASE}/${encodeURIComponent(objectType)}`,
     });
     return toRemoteSchema(response.data as RawSchema);
   }
@@ -99,7 +99,7 @@ export function createSchemasApi(deps: SchemasApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'PATCH',
-      path: `${BASE}/${objectType}`,
+      path: `${BASE}/${encodeURIComponent(objectType)}`,
       body: payload,
     });
   }
@@ -112,7 +112,7 @@ export function createSchemasApi(deps: SchemasApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'DELETE',
-      path: `${BASE}/${objectType}`,
+      path: `${BASE}/${encodeURIComponent(objectType)}`,
     });
   }
 

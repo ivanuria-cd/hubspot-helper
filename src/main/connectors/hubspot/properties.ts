@@ -128,7 +128,7 @@ export function createPropertiesApi(deps: PropertiesApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'GET',
-      path: `/crm/properties/2026-03/${objectType}`,
+      path: `/crm/properties/2026-03/${encodeURIComponent(objectType)}`,
     });
     const data = response.data as { results?: RawProperty[] };
     return (data.results ?? []).map((raw) => toRemoteProperty(raw, objectType));
@@ -143,7 +143,7 @@ export function createPropertiesApi(deps: PropertiesApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'POST',
-      path: `/crm/properties/2026-03/${objectType}`,
+      path: `/crm/properties/2026-03/${encodeURIComponent(objectType)}`,
       body: payload,
     });
   }
@@ -158,7 +158,7 @@ export function createPropertiesApi(deps: PropertiesApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'PATCH',
-      path: `/crm/properties/2026-03/${objectType}/${propertyName}`,
+      path: `/crm/properties/2026-03/${encodeURIComponent(objectType)}/${encodeURIComponent(propertyName)}`,
       body: payload,
     });
   }
@@ -173,7 +173,7 @@ export function createPropertiesApi(deps: PropertiesApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'DELETE',
-      path: `/crm/properties/2026-03/${objectType}/${propertyName}`,
+      path: `/crm/properties/2026-03/${encodeURIComponent(objectType)}/${encodeURIComponent(propertyName)}`,
     });
   }
 
@@ -185,7 +185,7 @@ export function createPropertiesApi(deps: PropertiesApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'GET',
-      path: `/crm/properties/2026-03/${objectType}/groups`,
+      path: `/crm/properties/2026-03/${encodeURIComponent(objectType)}/groups`,
     });
     const data = response.data as { results?: RawGroup[] };
     return (data.results ?? []).map((g) => ({ name: g.name, label: g.label }));
@@ -200,7 +200,7 @@ export function createPropertiesApi(deps: PropertiesApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'POST',
-      path: `/crm/properties/2026-03/${objectType}/groups`,
+      path: `/crm/properties/2026-03/${encodeURIComponent(objectType)}/groups`,
       body: group,
     });
     const data = response.data as RawGroup;
@@ -217,7 +217,7 @@ export function createPropertiesApi(deps: PropertiesApiDeps) {
       projectId: deps.projectId,
       environment,
       method: 'DELETE',
-      path: `/crm/properties/2026-03/${objectType}/groups/${groupName}`,
+      path: `/crm/properties/2026-03/${encodeURIComponent(objectType)}/groups/${encodeURIComponent(groupName)}`,
     });
   }
 

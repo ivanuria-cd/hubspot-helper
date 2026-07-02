@@ -104,10 +104,15 @@ function toRemoteFile(file: RawDriveFile): RemoteFile {
   };
 }
 
+/** Escapa comillas simples en valores interpolados en queries de Drive (SPEC-0004 §24). */
+function quote(value: string): string {
+  return value.replace(/'/g, "\\'");
+}
+
 export function createDriveClient(api: DriveApi) {
   async function listManagedFiles(folderId: string): Promise<RemoteFile[]> {
     const result = await api.filesList({
-      q: `'${folderId}' in parents and appProperties has { key='${APP_PROP_MANAGED}' and value='true' } and trashed = false`,
+      q: `'${quote(folderId)}' in parents and appProperties has { key='${APP_PROP_MANAGED}' and value='true' } and trashed = false`,
       fields: 'files(id,name,mimeType,modifiedTime,appProperties)',
       spaces: 'drive',
       supportsAllDrives: true,
@@ -133,7 +138,7 @@ export function createDriveClient(api: DriveApi) {
     const q =
       parent === 'sharedWithMe'
         ? `sharedWithMe = true and mimeType = '${MIME_FOLDER}' and trashed = false`
-        : `'${parent}' in parents and mimeType = '${MIME_FOLDER}' and trashed = false`;
+        : `'${quote(parent)}' in parents and mimeType = '${MIME_FOLDER}' and trashed = false`;
     const result = await api.filesList({
       q,
       fields: 'files(id,name)',
@@ -154,7 +159,7 @@ export function createDriveClient(api: DriveApi) {
 
   /** Busca carpetas por nombre en todas las unidades (§14.11). Resultados planos. */
   async function searchFolders(query: string): Promise<DriveFolder[]> {
-    const term = query.trim().replace(/'/g, "\\'");
+    const term = quote(query.trim());
     if (!term) return [];
     const result = await api.filesList({
       q: `name contains '${term}' and mimeType = '${MIME_FOLDER}' and trashed = false`,
@@ -168,7 +173,7 @@ export function createDriveClient(api: DriveApi) {
 
   async function ensureFeatureFolder(parentId: string, featureName: string): Promise<string> {
     const existing = await api.filesList({
-      q: `'${parentId}' in parents and mimeType = '${MIME_FOLDER}' and name = '${featureName}' and trashed = false`,
+      q: `'${quote(parentId)}' in parents and mimeType = '${MIME_FOLDER}' and name = '${quote(featureName)}' and trashed = false`,
       fields: 'files(id,name)',
       spaces: 'drive',
       supportsAllDrives: true,

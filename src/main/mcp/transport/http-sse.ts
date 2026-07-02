@@ -40,23 +40,39 @@ export function createHttpSseApp(deps: HttpSseDeps): Express {
   });
 
   app.get(SSE_PATH, async (_req: Request, res: Response) => {
-    const transport = new SSEServerTransport(MESSAGES_PATH, res);
-    transports.set(transport.sessionId, transport);
-    res.on('close', () => {
-      transports.delete(transport.sessionId);
-    });
-    const server = deps.serverFactory();
-    await server.connect(transport);
+    try {
+      const transport = new SSEServerTransport(MESSAGES_PATH, res);
+      transports.set(transport.sessionId, transport);
+      res.on('close', () => {
+        transports.delete(transport.sessionId);
+      });
+      const server = deps.serverFactory();
+      await server.connect(transport);
+    } catch (error) {
+      deps.log?.(`Error en conexión SSE: ${error instanceof Error ? error.message : String(error)}`);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Internal server error' });
+      } else {
+        res.end();
+      }
+    }
   });
 
   app.post(MESSAGES_PATH, async (req: Request, res: Response) => {
-    const sessionId = String(req.query.sessionId ?? '');
-    const transport = transports.get(sessionId);
-    if (!transport) {
-      res.status(404).json({ error: 'Unknown session' });
-      return;
+    try {
+      const sessionId = String(req.query.sessionId ?? '');
+      const transport = transports.get(sessionId);
+      if (!transport) {
+        res.status(404).json({ error: 'Unknown session' });
+        return;
+      }
+      await transport.handlePostMessage(req, res);
+    } catch (error) {
+      deps.log?.(`Error en POST /messages: ${error instanceof Error ? error.message : String(error)}`);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
-    await transport.handlePostMessage(req, res);
   });
 
   return app;
