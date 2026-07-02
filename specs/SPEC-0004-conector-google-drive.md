@@ -1188,3 +1188,11 @@ Del informe de revisión de código 2026-07-02, hallazgo 5.3. `writeSpreadsheet`
 retry del §25.4). Façade real actualizado en `index.ts`; `sheets-client.spec.ts` adaptado (asserts de una sola
 llamada batch con los ranges de todas las hojas). Sin cambios en el contenido escrito. Requiere rebuild de la
 app; typecheck/test en la máquina del usuario.
+
+## 27. Feedback de error en el `DriveDirtyGuard` (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgo 7.6. En `updateAndLeave`, si `onUpdate` fallaba
+(`success: false` o excepción) el diálogo se quedaba abierto sin ningún feedback. Ahora el fallo se notifica por
+el Snackbar compartido (`result.error` o el mensaje de la excepción; fallback `common.loadError`) y el diálogo
+permanece para reintentar o salir sin actualizar. El tipo del prop `onUpdate` expone `error?` (compatible).
+Requiere rebuild de la app; typecheck/test en la máquina del usuario.

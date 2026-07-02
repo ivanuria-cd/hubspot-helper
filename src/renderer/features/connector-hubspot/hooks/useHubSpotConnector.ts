@@ -36,11 +36,19 @@ export function useHubSpotConnector(projectId: string): UseHubSpotConnector {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    void window.api.hubspotGetStatus(projectId).then((next) => {
-      if (cancelled) return;
-      applyStatus(next);
-      setLoading(false);
-    });
+    window.api
+      .hubspotGetStatus(projectId)
+      .then((next) => {
+        if (cancelled) return;
+        applyStatus(next);
+      })
+      .catch(() => {
+        // SPEC-0003 §20: sin este catch, un fallo IPC dejaba loading=true para siempre.
+        if (!cancelled) applyStatus(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };

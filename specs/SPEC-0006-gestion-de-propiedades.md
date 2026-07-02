@@ -2010,3 +2010,21 @@ Del informe de revisión de código 2026-07-02, hallazgo 5.2. `syncHubspot` list
 conserva: un objeto rechazado va a `failedObjects` y sus entradas no se reconcilian. Sin cambios de API; los
 tests existentes de sync siguen válidos (no dependen del orden). Requiere rebuild de la app/MCP; typecheck/test
 en la máquina del usuario.
+
+## 50. Manejo de errores en la UI de propiedades (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgos 7.1, 7.2, 7.4 y 7.5.
+
+- **`handleApply` comprueba el resultado (§7.1)**: `applyChange` del store devuelve `false` (con `error`
+  relleno) cuando el apply falla en HubSpot; la pantalla mostraba el toast verde igualmente. Ahora el toast de
+  éxito solo sale con `true`; con `false` se notifica `properties.applyToastError` con el error del store.
+- **Stores con catch (§7.2)**: `entries-store.load` tenía `try/finally` sin `catch` (unhandled rejection con
+  `void load(...)` y `error` nunca relleno); `origins-store`/`objects-store` no tenían manejo alguno. Los tres
+  capturan y setean `error` (campo nuevo en origins/objects). `mappings-store` está en desuso (§16) y no se toca.
+- **`EntryWizard` (§7.4)**: `handleSubmit` con estado `saving` + `BusyButton` (evita el doble submit) y
+  try/catch con Snackbar; `createGroup` con try/catch y Snackbar (antes ambos eran unhandled rejections sin
+  feedback).
+- **`handleConvertAll`/`handleExport` (§7.5)**: envueltos en try/catch con notificación por Snackbar.
+
+Mensaje genérico de fallback: `common.loadError` (presente en los 7 locales desde SPEC-0014 §12). Sin claves
+i18n nuevas. Requiere rebuild de la app; typecheck/test en la máquina del usuario.

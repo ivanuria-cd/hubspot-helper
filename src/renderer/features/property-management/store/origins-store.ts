@@ -4,6 +4,7 @@ import type { DataOrigin, OriginType } from '@shared/types/properties';
 interface OriginsState {
   origins: DataOrigin[];
   loading: boolean;
+  error: string | null;
   load: (projectId: string) => Promise<void>;
   create: (
     projectId: string,
@@ -16,10 +17,14 @@ interface OriginsState {
 export const useOriginsStore = create<OriginsState>((set, get) => ({
   origins: [],
   loading: false,
+  error: null,
   load: async (projectId) => {
-    set({ loading: true });
+    set({ loading: true, error: null });
     try {
       set({ origins: await window.api.originsList({ projectId }) });
+    } catch (error) {
+      // SPEC-0006 §50: evita el unhandled rejection y deja el error consultable.
+      set({ error: error instanceof Error ? error.message : 'Error' });
     } finally {
       set({ loading: false });
     }

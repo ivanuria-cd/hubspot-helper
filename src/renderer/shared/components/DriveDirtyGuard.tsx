@@ -19,13 +19,14 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import SaveIcon from '@mui/icons-material/Save';
 import { useBlocker, type BlockerFunction } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useSnackbar } from './feedback';
 
 interface DriveDirtyGuardProps {
   dirty: boolean;
   projectId: string;
   featureKey: string;
   /** Acción de actualizar el archivo (mismo `update` del controlador useDriveDoc). */
-  onUpdate: () => Promise<{ success: boolean }>;
+  onUpdate: () => Promise<{ success: boolean; error?: string }>;
 }
 
 function skipKey(projectId: string, featureKey: string): string {
@@ -39,6 +40,7 @@ export function DriveDirtyGuard({
   onUpdate,
 }: DriveDirtyGuardProps): JSX.Element | null {
   const { t } = useTranslation();
+  const { notify } = useSnackbar();
   const [skip, setSkip] = useState(false);
   const [dontAsk, setDontAsk] = useState(false);
 
@@ -69,10 +71,21 @@ export function DriveDirtyGuard({
   };
 
   const updateAndLeave = async (): Promise<void> => {
-    const result = await onUpdate();
-    if (result.success) {
-      persistDontAsk();
-      blocker.proceed();
+    // SPEC-0004 §27: si la actualización falla, el diálogo permanece y se notifica el motivo
+    // (antes se quedaba abierto sin ningún feedback).
+    try {
+      const result = await onUpdate();
+      if (result.success) {
+        persistDontAsk();
+        blocker.proceed();
+        return;
+      }
+      notify({ message: result.error ?? t('common.loadError'), severity: 'error' });
+    } catch (error) {
+      notify({
+        message: error instanceof Error ? error.message : t('common.loadError'),
+        severity: 'error',
+      });
     }
   };
 

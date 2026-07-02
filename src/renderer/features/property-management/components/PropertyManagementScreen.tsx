@@ -155,18 +155,35 @@ export function PropertyManagementScreen(): JSX.Element | null {
       body: t('properties.convert.confirmBody', { count: blockedCount }),
     });
     if (!ok) return;
-    const result = await convertMissing(projectId, objectType);
-    notify({ message: t('properties.convert.done', { converted: result.converted }), severity: 'success' });
-    if (result.seeded > 0) {
-      notify({ message: t('properties.convert.seededWarning', { seeded: result.seeded }), severity: 'warning' });
+    // SPEC-0006 §50: errores notificados en vez de unhandled rejection.
+    try {
+      const result = await convertMissing(projectId, objectType);
+      notify({ message: t('properties.convert.done', { converted: result.converted }), severity: 'success' });
+      if (result.seeded > 0) {
+        notify({ message: t('properties.convert.seededWarning', { seeded: result.seeded }), severity: 'warning' });
+      }
+    } catch (error) {
+      notify({
+        message: error instanceof Error ? error.message : t('common.loadError'),
+        severity: 'error',
+      });
     }
   };
 
   const handleApply = async (changeId: string, environment: HubSpotEnvironment): Promise<void> => {
     setBusy(true);
     try {
-      await applyChange(projectId, changeId, environment);
-      notify({ message: t('properties.applyToastDone'), severity: 'success' });
+      // SPEC-0006 §50: applyChange devuelve false (con `error` en el store) cuando el apply
+      // falla en HubSpot; antes se mostraba el toast de éxito igualmente.
+      const ok = await applyChange(projectId, changeId, environment);
+      if (ok) {
+        notify({ message: t('properties.applyToastDone'), severity: 'success' });
+      } else {
+        notify({
+          message: t('properties.applyToastError', { error: useEntriesStore.getState().error ?? '' }),
+          severity: 'error',
+        });
+      }
     } catch (error) {
       notify({
         message: t('properties.applyToastError', { error: error instanceof Error ? error.message : '' }),
@@ -177,16 +194,24 @@ export function PropertyManagementScreen(): JSX.Element | null {
     }
   };
 
-  const handleExport = async(originId: string, originName: string): Promise<void> => {
+  const handleExport = async (originId: string, originName: string): Promise<void> => {
     setExportAnchor(null);
-    const data = await window.api.propertiesExportJson({ projectId, originId });
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `${originName.replace(/\s+/g, '-').toLowerCase()}_${new Date().toISOString().slice(0, 10)}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    // SPEC-0006 §50: un fallo del export ya no es un unhandled rejection silencioso.
+    try {
+      const data = await window.api.propertiesExportJson({ projectId, originId });
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `${originName.replace(/\s+/g, '-').toLowerCase()}_${new Date().toISOString().slice(0, 10)}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      notify({
+        message: error instanceof Error ? error.message : t('common.loadError'),
+        severity: 'error',
+      });
+    }
   };
 
   return (

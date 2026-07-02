@@ -38,6 +38,9 @@ export const useEntriesStore = create<EntriesState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       set({ entries: (await window.api.entriesList({ projectId })) ?? [] });
+    } catch (error) {
+      // SPEC-0006 §50: sin este catch la promesa escapaba (unhandled rejection con `void load(...)`).
+      set({ error: error instanceof Error ? error.message : 'Error' });
     } finally {
       set({ loading: false });
     }

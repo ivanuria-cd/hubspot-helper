@@ -30,7 +30,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { OptionsDialog } from './OptionsDialog';
 import { SourceOptionsDialog } from './SourceOptionsDialog';
-import { FieldTooltip, useFieldHelp } from '@shared/components/feedback';
+import { BusyButton, FieldTooltip, useFieldHelp, useSnackbar } from '@shared/components/feedback';
 import { useTranslation } from 'react-i18next';
 import type {
   DataOrigin,
@@ -137,6 +137,8 @@ export function EntryWizard({
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [srcOptionsId, setSrcOptionsId] = useState<string | null>(null);
   const [metaLoading, setMetaLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { notify } = useSnackbar();
 
   useEffect(() => {
     if (!open) return;
@@ -196,11 +198,19 @@ export function EntryWizard({
   const createGroup = async (): Promise<void> => {
     const label = newGroupLabel.trim();
     if (!label || typeof window.api.groupsCreate !== 'function') return;
-    const created = await window.api.groupsCreate({ projectId, objectType, name: slugify(label), label });
-    const list = await window.api.groupsList({ projectId, objectType });
-    setGroups(list);
-    setDef((d) => ({ ...d, groupName: created.name }));
-    setNewGroupLabel('');
+    try {
+      const created = await window.api.groupsCreate({ projectId, objectType, name: slugify(label), label });
+      const list = await window.api.groupsList({ projectId, objectType });
+      setGroups(list);
+      setDef((d) => ({ ...d, groupName: created.name }));
+      setNewGroupLabel('');
+    } catch (error) {
+      // SPEC-0006 §50: un fallo IPC era un unhandled rejection sin feedback.
+      notify({
+        message: error instanceof Error ? error.message : t('common.loadError'),
+        severity: 'error',
+      });
+    }
   };
 
   // El grupo se resuelve antes de aplicar en HubSpot (puede no haber grupos sin portal);
@@ -227,17 +237,28 @@ export function EntryWizard({
             .map((o, i) => ({ ...o, displayOrder: i }))
         : undefined;
     const cleanDef = { ...def, options: cleanOptions };
-    await onSubmit({
-      id: entry?.id,
-      objectType,
-      name: name.trim(),
-      hubspotProperty:
-        mode === 'existing'
-          ? { mode: 'existing', hubspotName: existingName, definition: { ...cleanDef, hubspotName: existingName } }
-          : { mode: 'new', definition: cleanDef },
-      sources: builtSources,
-    });
-    onClose();
+    // SPEC-0006 §50: estado ocupado (evita doble submit) + errores notificados por Snackbar.
+    setSaving(true);
+    try {
+      await onSubmit({
+        id: entry?.id,
+        objectType,
+        name: name.trim(),
+        hubspotProperty:
+          mode === 'existing'
+            ? { mode: 'existing', hubspotName: existingName, definition: { ...cleanDef, hubspotName: existingName } }
+            : { mode: 'new', definition: cleanDef },
+        sources: builtSources,
+      });
+      onClose();
+    } catch (error) {
+      notify({
+        message: error instanceof Error ? error.message : t('common.loadError'),
+        severity: 'error',
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const fieldTypeOptions = FIELD_TYPES_BY_TYPE[def.type] ?? ['text'];
@@ -605,9 +626,9 @@ export function EntryWizard({
         <Button startIcon={<CloseIcon />} onClick={onClose}>
           {t('properties.wizard.cancel')}
         </Button>
-        <Button variant="contained" startIcon={<SaveIcon />} disabled={!canSubmit} onClick={handleSubmit}>
+        <BusyButton variant="contained" busy={saving} startIcon={<SaveIcon />} disabled={!canSubmit} onClick={handleSubmit}>
           {t('properties.wizard.save')}
-        </Button>
+        </BusyButton>
       </DialogActions>
     </Dialog>
     <OptionsDialog

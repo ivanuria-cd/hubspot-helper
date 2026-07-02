@@ -379,3 +379,11 @@ del conflicto 409 parametrizado (`'La propiedad'`/`'El formulario'`/`'El objeto'
 Los tres servicios delegan en ella con su sujeto; formularios y objetos custom ganan el mapeo de status que no
 tenían. Test `errors.spec.ts` (3 casos). Sin cambios de API. Requiere rebuild de la app/MCP; typecheck/test en
 la máquina del usuario.
+
+## 20. Manejo de fallo IPC en `useHubSpotConnector` (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgo 7.3. El efecto de carga hacía
+`hubspotGetStatus(...).then(...)` sin `.catch`: un fallo IPC dejaba `loading=true` para siempre (spinner
+infinito) más un unhandled rejection. Ahora la cadena lleva `.catch` (aplica `status=null`, la pantalla muestra
+el estado desconectado) y `.finally` que baja `loading`, ambos con el guard `cancelled`. Requiere rebuild de la
+app; typecheck/test en la máquina del usuario.
