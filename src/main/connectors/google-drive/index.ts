@@ -560,18 +560,16 @@ function googleSheetsClientFor(accessToken: string): SheetsClient {
         });
         return res.data;
       },
-      async valuesUpdate(args) {
-        await sheets.spreadsheets.values.update({
+      async valuesBatchClear(args) {
+        await sheets.spreadsheets.values.batchClear({
           spreadsheetId: args.spreadsheetId,
-          range: args.range,
-          valueInputOption: 'RAW',
-          requestBody: { values: args.values },
+          requestBody: { ranges: args.ranges },
         });
       },
-      async valuesClear(args) {
-        await sheets.spreadsheets.values.clear({
+      async valuesBatchUpdate(args) {
+        await sheets.spreadsheets.values.batchUpdate({
           spreadsheetId: args.spreadsheetId,
-          range: args.range,
+          requestBody: { valueInputOption: 'RAW', data: args.data },
         });
       },
     }),

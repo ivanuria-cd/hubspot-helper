@@ -51,12 +51,12 @@ export interface SheetsRawApi {
     spreadsheetId: string;
     requests: Array<Record<string, unknown>>;
   }): Promise<unknown>;
-  valuesUpdate(args: {
+  // SPEC-0004 §26: variantes batch — reducen N×2 llamadas (clear+update por hoja) a 2 por libro.
+  valuesBatchClear(args: { spreadsheetId: string; ranges: string[] }): Promise<unknown>;
+  valuesBatchUpdate(args: {
     spreadsheetId: string;
-    range: string;
-    values: CellValue[][];
+    data: Array<{ range: string; values: CellValue[][] }>;
   }): Promise<unknown>;
-  valuesClear(args: { spreadsheetId: string; range: string }): Promise<unknown>;
 }
 
 function quote(value: string): string {
@@ -130,15 +130,16 @@ export function createSheetsClient(drive: SheetsDriveApi, sheets: SheetsRawApi) 
 
     await syncTabs(spreadsheetId, input.tabs.map((tab) => tab.title));
 
-    for (const tab of input.tabs) {
-      await sheets.valuesClear({ spreadsheetId, range: `'${quote(tab.title)}'` });
-      if (tab.rows.length > 0) {
-        await sheets.valuesUpdate({
-          spreadsheetId,
-          range: `'${quote(tab.title)}'!A1`,
-          values: tab.rows,
-        });
-      }
+    // SPEC-0004 §26: clear y update en 2 llamadas batch (antes 2 por hoja, en serie).
+    await sheets.valuesBatchClear({
+      spreadsheetId,
+      ranges: input.tabs.map((tab) => `'${quote(tab.title)}'`),
+    });
+    const data = input.tabs
+      .filter((tab) => tab.rows.length > 0)
+      .map((tab) => ({ range: `'${quote(tab.title)}'!A1`, values: tab.rows }));
+    if (data.length > 0) {
+      await sheets.valuesBatchUpdate({ spreadsheetId, data });
     }
 
     // Estilo corporativo + bloqueo de contenido (§19).

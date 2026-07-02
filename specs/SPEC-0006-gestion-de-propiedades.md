@@ -2001,3 +2001,12 @@ Adopción del criterio homogéneo de SPEC-0005 §18.2 (informe 2026-07-02, halla
 local y quedan gated como el resto de escrituras. `requiresGuidance: true` añadido a `properties_discard_change`,
 `properties_discard_changes_batch` y `properties_groups_discard_change` (el resto de tools de escritura/sync ya lo
 llevaban desde §35). Requiere rebuild del MCP.
+
+## 49. Listados del sync en paralelo (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgo 5.2. `syncHubspot` listaba las propiedades por
+`objectType` secuencialmente; ahora lanza los `listProperties(objectType, 'production')` con
+`Promise.allSettled` (el Bottleneck del conector ya throttlea el ritmo real). La semántica de H1 (§26) se
+conserva: un objeto rechazado va a `failedObjects` y sus entradas no se reconcilian. Sin cambios de API; los
+tests existentes de sync siguen válidos (no dependen del orden). Requiere rebuild de la app/MCP; typecheck/test
+en la máquina del usuario.

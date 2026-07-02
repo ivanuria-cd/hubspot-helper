@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
+  clearConsentTemplateCache,
   createFormsApi,
   objectTypeFromId,
   objectTypeToId,
@@ -96,5 +97,27 @@ describe('Marketing Forms API v3', () => {
         environment: 'production',
       }),
     );
+  });
+
+  it('§30: getConsentTemplate cachea por proyecto/tipo con TTL y expira', async () => {
+    clearConsentTemplateCache();
+    const lco = { type: 'legitimate_interest', privacyText: 'texto' };
+    const request = vi.fn(() =>
+      Promise.resolve({
+        status: 200,
+        data: { results: [{ id: 'f1', name: 'A', formType: 'hubspot', fieldGroups: [], legalConsentOptions: lco }] },
+      }),
+    );
+    let nowMs = 0;
+    const api = createFormsApi({ request, projectId: 'p-cache', now: () => nowMs });
+
+    expect(await api.getConsentTemplate('legitimate_interest')).toEqual(lco);
+    expect(await api.getConsentTemplate('legitimate_interest')).toEqual(lco);
+    expect(request).toHaveBeenCalledTimes(1);
+
+    nowMs = 5 * 60_000 + 1;
+    await api.getConsentTemplate('legitimate_interest');
+    expect(request).toHaveBeenCalledTimes(2);
+    clearConsentTemplateCache();
   });
 });

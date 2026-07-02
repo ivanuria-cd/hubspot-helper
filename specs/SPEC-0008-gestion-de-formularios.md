@@ -811,3 +811,14 @@ origen inexistente lanza `Origen(es) inexistente(s): …`. Test nuevo en `servic
 ### 29.3 Estado
 
 IMPLEMENTADO (2026-07-02). Requiere rebuild del MCP; typecheck/test en la máquina del usuario.
+
+## 30. Cache de plantillas de consentimiento (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgo 5.1. `getConsentTemplate`
+(`connectors/hubspot/forms.ts`) descargaba TODOS los formularios del portal (paginando) en cada `applyChange`
+con consentimiento incompleto. Cache a nivel de módulo (el façade se instancia por operación) con clave
+`projectId:entorno:tipo` y TTL de 5 min; cachea también el resultado `null` para evitar refetch en ráfaga.
+`now` inyectable en `FormsApiDeps` y `clearConsentTemplateCache()` para tests; caso nuevo en `forms.spec.ts`
+(hit dentro del TTL, refetch al expirar). Sin cambios de comportamiento funcional (las plantillas de
+consentimiento cambian raramente; 5 min de staleness aceptado). Requiere rebuild de la app/MCP; typecheck/test
+en la máquina del usuario.

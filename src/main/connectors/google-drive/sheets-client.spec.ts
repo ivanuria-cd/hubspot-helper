@@ -13,8 +13,13 @@ function makeApis(opts: { existingFileId?: string | null; existingTitles?: strin
     (_args: { spreadsheetId: string; requests: Array<Record<string, unknown>> }) =>
       Promise.resolve({}),
   );
-  const valuesUpdate = vi.fn(() => Promise.resolve({}));
-  const valuesClear = vi.fn(() => Promise.resolve({}));
+  const valuesBatchUpdate = vi.fn(
+    (_args: { spreadsheetId: string; data: Array<{ range: string; values: unknown[][] }> }) =>
+      Promise.resolve({}),
+  );
+  const valuesBatchClear = vi.fn((_args: { spreadsheetId: string; ranges: string[] }) =>
+    Promise.resolve({}),
+  );
   const sheets: SheetsRawApi = {
     get: vi.fn(() =>
       Promise.resolve({
@@ -24,10 +29,10 @@ function makeApis(opts: { existingFileId?: string | null; existingTitles?: strin
       }),
     ),
     batchUpdate,
-    valuesUpdate,
-    valuesClear,
+    valuesBatchClear,
+    valuesBatchUpdate,
   };
-  return { drive, sheets, driveCreate, batchUpdate, valuesUpdate, valuesClear };
+  return { drive, sheets, driveCreate, batchUpdate, valuesBatchUpdate, valuesBatchClear };
 }
 
 const tabs = [
@@ -50,7 +55,11 @@ describe('createSheetsClient', () => {
 
     expect(result.spreadsheetId).toBe('new-sheet');
     expect(apis.driveCreate).toHaveBeenCalledTimes(1);
-    expect(apis.valuesUpdate).toHaveBeenCalledTimes(2);
+    // SPEC-0004 §26: una sola llamada batch con las 2 hojas (antes 2 valuesUpdate).
+    expect(apis.valuesBatchClear).toHaveBeenCalledTimes(1);
+    expect(apis.valuesBatchUpdate).toHaveBeenCalledTimes(1);
+    const call = apis.valuesBatchUpdate.mock.calls[0]?.[0];
+    expect(call?.data.map((d) => d.range)).toEqual(["'00_Portada'!A1", "'01_Origenes'!A1"]);
   });
 
   it('§22: findManaged y createManaged pasan supportsAllDrives (unidades compartidas)', async () => {

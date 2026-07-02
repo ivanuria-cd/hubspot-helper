@@ -118,6 +118,20 @@ export interface ListFormsParams {
 export interface FormsApiDeps {
   request: HubSpotRequester;
   projectId: string;
+  /** Reloj inyectable para tests del cache de plantillas de consentimiento. */
+  now?: () => number;
+}
+
+/** Cache de plantillas de consentimiento (SPEC-0008 §30). A nivel de módulo porque el façade
+ * se instancia por operación; clave `projectId:entorno:tipo`. */
+const CONSENT_TEMPLATE_TTL_MS = 5 * 60_000;
+const consentTemplateCache = new Map<
+  string,
+  { value: Record<string, unknown> | null; expiresAt: number }
+>();
+
+export function clearConsentTemplateCache(): void {
+  consentTemplateCache.clear();
 }
 
 export function createFormsApi(deps: FormsApiDeps) {
@@ -188,21 +202,30 @@ export function createFormsApi(deps: FormsApiDeps) {
   /**
    * Devuelve el `legalConsentOptions` de un formulario existente del portal que use ese `type`
    * y tenga `privacyText` (plantilla para reutilizar textos/checkboxes), o `null` (§24).
+   * Cacheado por proyecto/entorno/tipo con TTL corto (SPEC-0008 §30): antes descargaba TODOS
+   * los formularios del portal en cada applyChange con consentimiento incompleto.
    */
   async function getConsentTemplate(
     type: string,
     environment?: HubSpotEnvironment,
   ): Promise<Record<string, unknown> | null> {
     if (!type || type === 'none') return null;
+    const key = `${deps.projectId}:${environment ?? 'active'}:${type}`;
+    const cached = consentTemplateCache.get(key);
+    const nowMs = (deps.now ?? Date.now)();
+    if (cached && cached.expiresAt > nowMs) return cached.value;
     const forms = await listForms({}, environment);
+    let value: Record<string, unknown> | null = null;
     for (const form of forms) {
       const raw = (form.raw ?? {}) as { legalConsentOptions?: Record<string, unknown> };
       const lco = raw.legalConsentOptions;
       if (lco && lco.type === type && typeof lco.privacyText === 'string' && lco.privacyText) {
-        return lco;
+        value = lco;
+        break;
       }
     }
-    return null;
+    consentTemplateCache.set(key, { value, expiresAt: nowMs + CONSENT_TEMPLATE_TTL_MS });
+    return value;
   }
 
   /** Importación legacy v2 (solo lectura): formularios muy antiguos que no aparecen en v3. */

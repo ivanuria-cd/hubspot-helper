@@ -236,19 +236,23 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     const api = deps.propertiesApiFor(input.projectId);
     const objectTypes = Array.from(new Set(state.entries.map((e) => e.objectType)));
 
+    // SPEC-0006 §49: los listados por objeto se lanzan en paralelo (el rate limiter del conector
+    // ya throttlea). El estado se reconcilia SIEMPRE contra producción (SPEC-0006 §37), con
+    // independencia del entorno activo; aplicar cambios sigue usando el entorno elegido.
     const remotes: RemoteProperty[] = [];
     const failedObjects = new Set<string>();
-    for (const objectType of objectTypes) {
-      try {
-        // El estado (exists/missing/divergent) se reconcilia SIEMPRE contra producción (SPEC-0006 §37),
-        // con independencia del entorno activo. Aplicar cambios sigue usando el entorno elegido.
-        remotes.push(...(await api.listProperties(objectType, 'production')));
-      } catch {
+    const results = await Promise.allSettled(
+      objectTypes.map((objectType) => api.listProperties(objectType, 'production')),
+    );
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        remotes.push(...result.value);
+      } else {
         // Un objeto inaccesible (p. ej. custom archivado/inexistente) no debe abortar el sync;
         // se salta y sus entradas quedan intactas (no se reconcilian contra remotos vacíos).
-        failedObjects.add(objectType);
+        failedObjects.add(objectTypes[index]);
       }
-    }
+    });
 
     const reconcilable = state.entries.filter((e) => !failedObjects.has(e.objectType));
     const result = reconcileEntries(reconcilable, remotes, changeFactory());

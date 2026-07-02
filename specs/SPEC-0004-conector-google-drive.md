@@ -1178,3 +1178,13 @@ los façades de Drive/Docs (`googleDriveClientFor`) y Drive/Sheets (`googleSheet
 ### 25.6 Estado
 
 IMPLEMENTADO (2026-07-02). Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 26. Escritura de Sheets en batch (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgo 5.3. `writeSpreadsheet` hacía `values.clear` +
+`values.update` por hoja, en serie (N×2 llamadas). `SheetsRawApi` sustituye `valuesUpdate`/`valuesClear` por
+`valuesBatchClear`/`valuesBatchUpdate` (Sheets API `values.batchClear`/`values.batchUpdate`,
+`valueInputOption: RAW`): 2 llamadas por libro, menos superficie para 429 a mitad de escritura (complementa el
+retry del §25.4). Façade real actualizado en `index.ts`; `sheets-client.spec.ts` adaptado (asserts de una sola
+llamada batch con los ranges de todas las hojas). Sin cambios en el contenido escrito. Requiere rebuild de la
+app; typecheck/test en la máquina del usuario.
