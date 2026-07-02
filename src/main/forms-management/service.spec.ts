@@ -101,6 +101,16 @@ describe('FormService', () => {
     expect(reports[0]?.present).toBe(1); // email presente
   });
 
+  it('§29: upsertLink rechaza originIds inexistentes (mismo assert que createDefinition)', () => {
+    const { service } = makeService({}, [form('f1', ['email'])]);
+    expect(() =>
+      service.upsertLink({
+        projectId: 'p1',
+        link: { formId: 'f1', originIds: ['no-existe'], objectType: 'contacts' },
+      }),
+    ).toThrow('Origen(es) inexistente(s): no-existe');
+  });
+
   it('addMissingFields genera un cambio add_fields con el campo que falta', () => {
     const { service } = makeService({}, [form('f1', ['email'])]);
     service.upsertLink({

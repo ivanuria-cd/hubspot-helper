@@ -358,6 +358,7 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
 
   registry.register({
     name: 'properties_discard_changes_batch',
+    requiresGuidance: true,
     description:
       'Descarta VARIOS cambios pendientes por sus IDs. Devuelve { results: [{ changeId, ok, error? }] }: ' +
       'un fallo por ítem no aborta el lote. Útil para limpiar cambios huérfanos en bloque.',
@@ -534,6 +535,7 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
 
   registry.register({
     name: 'properties_discard_change',
+    requiresGuidance: true,
     description: 'Descarta un cambio pendiente del proyecto.',
     inputSchema: { type: 'object', properties: { changeId: { type: 'string' } }, required: ['changeId'] },
     featureKey: feature,
@@ -632,6 +634,7 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
 
   registry.register({
     name: 'properties_groups_discard_change',
+    requiresGuidance: true,
     description: 'Descarta un borrado de grupo pendiente del proyecto.',
     inputSchema: { type: 'object', properties: { changeId: { type: 'string' } }, required: ['changeId'] },
     featureKey: feature,

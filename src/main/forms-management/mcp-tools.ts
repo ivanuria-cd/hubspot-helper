@@ -40,6 +40,7 @@ export function registerFormTools(registry: McpRegistry, service: FormService): 
 
   registry.register({
     name: 'forms_sync',
+    requiresGuidance: true,
     description: 'Importa/actualiza los formularios desde HubSpot (legacy y nueva herramienta).',
     inputSchema: { type: 'object', properties: { includeLegacyV2: { type: 'boolean' } } },
     featureKey: feature,
@@ -70,6 +71,7 @@ export function registerFormTools(registry: McpRegistry, service: FormService): 
 
   registry.register({
     name: 'forms_link_origin',
+    requiresGuidance: true,
     description: 'Asocia un formulario a uno o varios orígenes (estado local).',
     inputSchema: {
       type: 'object',
@@ -95,6 +97,7 @@ export function registerFormTools(registry: McpRegistry, service: FormService): 
 
   registry.register({
     name: 'forms_create_definition',
+    requiresGuidance: true,
     description:
       'Prepara un cambio pendiente para crear un formulario. Acepta `originIds` (validados contra los orígenes del proyecto, SPEC-0006) para asociar el formulario al aplicarse, y `objectType`.',
     inputSchema: {
@@ -129,6 +132,7 @@ export function registerFormTools(registry: McpRegistry, service: FormService): 
 
   registry.register({
     name: 'forms_update_definition',
+    requiresGuidance: true,
     description:
       'Prepara un cambio pendiente `update_form` (PATCH) para editar un formulario existente. `edits` admite name, fields/fieldGroups, configuration, displayOptions y legalConsentOptions; lo no especificado se conserva del formulario.',
     inputSchema: {
@@ -161,6 +165,7 @@ export function registerFormTools(registry: McpRegistry, service: FormService): 
 
   registry.register({
     name: 'forms_edit_pending_change',
+    requiresGuidance: true,
     description:
       'Edita un cambio pendiente NO aplicado (create_form/update_form/add_fields) antes de aplicarlo. `edits` admite name/fields/fieldGroups/configuration/displayOptions/legalConsentOptions (en add_fields solo fields/fieldGroups). `originIds` solo aplica a create_form (validados).',
     inputSchema: {
@@ -198,6 +203,7 @@ export function registerFormTools(registry: McpRegistry, service: FormService): 
 
   registry.register({
     name: 'forms_add_missing_fields',
+    requiresGuidance: true,
     description: 'Prepara un cambio pendiente que añade los campos que faltan de un origen.',
     inputSchema: {
       type: 'object',
@@ -235,6 +241,7 @@ export function registerFormTools(registry: McpRegistry, service: FormService): 
 
   registry.register({
     name: 'forms_discard_change',
+    requiresGuidance: true,
     description: 'Descarta un cambio pendiente de formulario del proyecto.',
     inputSchema: {
       type: 'object',

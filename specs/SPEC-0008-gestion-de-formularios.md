@@ -790,3 +790,24 @@ Claves en `es`/`ca`/`eu`/`en`. typecheck/test en máquina.
 > Nota: existen dos secciones numeradas «§27» en este SPEC (estados de carga, BORRADOR; e identidad visual,
 > IMPLEMENTADO). Es una errata de numeración preexistente; se mantiene y solo se señala. Esta sección continúa
 > como §28.
+
+## 29. Gate de guía en las tools MCP y validación de orígenes en `upsertLink` (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgos 3.1 y 3.4.
+
+### 29.1 Adopción del gate de guía (SPEC-0005 §15/§18.2)
+
+Ninguna tool de la feature declaraba `requiresGuidance`. Añadido a las tools que mutan estado o sincronizan:
+`forms_sync`, `forms_link_origin`, `forms_create_definition`, `forms_update_definition`,
+`forms_edit_pending_change`, `forms_add_missing_fields` y `forms_discard_change`. Quedan libres las de solo
+lectura (`forms_list`, `forms_get`, `forms_coverage`, `forms_subscription_types`, `forms_pending_changes`).
+
+### 29.2 `upsertLink` valida los orígenes
+
+`upsertLink` (y por tanto `forms_link_origin`) no validaba que los `originIds` existieran, mientras
+`createDefinition` sí (`assertOriginsExist`, §22). Se llama al mismo assert al principio de `upsertLink`; un
+origen inexistente lanza `Origen(es) inexistente(s): …`. Test nuevo en `service.spec.ts`.
+
+### 29.3 Estado
+
+IMPLEMENTADO (2026-07-02). Requiere rebuild del MCP; typecheck/test en la máquina del usuario.

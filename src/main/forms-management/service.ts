@@ -121,6 +121,8 @@ export function createFormService(deps: FormServiceDeps) {
   }
 
   function upsertLink(input: FormLinkUpsertInput): FormOriginLink {
+    // SPEC-0008 §29: mismos requisitos que createDefinition — los orígenes deben existir.
+    assertOriginsExist(input.projectId, input.link.originIds);
     const state = deps.store.get(input.projectId);
     const incoming = input.link;
     const existing = incoming.id ? state.links.find((link) => link.id === incoming.id) : undefined;

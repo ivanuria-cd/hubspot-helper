@@ -67,6 +67,7 @@ export function registerCustomObjectTools(
 
   registry.register({
     name: 'custom_objects_upsert_draft',
+    requiresGuidance: true,
     description: 'Crea o actualiza un borrador de objeto custom (no escribe en HubSpot).',
     inputSchema: {
       type: 'object',
@@ -83,6 +84,7 @@ export function registerCustomObjectTools(
 
   registry.register({
     name: 'custom_objects_apply_change',
+    requiresGuidance: true,
     description:
       'Aplica un cambio pendiente (create / update_schema / archive) en el entorno indicado.',
     inputSchema: {
@@ -106,6 +108,7 @@ export function registerCustomObjectTools(
 
   registry.register({
     name: 'custom_objects_discard_change',
+    requiresGuidance: true,
     description: 'Descarta un cambio de schema pendiente del proyecto.',
     inputSchema: {
       type: 'object',
@@ -124,6 +127,7 @@ export function registerCustomObjectTools(
 
   registry.register({
     name: 'custom_objects_sync',
+    requiresGuidance: true,
     description:
       'Reconcilia los borradores y objetos contra HubSpot (entorno activo); genera los cambios pendientes (create / update_schema). No escribe en HubSpot.',
     inputSchema: { type: 'object', properties: {} },
@@ -134,6 +138,7 @@ export function registerCustomObjectTools(
 
   registry.register({
     name: 'custom_objects_delete_draft',
+    requiresGuidance: true,
     description: 'Elimina un borrador de objeto custom del estado local (no afecta a HubSpot).',
     inputSchema: {
       type: 'object',

@@ -16,6 +16,7 @@ import type { GuidanceBlocked } from './types';
 import { toSummary } from './types';
 import { startHttpSse, type HttpSseHandle } from './transport/http-sse';
 import { connectStdio } from './transport/stdio';
+import { validateToolInput } from './validate-input';
 
 /** Nombre de la tool de guía que levanta el acuse de sesión (SPEC-0005 §15.3). */
 export const GUIDANCE_TOOL = 'revops_guidance';
@@ -79,6 +80,11 @@ export function createMcpService(deps: McpServiceDeps): McpService {
     const tool = deps.registry.get(name);
     if (!tool) throw new Error(`Tool MCP desconocida: ${name}`);
     if (tool.requiresGuidance && !guidanceAck.has(sessionId)) return blocked();
+    // SPEC-0005 §18: validación runtime del input contra el inputSchema declarado.
+    const validation = validateToolInput(tool.inputSchema, args);
+    if (!validation.ok) {
+      return { error: { code: 'invalid-input', tool: name, issues: validation.issues } };
+    }
     log(`tool MCP llamada: ${tool.name}`);
     const result = await tool.handler(args ?? {}, { ...deps.contextProvider(), sessionId });
     if (name === GUIDANCE_TOOL) guidanceAck.add(sessionId);

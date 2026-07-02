@@ -1994,3 +1994,10 @@ Antes devolvía `input.origin` aunque el id no existiera (sin tocar el store). A
 
 IMPLEMENTADO (2026-07-02). Sin cambios de API ni de UI. Requiere rebuild de la app/MCP; typecheck/test en la
 máquina del usuario.
+
+## 48. Gate de guía en las tools de descarte (IMPLEMENTADO, 2026-07-02)
+
+Adopción del criterio homogéneo de SPEC-0005 §18.2 (informe 2026-07-02, hallazgo 3.1): los descartes mutan estado
+local y quedan gated como el resto de escrituras. `requiresGuidance: true` añadido a `properties_discard_change`,
+`properties_discard_changes_batch` y `properties_groups_discard_change` (el resto de tools de escritura/sync ya lo
+llevaban desde §35). Requiere rebuild del MCP.

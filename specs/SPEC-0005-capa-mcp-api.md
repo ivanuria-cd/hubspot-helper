@@ -459,3 +459,41 @@ esperar: el cierre del servidor HTTP podía no completarse antes de salir. Ahora
 `event.preventDefault()`, espera `mcpService.stop()` con un tope de 3 s (`Promise.race`) y relanza `app.quit()`
 (guard `mcpStopped` para no reentrar). Sin cambios de API. Requiere rebuild de la app; typecheck/test en la
 máquina del usuario.
+
+## 18. Validación runtime del inputSchema, criterio del gate y `requiredScopes` (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgos 3.1, 3.2 y 3.3.
+
+### 18.1 Validación runtime del input (§3.2)
+
+Los `inputSchema` declarados no se validaban: los handlers casteaban con `as` a ciegas (`environment` a
+`HubSpotEnvironment` sin comprobar el enum, ítems de lotes sin validar forma). Módulo nuevo
+`mcp/validate-input.ts` (`validateToolInput(schema, input)`): subconjunto pragmático de JSON Schema — `required`,
+`type` y `enum` de las propiedades de primer nivel, más `items.type` primitivo en arrays. `callTool` (`server.ts`)
+lo ejecuta tras el gate de guía y antes del handler; si falla devuelve
+`{ error: { code: 'invalid-input', tool, issues: [{ field, message }] } }` sin ejecutar el handler. Los handlers
+conservan su validación profunda propia (p. ej. `entries_upsert`, SPEC-0006 §39.9).
+
+### 18.2 Criterio homogéneo del gate de guía (§3.1)
+
+El §15 bloquea «tools de escritura/sync», pero formularios y objetos custom no marcaban ninguna tool y en
+propiedades los discard quedaban fuera. Criterio explícito: **toda tool que mute estado (HubSpot o local,
+incluidos descartes) o sincronice lleva `requiresGuidance`; las de solo lectura, no.** Adopción registrada en
+SPEC-0006 §48, SPEC-0007 §20 y SPEC-0008 §29.
+
+### 18.3 `requiredScopes` es informativo (§3.3)
+
+`requiredScopes` nunca se comprueba contra los scopes reales del PAT (H6 de SPEC-0006 §26, que sigue diferido).
+Se documenta como INFORMATIVO en `mcp/types.ts` para que nadie asuma un enforcement inexistente; se muestra en
+los summaries de la UI.
+
+### 18.4 Tests
+
+- `validate-input.spec.ts` (nuevo): 6 casos (válido, requeridos, enum, tipos + items de array, input no-objeto,
+  esquema sin type).
+- `server.spec.ts`: 2 casos nuevos — input inválido devuelve `invalid-input` con issues sin ejecutar el handler;
+  input válido ejecuta.
+
+### 18.5 Estado
+
+IMPLEMENTADO (2026-07-02). Requiere rebuild del MCP; typecheck/test en la máquina del usuario.

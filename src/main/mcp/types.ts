@@ -35,6 +35,12 @@ export interface McpTool {
   inputSchema: JsonSchema;
   handler: (input: unknown, context: McpContext) => Promise<unknown>;
   featureKey: string;
+  /**
+   * INFORMATIVO (SPEC-0005 §18 / SPEC-0006 §26 H6 diferido): documenta los scopes del PAT que
+   * la tool necesita, pero NO se comprueba contra los scopes reales del token en runtime
+   * (la API de HubSpot no expone introspección de scopes con coste razonable). Se muestra en
+   * los summaries de la UI.
+   */
   requiredScopes?: string[];
   /** La tool se bloquea hasta que la sesión haya leído `revops_guidance` (SPEC-0005 §15). */
   requiresGuidance?: boolean;

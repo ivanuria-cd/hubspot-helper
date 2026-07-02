@@ -179,4 +179,40 @@ describe('createMcpService', () => {
       expect(after.blocked).toBe(true);
     });
   });
+
+  describe('validación runtime del inputSchema (§18)', () => {
+    function validatedRegistry(): McpRegistry {
+      const registry = new McpRegistry();
+      registry.register({
+        name: 'typed_tool',
+        description: 'con schema',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            changeId: { type: 'string' },
+            environment: { type: 'string', enum: ['sandbox', 'production'] },
+          },
+          required: ['changeId', 'environment'],
+        },
+        featureKey: 'f',
+        handler: () => Promise.resolve('ok'),
+      });
+      return registry;
+    }
+
+    it('rechaza input inválido con issues estructurados sin ejecutar el handler', async () => {
+      const service = buildService(3746, validatedRegistry());
+      const bad = (await service.callTool('typed_tool', { environment: 'staging' }, 'S1')) as {
+        error?: { code: string; issues: Array<{ field: string }> };
+      };
+      expect(bad.error?.code).toBe('invalid-input');
+      expect(bad.error?.issues.map((i) => i.field)).toEqual(['changeId', 'environment']);
+    });
+
+    it('ejecuta el handler con input válido', async () => {
+      const service = buildService(3747, validatedRegistry());
+      const ok = await service.callTool('typed_tool', { changeId: 'c1', environment: 'sandbox' }, 'S1');
+      expect(ok).toBe('ok');
+    });
+  });
 });

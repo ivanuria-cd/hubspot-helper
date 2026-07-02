@@ -493,3 +493,12 @@ asociaciones. Claves `customObjects.wizard.fieldHelp.*` en `es`/`ca`/`eu`/`en`. 
 > Nota: existen dos secciones numeradas «§18» en este SPEC (estados de carga, BORRADOR; e identidad visual,
 > IMPLEMENTADO). Es una errata de numeración preexistente; se mantiene y solo se señala. Esta sección continúa
 > como §19.
+
+## 20. Adopción del gate de guía en las tools MCP (SPEC-0005 §15/§18.2) (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgo 3.1: ninguna tool de la feature declaraba
+`requiresGuidance`, pese a que `custom_objects_apply_change` escribe en HubSpot. `requiresGuidance: true` añadido
+a las tools que mutan estado o sincronizan: `custom_objects_upsert_draft`, `custom_objects_apply_change`,
+`custom_objects_discard_change`, `custom_objects_sync` y `custom_objects_delete_draft`. Quedan libres las de solo
+lectura (`custom_objects_list`, `custom_objects_get`, `custom_objects_pending_changes`). Requiere rebuild del MCP;
+typecheck/test en la máquina del usuario.
