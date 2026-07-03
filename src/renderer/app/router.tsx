@@ -18,17 +18,20 @@ export const routes: RouteObject[] = [
   {
     path: '/project/:projectId',
     element: <MainLayout />,
+    // SPEC-0002 §25: errorElement en el padre — cubre TODAS las hijas (config/*, help incluidas)
+    // manteniendo el layout; antes solo las 5 rutas de proyecto estaban protegidas.
+    errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <DashboardScreen />, errorElement: <RouteErrorBoundary /> },
       { path: 'crm', element: <CrmOverviewScreen />, errorElement: <RouteErrorBoundary /> },
       { path: 'crm/properties', element: <PropertyManagementScreen />, errorElement: <RouteErrorBoundary /> },
       { path: 'crm/objects', element: <CustomObjectsScreen />, errorElement: <RouteErrorBoundary /> },
       { path: 'crm/forms', element: <FormsManagementScreen />, errorElement: <RouteErrorBoundary /> },
-      { path: 'config', element: <ConfigSection /> },
-      { path: 'config/connectors/hubspot', element: <HubSpotConnectorScreen /> },
-      { path: 'config/connectors/google-drive', element: <GoogleDriveConnectorScreen /> },
-      { path: 'config/api-mcp', element: <McpSettingsScreen /> },
-      { path: 'help', element: <HelpSection /> },
+      { path: 'config', element: <ConfigSection />, errorElement: <RouteErrorBoundary /> },
+      { path: 'config/connectors/hubspot', element: <HubSpotConnectorScreen />, errorElement: <RouteErrorBoundary /> },
+      { path: 'config/connectors/google-drive', element: <GoogleDriveConnectorScreen />, errorElement: <RouteErrorBoundary /> },
+      { path: 'config/api-mcp', element: <McpSettingsScreen />, errorElement: <RouteErrorBoundary /> },
+      { path: 'help', element: <HelpSection />, errorElement: <RouteErrorBoundary /> },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },

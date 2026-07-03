@@ -48,7 +48,7 @@ export function useMcpSettings(): UseMcpSettings {
       setError(null);
       try {
         const result = await window.api.mcpToggle(enabled);
-        if (!result.success) setError(result.error ?? 'Error');
+        if (!result.success) setError(result.error ?? 'Error desconocido');
         await refresh();
       } finally {
         setBusy(false);

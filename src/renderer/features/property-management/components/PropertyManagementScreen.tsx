@@ -25,12 +25,14 @@ import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
 import { BusyButton, LoadingState, useConfirm, useSnackbar } from '@shared/components/feedback';
 import { EmptyState } from '@shared/components/EmptyState';
+import { syncSummaryVars } from '@shared/utils/sync-summary';
 import { useDriveDoc } from '@shared/hooks/useDriveDoc';
 import { useHubspotEnvironmentChange } from '@shared/hooks/useHubspotEnvironmentChange';
 import { DriveDocActions } from '@shared/components/DriveDocActions';
 import { DriveDirtyGuard } from '@shared/components/DriveDirtyGuard';
 import type { PropertyEntry } from '@shared/types/properties';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
+import { destName } from '../utils/dest-name';
 import { useEntriesStore } from '../store/entries-store';
 import { useObjectsStore } from '../store/objects-store';
 import { useOriginsStore } from '../store/origins-store';
@@ -46,17 +48,6 @@ function norm(value: string): string {
   return value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 }
 
-function destName(entry: PropertyEntry): string {
-  // Defensivo (SPEC-0006 §39): un dato malformado no debe romper el render.
-  const ref = entry.hubspotProperty as unknown as {
-    mode?: string;
-    hubspotName?: string;
-    definition?: { hubspotName?: string };
-  };
-  if (!ref || typeof ref !== 'object') return '';
-  if (ref.mode === 'existing') return ref.hubspotName ?? '';
-  return ref.definition?.hubspotName ?? '';
-}
 
 export function PropertyManagementScreen(): JSX.Element | null {
   const { t } = useTranslation('common');
@@ -244,7 +235,7 @@ export function PropertyManagementScreen(): JSX.Element | null {
       ) : null}
       {lastSync && view === 'list' ? (
         <Alert severity="info" sx={{ mb: 2 }}>
-          {t('properties.syncSummary', lastSync as unknown as Record<string, number>)}
+          {t('properties.syncSummary', syncSummaryVars(lastSync))}
         </Alert>
       ) : null}
       {view === 'changes' ? (

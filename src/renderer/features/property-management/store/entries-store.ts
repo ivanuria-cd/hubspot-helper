@@ -40,7 +40,8 @@ export const useEntriesStore = create<EntriesState>((set, get) => ({
       set({ entries: (await window.api.entriesList({ projectId })) ?? [] });
     } catch (error) {
       // SPEC-0006 §50: sin este catch la promesa escapaba (unhandled rejection con `void load(...)`).
-      set({ error: error instanceof Error ? error.message : 'Error' });
+      // §52: mensaje real siempre (String(error)), nunca el literal 'Error'.
+      set({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       set({ loading: false });
     }
@@ -52,7 +53,7 @@ export const useEntriesStore = create<EntriesState>((set, get) => ({
       const entries = (await window.api.entriesList({ projectId })) ?? [];
       set({ entries, lastSync });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Error' });
+      set({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       set({ syncing: false });
     }
@@ -78,7 +79,7 @@ export const useEntriesStore = create<EntriesState>((set, get) => ({
   applyChange: async (projectId, changeId, environment) => {
     const result = await window.api.propertiesApplyChange({ projectId, changeId, environment });
     if (!result.success) {
-      set({ error: result.error ?? 'Error' });
+      set({ error: result.error ?? 'Error desconocido' });
       return false;
     }
     await get().load(projectId);

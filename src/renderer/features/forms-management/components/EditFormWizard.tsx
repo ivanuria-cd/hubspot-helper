@@ -393,6 +393,9 @@ export function EditFormWizard({
                       value={field.name}
                       onChange={(event) => patchField(index, { name: event.target.value })}
                       placeholder={t('forms.editWizard.fieldName')}
+                      // SPEC-0008 §32: aria-label compuesto por fila (los headers de la tabla no
+                      // etiquetan los inputs para lectores de pantalla).
+                      inputProps={{ 'aria-label': `${t('forms.editWizard.fieldName')} ${index + 1}` }}
                     />
                   </TableCell>
                   <TableCell>
@@ -400,6 +403,7 @@ export function EditFormWizard({
                       size="small"
                       value={field.label}
                       onChange={(event) => patchField(index, { label: event.target.value })}
+                      inputProps={{ 'aria-label': `${t('forms.editWizard.label')} ${field.name || index + 1}` }}
                     />
                   </TableCell>
                   <TableCell>
@@ -409,6 +413,11 @@ export function EditFormWizard({
                       value={field.fieldType}
                       onChange={(event) => patchField(index, { fieldType: event.target.value })}
                       sx={{ minWidth: 160 }}
+                      SelectProps={{
+                        SelectDisplayProps: {
+                          'aria-label': `${t('forms.editWizard.fieldType')} ${field.name || index + 1}`,
+                        },
+                      }}
                     >
                       {FIELD_TYPES.map((type) => (
                         <MenuItem key={type} value={type}>

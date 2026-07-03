@@ -18,7 +18,7 @@ export const useObjectsStore = create<ObjectsState>((set) => ({
       set({ objects: await window.api.objectsList({ projectId }) });
     } catch (error) {
       // SPEC-0006 §50: evita el unhandled rejection y deja el error consultable.
-      set({ error: error instanceof Error ? error.message : 'Error' });
+      set({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       set({ loading: false });
     }

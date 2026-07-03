@@ -46,7 +46,7 @@ export const useCustomObjectsStore = create<CustomObjectsState>((set, get) => ({
       const definitions = (await window.api.objectsListSchemas({ projectId })) ?? [];
       set({ definitions, lastSync });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Error' });
+      set({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       set({ syncing: false });
     }
@@ -66,7 +66,7 @@ export const useCustomObjectsStore = create<CustomObjectsState>((set, get) => ({
   applyChange: async (projectId, changeId, environment) => {
     const result = await window.api.objectsApplyChange({ projectId, changeId, environment });
     if (!result.success) {
-      set({ error: result.error ?? 'Error' });
+      set({ error: result.error ?? 'Error desconocido' });
       return false;
     }
     await get().load(projectId);

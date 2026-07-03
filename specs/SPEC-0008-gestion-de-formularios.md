@@ -839,3 +839,18 @@ Del informe de revisión de código 2026-07-02, hallazgos 8.4, 8.5, 8.6 y 8.9.
   con `uiId` (`crypto.randomUUID()`) como `key`; el `uiId` no sale en el payload de guardado.
 
 Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 32. Consistencia y a11y en la UI de formularios (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgos 9.2 y 9.3.
+
+- **`EmptyState` en «sin resultados» (§9.2)**: `FormsManagementScreen` usaba `Typography` para el estado sin
+  resultados de búsqueda mientras Propiedades usa el `EmptyState` compartido (SPEC-0002 §14); unificado.
+- **`aria-label` por fila en `EditFormWizard` (§9.3)**: los TextField de nombre/etiqueta y el select de tipo de
+  cada fila no tenían etiqueta accesible (los headers de la tabla no etiquetan los inputs); `aria-label`
+  compuesto (`<etiqueta de columna> <nombre del campo | nº de fila>`). Los checkboxes ya lo llevaban.
+  Decisión: los valores de `FIELD_TYPES`/`CONSENT_TYPES` en los selects se muestran como valores técnicos de la
+  Forms API deliberadamente (identificadores, no texto de UI); si se decide traducirlos se hará con claves
+  `forms.fieldTypes.*` como en propiedades.
+
+Requiere rebuild de la app; typecheck/test en la máquina del usuario.

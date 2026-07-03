@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
 import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
 import { EmptyState } from '@shared/components/EmptyState';
+import { syncSummaryVars } from '@shared/utils/sync-summary';
 import { useDriveDoc } from '@shared/hooks/useDriveDoc';
 import { useHubspotEnvironmentChange } from '@shared/hooks/useHubspotEnvironmentChange';
 import { DriveDocActions } from '@shared/components/DriveDocActions';
@@ -206,7 +207,7 @@ export function FormsManagementScreen(): JSX.Element | null {
       ) : null}
       {lastSync && view === 'list' ? (
         <Alert severity="info" sx={{ mb: 2 }}>
-          {t('forms.syncSummary', lastSync as unknown as Record<string, number>)}
+          {t('forms.syncSummary', syncSummaryVars(lastSync))}
         </Alert>
       ) : null}
       {view === 'changes' ? (
@@ -273,7 +274,7 @@ export function FormsManagementScreen(): JSX.Element | null {
           ) : forms.length === 0 ? (
             <EmptyState message={t('forms.empty')} />
           ) : filtered.length === 0 ? (
-            <Typography color="text.primary">{t('forms.noResults')}</Typography>
+            <EmptyState message={t('forms.noResults')} />
           ) : (
             <FormsTable
               forms={filtered}

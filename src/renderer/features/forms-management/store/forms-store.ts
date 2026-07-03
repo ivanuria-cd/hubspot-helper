@@ -81,7 +81,7 @@ export const useFormsStore = create<FormsState>((set, get) => ({
         loadedProjectId: projectId,
       });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Error' });
+      set({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       set({ loading: false });
     }
@@ -93,7 +93,7 @@ export const useFormsStore = create<FormsState>((set, get) => ({
       set({ lastSync });
       await get().load(projectId);
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Error' });
+      set({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       set({ syncing: false });
     }
@@ -121,7 +121,7 @@ export const useFormsStore = create<FormsState>((set, get) => ({
   applyChange: async (projectId, changeId, environment) => {
     const result = await window.api.formsApplyChange({ projectId, changeId, environment });
     if (!result.success) {
-      set({ error: result.error ?? 'Error' });
+      set({ error: result.error ?? 'Error desconocido' });
       return false;
     }
     await get().load(projectId);

@@ -27,6 +27,7 @@ import type { HubSpotEnvironment } from '@shared/types/hubspot';
 import { useConfirm } from '@shared/components/feedback';
 import { SIDE_PANEL_WIDTH } from '@shared/components/layout-constants';
 import { StatusBadge } from './StatusBadge';
+import { destName } from '../utils/dest-name';
 
 interface EntryPanelProps {
   entry: PropertyEntry | null;
@@ -37,17 +38,6 @@ interface EntryPanelProps {
   onDelete: (entryId: string) => void;
   onApply: (changeId: string, environment: HubSpotEnvironment) => Promise<void>;
   onConvert?: (entryId: string) => void;
-}
-
-function destName(entry: PropertyEntry): string {
-  const ref = entry.hubspotProperty as unknown as {
-    mode?: string;
-    hubspotName?: string;
-    definition?: { hubspotName?: string };
-  };
-  if (!ref || typeof ref !== 'object') return '';
-  if (ref.mode === 'existing') return ref.hubspotName ?? '';
-  return ref.definition?.hubspotName ?? '';
 }
 
 export function EntryPanel({ entry, origins, busy, onClose, onEdit, onDelete, onApply, onConvert }: EntryPanelProps): JSX.Element {

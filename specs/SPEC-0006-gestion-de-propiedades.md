@@ -2048,3 +2048,11 @@ Del informe de revisión de código 2026-07-02, hallazgos 8.3, 8.4, 8.6 (menor),
 
 Sin cambio de comportamiento ni de claves i18n. Requiere rebuild de la app; typecheck/test en la máquina del
 usuario.
+
+## 52. `destName` compartida con type guard (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgo 9.5. La función defensiva `destName` (§39) estaba
+duplicada byte a byte en `PropertyManagementScreen` y `EntryPanel`, ambas con doble cast
+`as unknown as {...}`. Nueva `utils/dest-name.ts` de la feature: type guard `isLooseRef` en vez del cast y una
+única implementación importada por ambos componentes. Sin cambio de comportamiento. Requiere rebuild de la
+app; typecheck/test en la máquina del usuario.

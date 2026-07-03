@@ -866,3 +866,21 @@ Del informe de revisión de código 2026-07-02, hallazgos 8.1 y 8.10.
   parseo se extrae a `buildBlocks(content)` y se memoiza con `useMemo(content)`.
 
 Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 25. ErrorBoundary en todas las rutas y tipado transversal (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgos 9.1, 9.4 y 9.6.
+
+- **`errorElement` completo (§9.1)**: el §20 solo protegía las 5 rutas de proyecto; `config`,
+  `config/connectors/*`, `config/api-mcp` y `help` podían tumbar la app. Ahora TODAS las hijas de
+  `/project/:projectId` llevan `errorElement` (se mantiene el layout) y el padre lleva uno adicional como red.
+- **`syncSummaryVars` (§9.4)**: `shared/utils/sync-summary.ts` sustituye el doble cast
+  `lastSync as unknown as Record<string, number>` en las pantallas de Propiedades, Formularios y Objetos:
+  filtra a los campos numéricos reales del resultado, sin mentirle al tipado.
+- **Fallback de error real (§9.6)**: el literal `'Error'` como mensaje mostrado desaparece de los stores/hooks
+  (entries/origins/objects/forms/custom-objects/useMcpSettings): los catch guardan
+  `error.message`/`String(error)` (mensaje real siempre) y los `result.error` ausentes caen a
+  `'Error desconocido'`. Nota: los mensajes de error de servicio llegan en castellano por diseño del pipeline
+  del main (p. ej. SPEC-0003 §19); su i18n queda como mejora futura.
+
+Requiere rebuild de la app; typecheck/test en la máquina del usuario.

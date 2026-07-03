@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
 import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
 import { EmptyState } from '@shared/components/EmptyState';
+import { syncSummaryVars } from '@shared/utils/sync-summary';
 import { useObjectsStore } from '@renderer/features/property-management/store/objects-store';
 import { useDriveDoc } from '@shared/hooks/useDriveDoc';
 import { useHubspotEnvironmentChange } from '@shared/hooks/useHubspotEnvironmentChange';
@@ -138,7 +139,7 @@ export function CustomObjectsScreen(): JSX.Element | null {
       ) : null}
       {lastSync && view === 'list' ? (
         <Alert severity="info" sx={{ mb: 2 }}>
-          {t('customObjects.syncSummary', lastSync as unknown as Record<string, number>)}
+          {t('customObjects.syncSummary', syncSummaryVars(lastSync))}
         </Alert>
       ) : null}
 

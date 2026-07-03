@@ -24,7 +24,7 @@ export const useOriginsStore = create<OriginsState>((set, get) => ({
       set({ origins: await window.api.originsList({ projectId }) });
     } catch (error) {
       // SPEC-0006 §50: evita el unhandled rejection y deja el error consultable.
-      set({ error: error instanceof Error ? error.message : 'Error' });
+      set({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       set({ loading: false });
     }
