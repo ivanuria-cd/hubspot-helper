@@ -6,6 +6,9 @@ import { McpRegistry } from './registry';
 import { createAuth } from './auth';
 import { createMcpService, type McpService } from './server';
 
+// Informe 2026-07-02 §10.11: entre el close() de este socket y el listen() del servicio hay una
+// ventana de carrera; es aceptable con `workers: 1` (configuración actual de la suite). Si la
+// suite pasa a ejecutarse en paralelo, cambiar el servicio para aceptar puerto 0 y leer el real.
 function getFreePort(): Promise<number> {
   return new Promise((resolve, reject) => {
     const srv = createServer();

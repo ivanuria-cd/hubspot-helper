@@ -23,6 +23,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
+    "pretest:e2e": "npm run build",
     "test:e2e": "playwright test",
     "test": "npm run test:unit && npm run test:e2e",
     "check:locales": "node scripts/check-locale-parity.mjs",

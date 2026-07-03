@@ -13,7 +13,8 @@ describe('paleta Cloud District', () => {
     expect(cdTheme.palette.background.default.toUpperCase()).toBe(cdPalette.bgLight);
     expect(cdTheme.palette.background.paper.toUpperCase()).toBe(cdPalette.tableAlt);
     expect(cdTheme.palette.text.primary.toUpperCase()).toBe(cdPalette.textOnLight);
-    expect(cdTheme.palette.text.secondary.toUpperCase()).toBe(cdPalette.tertiary);
+    // Variante AA del tertiary para texto sobre blanco (informe e2e 2026-07-03).
+    expect(cdTheme.palette.text.secondary.toUpperCase()).toBe(cdPalette.tertiaryText);
   });
 
   it('no asigna ningún color fuera de la paleta CD', () => {

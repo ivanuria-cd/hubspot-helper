@@ -65,19 +65,24 @@ export function Sidebar(): JSX.Element {
         {collapsed ? null : <ListItemText primary={label} />}
       </ListItemButton>
     );
+    // Semántica de lista válida (axe `list`/`listitem`, informe e2e 2026-07-03): los hijos del
+    // <ul> deben ser <li> directos — sin Box envolvente ni <hr> hermano; el separador de grupo
+    // pasa a ser el `divider` del propio ListItem.
     return (
-      <Box key={item.labelKey}>
-        <ListItem disablePadding>
-          {collapsed ? (
-            <Tooltip title={label} placement="right">
-              {button}
-            </Tooltip>
-          ) : (
-            button
-          )}
-        </ListItem>
-        {item.endsGroup ? <Divider sx={{ borderColor: 'rgba(255,255,255,0.12)' }} /> : null}
-      </Box>
+      <ListItem
+        key={item.labelKey}
+        disablePadding
+        divider={item.endsGroup}
+        sx={item.endsGroup ? { '&.MuiListItem-divider': { borderBottomColor: 'rgba(255,255,255,0.12)' } } : undefined}
+      >
+        {collapsed ? (
+          <Tooltip title={label} placement="right">
+            {button}
+          </Tooltip>
+        ) : (
+          button
+        )}
+      </ListItem>
     );
   };
 

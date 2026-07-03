@@ -9,6 +9,8 @@ sandbox/
 coverage/
 test-results/
 playwright-report/
+e2e-dump.txt
+e2e-results.json
 .idea/
 .vscode/*
 !.vscode/extensions.json

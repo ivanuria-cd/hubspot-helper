@@ -13,6 +13,14 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html'],
       include: ['src/**/*.{ts,tsx}'],
+      // Informe 2026-07-02 §10.9: el objetivo del 80 % (SPEC-0000 §8) pasa a ser verificable.
+      // Umbral inicial conservador (60) para no romper mientras se cierra la deuda de tests;
+      // subir hacia 80 conforme crezca la cobertura.
+      thresholds: {
+        lines: 60,
+        functions: 60,
+        statements: 60,
+      },
     },
   },
   resolve: {

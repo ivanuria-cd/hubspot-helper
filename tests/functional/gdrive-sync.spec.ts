@@ -14,7 +14,7 @@ let userDataDir: string;
 test.beforeEach(async () => {
   userDataDir = await mkdtemp(join(tmpdir(), 'revops-gdrive-sync-'));
   app = await electron.launch({
-    args: [resolve('out/main/index.js'), `--user-data-dir=${userDataDir}`],
+    args: [resolve('out/main/index.js'), `--user-data-dir=${userDataDir}`, '--lang=es'],
   });
 });
 

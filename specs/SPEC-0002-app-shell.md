@@ -884,3 +884,61 @@ Del informe de revisión de código 2026-07-02, hallazgos 9.1, 9.4 y 9.6.
   del main (p. ej. SPEC-0003 §19); su i18n queda como mejora futura.
 
 Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 26. Endurecimiento de la suite de tests (transversal) (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgos 10.1–10.11 (sección Tests). Cambios transversales; se
+registran aquí para no fragmentarlos en seis SPECs.
+
+### 26.1 Cobertura nueva
+
+- **Specs de tools MCP (§10.1)**: `mcp-tools.spec.ts` en property-management (6 casos), forms-management (5) y
+  custom-objects (5) — registro completo, handlers felices, validación §39.9, `assertOriginsExist` §29 y
+  asserts del gating `requiresGuidance` declarado (16 tests en verde en sandbox).
+- **Unit de wizards (§10.6)**: `EntryWizard.spec.tsx` (3 casos: carga, canSubmit por modo) y
+  `EditFormWizard.spec.tsx` (3 casos: fila añadida, payload sin `uiId`, filas vacías descartadas) — 6/6 en
+  verde en sandbox (jsdom).
+- **e2e repuestos (§10.3)**: `export-json`, `forms-flow`, `link-origin`, `new-form` (borrados en 2026-06-19
+  como `test.fixme`) reescritos como flujos 100 % locales con aserciones por rol/aria; los pasos que requieren
+  portal real quedan excluidos con comentario.
+- **a11y por pantalla (§10.4)**: `a11y-baseline` añade un escaneo axe (WCAG 2.1 AA) tras navegar a
+  Dashboard/CRM/Propiedades/Objetos/Formularios.
+
+### 26.2 Configuración
+
+- **Idioma forzado (§10.2)**: todos los `electron.launch` de `tests/functional` añaden `--lang=es` — los
+  asserts en castellano ya no dependen del locale del SO/CI (i18n detecta por `navigator`).
+- **userData aislado (§10.7)**: `app-launch` y el primer test de `a11y-baseline` usan `--user-data-dir`
+  temporal como el resto de la suite (antes dependían del perfil real del desarrollador).
+- **`pretest:e2e` (§10.8)**: `npm run build` antes de los e2e — ya no pueden validar un `out/` obsoleto.
+- **Umbrales de cobertura (§10.9)**: `coverage.thresholds` en vitest (60 % inicial en lines/functions/
+  statements; subir hacia el 80 % de SPEC-0000 §8 conforme se cierre la deuda).
+- **Diagnóstico e2e (§10.10)**: `retries: 1`, `trace: 'retain-on-failure'` y screenshot en fallo en
+  `playwright.config.ts`.
+- **§10.11**: la carrera de `getFreePort` en `integration.spec.ts` queda documentada como aceptable con
+  `workers: 1` (nota en el fichero).
+
+### 26.3 Estado
+
+IMPLEMENTADO (2026-07-02). Unit nuevos en verde en sandbox (16 MCP + 6 wizards); los 5 e2e nuevos/ampliados
+requieren ejecución en máquina (sin display en sandbox). El typecheck completo falla en sandbox por la
+truncación conocida del espejo (originales verificados sanos); repetir en máquina.
+
+### 26.4 Hallazgos de la primera ejecución en máquina (2026-07-03) y fixes
+
+Primera ejecución real: 12 passed / 4 failed. Correcciones:
+
+- **Contraste AA (hallazgo REAL de axe)**: `text.secondary` usaba el token de marca `tertiary` (`#7F7790`),
+  que da 4.24:1 sobre blanco (< 4.5:1). Nuevo token `cdPalette.tertiaryText` (`#736B84`, 5.04:1, misma familia
+  cromática) mapeado a `text.secondary`; `tertiary` sigue disponible para usos no textuales (Sheets, bordes).
+  `palette.spec.ts` actualizado.
+- **Semántica de lista del Sidebar (hallazgo REAL de axe: `list`/`listitem`)**: cada ítem iba envuelto en un
+  `Box` (div hijo de `<ul>`) con `Divider` (`<hr>`) hermano; ahora el `ListItem` es hijo directo y el separador
+  de grupo es el prop `divider` del propio ítem (borde inferior con el mismo color).
+- **Locator de los 3 specs de formularios (bug del test)**: `getByLabel('Nombre del formulario')` colisionaba
+  con el `aria-label` del botón del FieldTooltip (mismo prefijo);
+  ahora `getByRole('textbox', { name, exact: true })`.
+
+Nota: el escaneo por pantalla se corta en la primera violación; tras estos fixes pueden aflorar hallazgos en
+las pantallas siguientes — iterar con la misma orden de dump. `e2e-dump.txt`/`e2e-results.json` añadidos a
+`.gitignore`.
