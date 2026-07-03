@@ -38,21 +38,27 @@ export function SnackbarProvider({ children }: { children: React.ReactNode }): J
   const [current, setCurrent] = useState<QueueItem | null>(null);
   const [open, setOpen] = useState(false);
   const queue = useRef<QueueItem[]>([]);
+  // SPEC-0002 §24: `notify` debe ser estable — con deps [open, current] cambiaba de identidad
+  // en cada snackbar y relanzaba los efectos de los consumidores (p. ej. GroupsModal).
+  const displaying = useRef(false);
 
   const showNext = useCallback(() => {
     const next = queue.current.shift();
     if (next) {
+      displaying.current = true;
       setCurrent(next);
       setOpen(true);
+    } else {
+      displaying.current = false;
     }
   }, []);
 
   const notify = useCallback(
     (options: SnackbarOptions) => {
       queue.current.push(resolveItem(options));
-      if (!open && current === null) showNext();
+      if (!displaying.current) showNext();
     },
-    [open, current, showNext],
+    [showNext],
   );
 
   const handleClose = useCallback((_e?: unknown, reason?: string) => {
@@ -62,6 +68,7 @@ export function SnackbarProvider({ children }: { children: React.ReactNode }): J
 
   const handleExited = useCallback(() => {
     setCurrent(null);
+    displaying.current = false;
     showNext();
   }, [showNext]);
 

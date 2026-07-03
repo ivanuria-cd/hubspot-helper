@@ -46,6 +46,9 @@ export function SourceOptionsDialog({
   const [bulkText, setBulkText] = useState('');
   // Abre el diálogo de inmediato y difiere el render de la lista (puede ser pesada: 100+ opciones).
   const [ready, setReady] = useState(false);
+  // SPEC-0006 §51: ids estables por fila (solo UI, no se emiten en onChange) para que
+  // React no recicle inputs al borrar filas intermedias (antes key={index}).
+  const [rowIds, setRowIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open) {
@@ -55,6 +58,7 @@ export function SourceOptionsDialog({
     setQuery('');
     setBulkOpen(false);
     setBulkText('');
+    setRowIds(options.map(() => crypto.randomUUID()));
     setReady(false);
     const id = window.setTimeout(() => setReady(true), 0);
     return () => window.clearTimeout(id);
@@ -65,9 +69,11 @@ export function SourceOptionsDialog({
   };
   const remove = (idx: number): void => {
     onChange(options.filter((_, i) => i !== idx));
+    setRowIds((ids) => ids.filter((_, i) => i !== idx));
   };
   const add = (): void => {
     onChange([...options, { sourceValue: '', hubspotValue: '' }]);
+    setRowIds((ids) => [...ids, crypto.randomUUID()]);
   };
   const applyBulk = (): void => {
     const values = bulkText
@@ -75,7 +81,10 @@ export function SourceOptionsDialog({
       .map((l) => l.trim())
       .filter(Boolean)
       .map((sourceValue) => ({ sourceValue, hubspotValue: '' }));
-    if (values.length > 0) onChange([...options, ...values]);
+    if (values.length > 0) {
+      onChange([...options, ...values]);
+      setRowIds((ids) => [...ids, ...values.map(() => crypto.randomUUID())]);
+    }
     setBulkText('');
     setBulkOpen(false);
   };
@@ -108,7 +117,7 @@ export function SourceOptionsDialog({
               </Typography>
             ) : (
               visible.map(({ o, i }) => (
-                <Stack key={i} direction="row" spacing={1} alignItems="center">
+                <Stack key={rowIds[i] ?? `row-${i}`} direction="row" spacing={1} alignItems="center">
                   <TextField
                     size="small"
                     label={t('properties.wizard.sourceValue')}

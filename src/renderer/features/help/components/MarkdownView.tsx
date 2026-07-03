@@ -1,4 +1,5 @@
 import { Box, Divider, List, ListItem, Typography } from '@mui/material';
+import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 
 function renderInline(text: string, keyBase: string): ReactNode[] {
@@ -29,6 +30,12 @@ interface PendingList {
 
 /** Renderizador Markdown mínimo (encabezados, párrafos, listas, énfasis, código) sin dependencias. */
 export function MarkdownView({ content }: { content: string }): JSX.Element {
+  // SPEC-0002 §24: el parseo completo se memoiza por contenido (antes se re-parseaba en cada render).
+  const blocks = useMemo(() => buildBlocks(content), [content]);
+  return <Box>{blocks}</Box>;
+}
+
+function buildBlocks(content: string): JSX.Element[] {
   const lines = content.replace(/\r\n/g, '\n').split('\n');
   const blocks: JSX.Element[] = [];
   let pending: PendingList | null = null;
@@ -128,5 +135,5 @@ export function MarkdownView({ content }: { content: string }): JSX.Element {
   }
   flush(pending);
 
-  return <Box>{blocks}</Box>;
+  return blocks;
 }

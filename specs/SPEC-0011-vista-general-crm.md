@@ -115,3 +115,9 @@ Solo lectura de estado ya expuesto al renderer. No muestra secretos.
 `CrmOverviewScreen` reconvierte sus estados loading/error (§11) al patrón unificado de SPEC-0002 §17:
 `LoadingState` (variante `cards`) con `aria-busy` mientras `useCrmOverview` resuelve total + pendientes de las
 tres áreas, y reset al cambiar de proyecto. Pendiente de implementación junto al resto de superficies.
+
+## 13. Guard de respuesta obsoleta en `useCrmOverview` (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgo 8.2. Mismo defecto y misma solución que SPEC-0010 §13:
+patrón `runId` de `useAsyncResource` (SPEC-0002 §17) en `reload`; los `setState` de éxito y error solo se
+aplican si la ejecución sigue vigente. Requiere rebuild de la app; typecheck/test en la máquina del usuario.

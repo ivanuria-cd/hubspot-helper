@@ -822,3 +822,20 @@ con consentimiento incompleto. Cache a nivel de módulo (el façade se instancia
 (hit dentro del TTL, refetch al expirar). Sin cambios de comportamiento funcional (las plantillas de
 consentimiento cambian raramente; 5 min de staleness aceptado). Requiere rebuild de la app/MCP; typecheck/test
 en la máquina del usuario.
+
+## 31. Higiene React en la UI de formularios (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgos 8.4, 8.5, 8.6 y 8.9.
+
+- **`forms-store.load` resetea `coverage`/`lastSync` (§8.9)**, guardado por cambio de proyecto (campo
+  `loadedProjectId`): un reset incondicional habría borrado el `lastSync` recién puesto por `sync` (que llama a
+  `load`) y la cobertura tras cada apply/discard.
+- **Efecto de cobertura por firma de ids (§8.5)**: `FormsManagementScreen` depende de `formIdsSignature`
+  (`useMemo` de `forms.map(f => f.id).join('|')`), no de `forms.length`: un re-sync que sustituye formularios
+  sin cambiar el total recarga cobertura.
+- **`selected` derivado (§8.4)**: `selectedId` + `useMemo` desde `forms`; si el formulario desaparece tras
+  sync, el panel se cierra en vez de mostrar un snapshot obsoleto.
+- **Keys estables en `EditFormWizard` (§8.6)**: filas de campos (reordenables) y checkboxes de consentimiento
+  con `uiId` (`crypto.randomUUID()`) como `key`; el `uiId` no sale en el payload de guardado.
+
+Requiere rebuild de la app; typecheck/test en la máquina del usuario.

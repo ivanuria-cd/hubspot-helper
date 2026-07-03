@@ -852,3 +852,17 @@ electron-store no cambian: la persistencia existente sigue siendo compatible. Te
 ### 23.3 Estado
 
 IMPLEMENTADO (2026-07-02). Requiere rebuild de la app; typecheck/suite completa en la máquina del usuario.
+
+## 24. `notify` estable en el Snackbar global y memoización del visor Markdown (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgos 8.1 y 8.10.
+
+- **`SnackbarProvider` (§8.1)**: `notify` dependía de `[open, current]` y cambiaba de identidad con cada
+  snackbar, relanzando los efectos de los consumidores que lo tenían en deps (p. ej. las 3 llamadas IPC de
+  `GroupsModal` al mostrarse/ocultarse un toast con el modal abierto). Ahora el estado «mostrando» vive en un
+  ref (`displaying`) y `notify` solo depende de `showNext` (estable): identidad constante durante toda la vida
+  del provider. La cola y la semántica de encadenado (`onExited` → `showNext`) no cambian.
+- **`MarkdownView` (§8.10)**: el visor de Ayuda re-parseaba todo el markdown en cada render; el
+  parseo se extrae a `buildBlocks(content)` y se memoiza con `useMemo(content)`.
+
+Requiere rebuild de la app; typecheck/test en la máquina del usuario.

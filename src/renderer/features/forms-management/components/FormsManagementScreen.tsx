@@ -61,7 +61,7 @@ export function FormsManagementScreen(): JSX.Element | null {
   const { objects, origins, entries, load: loadRefs } = useFormsRefsStore();
 
   const [view, setView] = useState<'list' | 'changes'>('list');
-  const [selected, setSelected] = useState<HubSpotForm | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [editSource, setEditSource] = useState<EditFormSource | null>(null);
   const [editTarget, setEditTarget] = useState<
@@ -101,11 +101,20 @@ export function FormsManagementScreen(): JSX.Element | null {
     void loadSubscriptionTypes(projectId);
   });
 
+  // Firma estable de ids: detecta re-syncs que sustituyen formularios sin cambiar el total.
+  const formIdsSignature = useMemo(() => forms.map((form) => form.id).join('|'), [forms]);
+
   useEffect(() => {
     if (!projectId) return;
     for (const form of forms) void loadCoverage(projectId, form.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, forms.length]);
+  }, [projectId, formIdsSignature]);
+
+  // Deriva el formulario seleccionado del store para no retener snapshots obsoletos tras un sync.
+  const selected = useMemo<HubSpotForm | null>(
+    () => (selectedId ? (forms.find((form) => form.id === selectedId) ?? null) : null),
+    [forms, selectedId],
+  );
 
   const filtered = useMemo(() => {
     return forms.filter((form) => {
@@ -271,7 +280,7 @@ export function FormsManagementScreen(): JSX.Element | null {
               coverage={coverage}
               links={links}
               origins={origins}
-              onSelect={setSelected}
+              onSelect={(form) => setSelectedId(form.id)}
             />
           )}
         </>
@@ -283,7 +292,7 @@ export function FormsManagementScreen(): JSX.Element | null {
         reports={selectedReports}
         origins={origins}
         busy={busy}
-        onClose={() => setSelected(null)}
+        onClose={() => setSelectedId(null)}
         onAddMissing={(originId) => void handleAddMissing(originId)}
         onLinkOrigin={() => setLinkOpen(true)}
         onEdit={handleEditForm}

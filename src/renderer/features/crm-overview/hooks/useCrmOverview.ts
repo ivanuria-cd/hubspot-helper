@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface AreaCount {
   total: number;
@@ -25,9 +25,13 @@ const INITIAL: CrmOverview = {
 
 export function useCrmOverview(projectId: string): CrmOverview & { reload: () => Promise<void> } {
   const [state, setState] = useState<CrmOverview>(INITIAL);
+  // SPEC-0011 §13: guard de respuesta obsoleta (patrón runId de useAsyncResource).
+  const runId = useRef(0);
 
   const reload = useCallback(async () => {
     if (!projectId) return;
+    const current = ++runId.current;
+    const isCurrent = (): boolean => runId.current === current;
     // Reset completo: no arrastrar datos del proyecto anterior durante la recarga (SPEC-0002 §17.2).
     setState({ ...INITIAL, loading: true });
     try {
@@ -38,6 +42,7 @@ export function useCrmOverview(projectId: string): CrmOverview & { reload: () =>
         window.api.formsList({ projectId }),
         window.api.formsPendingChanges({ projectId }),
       ]);
+      if (!isCurrent()) return;
       setState({
         loading: false,
         error: false,
@@ -55,7 +60,7 @@ export function useCrmOverview(projectId: string): CrmOverview & { reload: () =>
         },
       });
     } catch {
-      setState((s) => ({ ...s, loading: false, error: true }));
+      if (isCurrent()) setState((s) => ({ ...s, loading: false, error: true }));
     }
   }, [projectId]);
 

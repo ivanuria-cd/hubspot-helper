@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
 
 export interface DashboardStatus {
@@ -27,9 +27,14 @@ const INITIAL: DashboardStatus = {
 
 export function useDashboardStatus(projectId: string): DashboardStatus & { reload: () => Promise<void> } {
   const [state, setState] = useState<DashboardStatus>(INITIAL);
+  // SPEC-0010 §13: guard de respuesta obsoleta — al cambiar rápido de proyecto, la respuesta
+  // del proyecto anterior no debe pisar la del nuevo (patrón runId de useAsyncResource).
+  const runId = useRef(0);
 
   const reload = useCallback(async () => {
     if (!projectId) return;
+    const current = ++runId.current;
+    const isCurrent = (): boolean => runId.current === current;
     // Reset completo: no arrastrar datos del proyecto anterior durante la recarga (SPEC-0002 §17.2).
     setState({ ...INITIAL, loading: true });
     try {
@@ -54,6 +59,7 @@ export function useDashboardStatus(projectId: string): DashboardStatus & { reloa
         objects: (defs ?? []).reduce((n, d) => n + (d.pendingChanges?.length ?? 0), 0),
         forms: (formChanges ?? []).length,
       };
+      if (!isCurrent()) return;
       setState({
         loading: false,
         error: false,
@@ -64,7 +70,7 @@ export function useDashboardStatus(projectId: string): DashboardStatus & { reloa
         anyConnector: hubspot.connected || driveStatus.connected || mcpStatus.running,
       });
     } catch {
-      setState((s) => ({ ...s, loading: false, error: true }));
+      if (isCurrent()) setState((s) => ({ ...s, loading: false, error: true }));
     }
   }, [projectId]);
 

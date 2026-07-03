@@ -151,3 +151,11 @@ Solo lectura de estado ya expuesto al renderer vía IPC. No muestra tokens ni se
 SPEC-0002 §17: `LoadingState` (variante `cards`) con `aria-busy` mientras `useDashboardStatus` resuelve los
 agregados en paralelo, y reset del estado al cambiar de proyecto (sin fuga de contadores de otro proyecto).
 Pendiente de implementación junto al resto de superficies.
+
+## 13. Guard de respuesta obsoleta en `useDashboardStatus` (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgo 8.2. El fetch manual no protegía contra respuestas
+obsoletas: al cambiar rápido de proyecto, la respuesta del anterior podía pisar la del nuevo. Se aplica el
+patrón `runId` de `useAsyncResource` (SPEC-0002 §17): contador en ref incrementado por `reload`; los `setState`
+(éxito y error) solo se aplican si la ejecución sigue vigente. Requiere rebuild de la app; typecheck/test en la
+máquina del usuario.

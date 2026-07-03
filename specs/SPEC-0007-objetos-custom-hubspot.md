@@ -502,3 +502,10 @@ a las tools que mutan estado o sincronizan: `custom_objects_upsert_draft`, `cust
 `custom_objects_discard_change`, `custom_objects_sync` y `custom_objects_delete_draft`. Quedan libres las de solo
 lectura (`custom_objects_list`, `custom_objects_get`, `custom_objects_pending_changes`). Requiere rebuild del MCP;
 typecheck/test en la máquina del usuario.
+
+## 21. Keys estables en el `ObjectWizard` (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgo 8.6 (menor). La lista de propiedades (con borrado) usaba
+`key={index}`; ahora cada fila lleva `uiId` (`crypto.randomUUID()`, en `emptyProperty()` y al mapear
+`definition.properties`) usado como `key`; en `handleSubmit` el `uiId` se elimina del payload por destructuring.
+Requiere rebuild de la app; typecheck/test en la máquina del usuario.

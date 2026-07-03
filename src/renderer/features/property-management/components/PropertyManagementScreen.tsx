@@ -88,7 +88,9 @@ export function PropertyManagementScreen(): JSX.Element | null {
   const [view, setView] = useState<'list' | 'changes'>('list');
   const [wizardOpen, setWizardOpen] = useState(false);
   const [editing, setEditing] = useState<PropertyEntry | null>(null);
-  const [selected, setSelected] = useState<PropertyEntry | null>(null);
+  // SPEC-0006 §51: se guarda solo el id y la entrada se deriva del store; así el panel
+  // nunca muestra un snapshot obsoleto tras aplicar/convertir/sincronizar.
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [originsOpen, setOriginsOpen] = useState(false);
   const [groupsOpen, setGroupsOpen] = useState(false);
   const [exportAnchor, setExportAnchor] = useState<null | HTMLElement>(null);
@@ -122,6 +124,10 @@ export function PropertyManagementScreen(): JSX.Element | null {
     void loadObjects(projectId);
   });
 
+  const selected = useMemo(
+    () => (selectedId ? (entries ?? []).find((e) => e.id === selectedId) ?? null : null),
+    [entries, selectedId],
+  );
   const objectEntries = useMemo(
     () => (entries ?? []).filter((entry) => entry.objectType === objectType),
     [entries, objectType],
@@ -346,7 +352,7 @@ export function PropertyManagementScreen(): JSX.Element | null {
               {filteredEntries.map((entry) => (
                 <ListItemButton
                   key={entry.id}
-                  onClick={() => setSelected(entry)}
+                  onClick={() => setSelectedId(entry.id)}
                   sx={{ borderBottom: '1px solid', borderColor: 'divider', display: 'block', py: 1.5 }}
                 >
                   <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
@@ -405,21 +411,16 @@ export function PropertyManagementScreen(): JSX.Element | null {
         entry={selected}
         origins={origins ?? []}
         busy={busy}
-        onApply={async (changeId, environment) => {
-          await handleApply(changeId, environment);
-          setSelected((prev) =>
-            prev ? useEntriesStore.getState().entries.find((e) => e.id === prev.id) ?? null : null,
-          );
-        }}
-        onClose={() => setSelected(null)}
+        onApply={handleApply}
+        onClose={() => setSelectedId(null)}
         onEdit={(entry) => {
           setEditing(entry);
-          setSelected(null);
+          setSelectedId(null);
           setWizardOpen(true);
         }}
         onDelete={async (entryId) => {
           await remove(projectId, entryId);
-          setSelected(null);
+          setSelectedId(null);
         }}
         onConvert={async (entryId) => {
           const result = await convertToNew(projectId, entryId);
@@ -427,9 +428,6 @@ export function PropertyManagementScreen(): JSX.Element | null {
           if (result.seeded) {
             notify({ message: t('properties.convert.seededWarning', { seeded: 1 }), severity: 'warning' });
           }
-          setSelected((prev) =>
-            prev ? useEntriesStore.getState().entries.find((e) => e.id === prev.id) ?? null : null,
-          );
         }}
       />
 

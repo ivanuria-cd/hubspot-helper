@@ -74,6 +74,18 @@ interface ConsentCheckbox {
   required: boolean;
 }
 
+/**
+ * Filas del editor con un id estable solo de UI (clave de React en listas
+ * reordenables/borrables). El `uiId` nunca sale en el payload al guardar.
+ */
+interface EditableFieldRow extends EditableField {
+  uiId: string;
+}
+
+interface ConsentCheckboxRow extends ConsentCheckbox {
+  uiId: string;
+}
+
 /** Estado inicial del editor, derivado de un formulario sincronizado o de un cambio pendiente. */
 export interface EditFormSource {
   name: string;
@@ -197,8 +209,8 @@ export function EditFormWizard({
   const [privacyText, setPrivacyText] = useState('');
   const [consentToProcessText, setConsentToProcessText] = useState('');
   const [communicationConsentText, setCommunicationConsentText] = useState('');
-  const [checkboxes, setCheckboxes] = useState<ConsentCheckbox[]>([]);
-  const [fields, setFields] = useState<EditableField[]>([]);
+  const [checkboxes, setCheckboxes] = useState<ConsentCheckboxRow[]>([]);
+  const [fields, setFields] = useState<EditableFieldRow[]>([]);
   const [originIds, setOriginIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -209,8 +221,10 @@ export function EditFormWizard({
     setPrivacyText(source.privacyText);
     setConsentToProcessText(source.consentToProcessText);
     setCommunicationConsentText(source.communicationConsentText);
-    setCheckboxes(source.communicationsCheckboxes.map((c) => ({ ...c })));
-    setFields(source.fields.map((f) => ({ ...f })));
+    setCheckboxes(
+      source.communicationsCheckboxes.map((c) => ({ ...c, uiId: crypto.randomUUID() })),
+    );
+    setFields(source.fields.map((f) => ({ ...f, uiId: crypto.randomUUID() })));
     setOriginIds(source.originIds);
   }, [source, open]);
 
@@ -242,6 +256,7 @@ export function EditFormWizard({
         fieldType: 'single_line_text',
         required: false,
         hidden: false,
+        uiId: crypto.randomUUID(),
       },
     ]);
   };
@@ -257,7 +272,12 @@ export function EditFormWizard({
   const addCheckbox = (): void => {
     setCheckboxes((prev) => [
       ...prev,
-      { subscriptionTypeId: subscriptionTypes[0]?.id ?? 0, label: '', required: false },
+      {
+        subscriptionTypeId: subscriptionTypes[0]?.id ?? 0,
+        label: '',
+        required: false,
+        uiId: crypto.randomUUID(),
+      },
     ]);
   };
 
@@ -366,7 +386,7 @@ export function EditFormWizard({
             </TableHead>
             <TableBody>
               {fields.map((field, index) => (
-                <TableRow key={index}>
+                <TableRow key={field.uiId}>
                   <TableCell>
                     <TextField
                       size="small"
@@ -553,7 +573,7 @@ export function EditFormWizard({
                     {t('forms.editWizard.checkboxes')}
                   </Typography>
                   {checkboxes.map((checkbox, index) => (
-                    <Stack key={index} direction="row" spacing={1} alignItems="center">
+                    <Stack key={checkbox.uiId} direction="row" spacing={1} alignItems="center">
                       <TextField
                         select
                         size="small"

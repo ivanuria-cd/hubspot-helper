@@ -2028,3 +2028,23 @@ Del informe de revisión de código 2026-07-02, hallazgos 7.1, 7.2, 7.4 y 7.5.
 
 Mensaje genérico de fallback: `common.loadError` (presente en los 7 locales desde SPEC-0014 §12). Sin claves
 i18n nuevas. Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 51. Higiene React en la UI de propiedades (IMPLEMENTADO, 2026-07-02)
+
+Del informe de revisión de código 2026-07-02, hallazgos 8.3, 8.4, 8.6 (menor), 8.7 y 8.8.
+
+- **Cancelación en `EntryWizard` (§8.3)**: flag `cancelled` + cleanup en el useEffect de carga; las respuestas
+  de `hubspotPropertiesList`/`groupsList` obsoletas (reapertura con otro `objectType`) ya no pisan el estado.
+- **Ids temporales (§8.8)**: `addSource` usa `tmp-${crypto.randomUUID()}` (antes `tmp-${Date.now()}`,
+  colisionable en el mismo milisegundo); el prefijo `tmp-` se conserva (el submit lo usa).
+- **Extracción de componentes (§8.7)**: `EntryWizard` (~650 líneas) pierde la función interna
+  `definitionEditor` (~215 líneas): nuevos `PropertyDefinitionEditor.tsx` (props tipadas: def/onDefChange,
+  groups, advOpen, createGroup, onEditOptions) y `SourceRow.tsx` (fila de origen; exporta `DraftSource`). JSX y
+  claves i18n idénticos; queda en ~370 líneas.
+- **`selected` derivado (§8.4)**: `PropertyManagementScreen` guarda `selectedId` y deriva la entrada con
+  `useMemo` desde `entries`; eliminados los parches manuales con `useEntriesStore.getState()`.
+- **Keys estables (§8.6)**: `OptionsDialog`/`SourceOptionsDialog` usan ids de fila UUID (estado `rowIds`) como
+  `key` en vez del índice; los datos emitidos no cambian.
+
+Sin cambio de comportamiento ni de claves i18n. Requiere rebuild de la app; typecheck/test en la máquina del
+usuario.

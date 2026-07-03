@@ -47,8 +47,16 @@ function defaultFieldType(type: string): string {
   return fieldTypesFor(type)[0] ?? 'text';
 }
 
-function emptyProperty(): CustomObjectPropertyDef {
-  return { name: '', label: '', type: 'string', fieldType: 'text' };
+/**
+ * Fila del editor con un id estable solo de UI (clave de React en la lista
+ * borrable de propiedades). El `uiId` se elimina del payload al guardar.
+ */
+interface PropertyRow extends CustomObjectPropertyDef {
+  uiId: string;
+}
+
+function emptyProperty(): PropertyRow {
+  return { name: '', label: '', type: 'string', fieldType: 'text', uiId: crypto.randomUUID() };
 }
 
 export function ObjectWizard({
@@ -70,7 +78,7 @@ export function ObjectWizard({
   const [singular, setSingular] = useState('');
   const [plural, setPlural] = useState('');
   const [description, setDescription] = useState('');
-  const [properties, setProperties] = useState<CustomObjectPropertyDef[]>([emptyProperty()]);
+  const [properties, setProperties] = useState<PropertyRow[]>([emptyProperty()]);
   const [primary, setPrimary] = useState('');
   const [required, setRequired] = useState<string[]>([]);
   const [secondary, setSecondary] = useState<string[]>([]);
@@ -79,7 +87,9 @@ export function ObjectWizard({
 
   useEffect(() => {
     if (!open) return;
-    const props = definition?.properties?.length ? definition.properties : [emptyProperty()];
+    const props: PropertyRow[] = definition?.properties?.length
+      ? definition.properties.map((p) => ({ ...p, uiId: crypto.randomUUID() }))
+      : [emptyProperty()];
     // Solo conservamos referencias a propiedades que existen (descarta nombres obsoletos
     // p. ej. de una propiedad renombrada que seguía listada por su nombre antiguo).
     const valid = new Set(props.map((p) => p.name).filter(Boolean));
@@ -125,7 +135,12 @@ export function ObjectWizard({
         searchableProperties: keep(searchable),
         requiredProperties: keep(required),
         associatedObjects: associated,
-        properties,
+        // El uiId es solo de UI: nunca sale en el payload.
+        properties: properties.map((row) => {
+          const { uiId, ...prop } = row;
+          void uiId;
+          return prop;
+        }),
       });
       onClose();
     } finally {
@@ -228,7 +243,7 @@ export function ObjectWizard({
           <Divider />
           <Typography variant="subtitle2">{t('customObjects.wizard.properties')}</Typography>
           {properties.map((prop, index) => (
-            <Stack key={index} direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Stack key={prop.uiId} direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
               <TextField
                 size="small"
                 label={t('customObjects.wizard.propName')}

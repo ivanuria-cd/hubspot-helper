@@ -21,6 +21,8 @@ interface FormsState {
   syncing: boolean;
   lastSync: FormsSyncResult | null;
   error: string | null;
+  /** Proyecto del último load; permite resetear datos derivados al cambiar de proyecto. */
+  loadedProjectId: string | null;
   load: (projectId: string) => Promise<void>;
   sync: (projectId: string, includeLegacyV2?: boolean) => Promise<void>;
   loadCoverage: (projectId: string, formId: string) => Promise<void>;
@@ -57,15 +59,27 @@ export const useFormsStore = create<FormsState>((set, get) => ({
   syncing: false,
   lastSync: null,
   error: null,
+  loadedProjectId: null,
   load: async (projectId) => {
-    set({ loading: true, error: null });
+    // Al cambiar de proyecto, descarta datos derivados del proyecto anterior.
+    const projectChanged = get().loadedProjectId !== projectId;
+    set({
+      loading: true,
+      error: null,
+      ...(projectChanged ? { coverage: {}, lastSync: null } : {}),
+    });
     try {
       const [forms, links, changes] = await Promise.all([
         window.api.formsList({ projectId }),
         window.api.formLinksList({ projectId }),
         window.api.formsPendingChanges({ projectId }),
       ]);
-      set({ forms: forms ?? [], links: links ?? [], changes: changes ?? [] });
+      set({
+        forms: forms ?? [],
+        links: links ?? [],
+        changes: changes ?? [],
+        loadedProjectId: projectId,
+      });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Error' });
     } finally {

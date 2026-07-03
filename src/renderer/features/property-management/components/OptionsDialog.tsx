@@ -57,6 +57,9 @@ export function OptionsDialog({ open, title, options, onChange, onClose }: Optio
   const [bulkSep, setBulkSep] = useState('');
   // Abre el diálogo de inmediato y difiere el render de la lista (puede ser pesada: 100+ opciones).
   const [ready, setReady] = useState(false);
+  // SPEC-0006 §51: ids estables por fila (solo UI, no se emiten en onChange) para que
+  // React no recicle inputs al borrar filas intermedias (antes key={index}).
+  const [rowIds, setRowIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open) {
@@ -67,6 +70,7 @@ export function OptionsDialog({ open, title, options, onChange, onClose }: Optio
     setBulkOpen(false);
     setBulkText('');
     setBulkSep('');
+    setRowIds(options.map(() => crypto.randomUUID()));
     setReady(false);
     const id = window.setTimeout(() => setReady(true), 0);
     return () => window.clearTimeout(id);
@@ -77,14 +81,17 @@ export function OptionsDialog({ open, title, options, onChange, onClose }: Optio
   };
   const removeOption = (idx: number): void => {
     onChange(reindex(options.filter((_, i) => i !== idx)));
+    setRowIds((ids) => ids.filter((_, i) => i !== idx));
   };
   const addOption = (): void => {
     onChange([...options, { label: '', value: '', displayOrder: options.length, hidden: false }]);
+    setRowIds((ids) => [...ids, crypto.randomUUID()]);
   };
   const applyBulk = (): void => {
     const parsed = parseBulkOptions(bulkText, bulkSep);
     if (parsed.length > 0) {
       onChange(reindex([...options, ...parsed.map((o) => ({ ...o, displayOrder: 0, hidden: false }))]));
+      setRowIds((ids) => [...ids, ...parsed.map(() => crypto.randomUUID())]);
     }
     setBulkText('');
     setBulkSep('');
@@ -119,7 +126,7 @@ export function OptionsDialog({ open, title, options, onChange, onClose }: Optio
               </Typography>
             ) : (
               visible.map(({ o, i }) => (
-                <Stack key={i} direction="row" spacing={1} alignItems="center">
+                <Stack key={rowIds[i] ?? `row-${i}`} direction="row" spacing={1} alignItems="center">
                   <TextField
                     size="small"
                     label={t('properties.wizard.optionLabel')}
