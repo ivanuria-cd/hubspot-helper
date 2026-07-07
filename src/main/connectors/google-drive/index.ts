@@ -589,7 +589,8 @@ function googleSheetsClientFor(accessToken: string): SheetsClient {
       async valuesBatchUpdate(args) {
         await sheets.spreadsheets.values.batchUpdate({
           spreadsheetId: args.spreadsheetId,
-          requestBody: { valueInputOption: 'RAW', data: args.data },
+          // RAW por defecto (export); USER_ENTERED para el mapa editable (fórmulas, SPEC-0016).
+          requestBody: { valueInputOption: args.valueInputOption ?? 'RAW', data: args.data },
         });
       },
     }),

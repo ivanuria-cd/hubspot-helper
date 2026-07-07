@@ -3,13 +3,10 @@
  * Extiende el conector de Google Drive (SPEC-0004) para soportar Sheets además de Docs;
  * usado por la gestión de propiedades (SPEC-0006). Las APIs se inyectan para poder testear.
  */
-import {
-  APP_PROP_FEATURE,
-  APP_PROP_MANAGED,
-  APP_PROP_SCHEMA,
-  MIME_SPREADSHEET,
-} from './client';
+import { APP_PROP_FEATURE, APP_PROP_MANAGED, APP_PROP_SCHEMA, MIME_SPREADSHEET } from './client';
 import { buildStyleRequests, type SheetMeta } from './sheets-style';
+import { buildPlanningStyleRequests } from './planning-style';
+import type { PlanningWorkbook } from '../../property-management/planning-model';
 
 export type CellValue = string | number | boolean;
 
@@ -24,6 +21,15 @@ export interface SpreadsheetWriteInput {
   featureKey: string;
   schemaVersion: number;
   tabs: SheetTab[];
+}
+
+/** Entrada del mapa de campos editable (SPEC-0016): lleva el workbook con desplegables/oculta. */
+export interface PlanningWriteInput {
+  folderId: string;
+  name: string;
+  featureKey: string;
+  schemaVersion: number;
+  workbook: PlanningWorkbook;
 }
 
 /** Subconjunto de Drive Files API necesario para localizar/crear el libro. */
@@ -56,6 +62,7 @@ export interface SheetsRawApi {
   valuesBatchUpdate(args: {
     spreadsheetId: string;
     data: Array<{ range: string; values: CellValue[][] }>;
+    valueInputOption?: 'RAW' | 'USER_ENTERED';
   }): Promise<unknown>;
 }
 
@@ -128,7 +135,10 @@ export function createSheetsClient(drive: SheetsDriveApi, sheets: SheetsRawApi) 
     let spreadsheetId = await findManaged(input.folderId, input.featureKey);
     if (!spreadsheetId) spreadsheetId = await createManaged(input);
 
-    await syncTabs(spreadsheetId, input.tabs.map((tab) => tab.title));
+    await syncTabs(
+      spreadsheetId,
+      input.tabs.map((tab) => tab.title),
+    );
 
     // SPEC-0004 §26: clear y update en 2 llamadas batch (antes 2 por hoja, en serie).
     await sheets.valuesBatchClear({
@@ -152,7 +162,51 @@ export function createSheetsClient(drive: SheetsDriveApi, sheets: SheetsRawApi) 
     return { spreadsheetId };
   }
 
-  return { writeSpreadsheet };
+  /**
+   * Escribe el mapa de campos editable (SPEC-0016): valores con USER_ENTERED (para las formulas de
+   * destino calculado), estilo de marca + desplegables + hoja Listas oculta, y SIN proteccion.
+   */
+  async function writePlanningWorkbook(
+    input: PlanningWriteInput,
+  ): Promise<{ spreadsheetId: string }> {
+    const tabs = input.workbook.tabs;
+    let spreadsheetId = await findManaged(input.folderId, input.featureKey);
+    if (!spreadsheetId) {
+      spreadsheetId = await createManaged({
+        folderId: input.folderId,
+        name: input.name,
+        featureKey: input.featureKey,
+        schemaVersion: input.schemaVersion,
+        tabs,
+      });
+    }
+
+    await syncTabs(
+      spreadsheetId,
+      tabs.map((tab) => tab.title),
+    );
+
+    await sheets.valuesBatchClear({
+      spreadsheetId,
+      ranges: tabs.map((tab) => `'${quote(tab.title)}'`),
+    });
+    const data = tabs
+      .filter((tab) => tab.rows.length > 0)
+      .map((tab) => ({ range: `'${quote(tab.title)}'!A1`, values: tab.rows }));
+    if (data.length > 0) {
+      await sheets.valuesBatchUpdate({ spreadsheetId, data, valueInputOption: 'USER_ENTERED' });
+    }
+
+    const meta = await sheets.get({ spreadsheetId });
+    const styleRequests = buildPlanningStyleRequests(meta.sheets ?? [], input.workbook);
+    if (styleRequests.length > 0) {
+      await sheets.batchUpdate({ spreadsheetId, requests: styleRequests });
+    }
+
+    return { spreadsheetId };
+  }
+
+  return { writeSpreadsheet, writePlanningWorkbook };
 }
 
 export type SheetsClient = ReturnType<typeof createSheetsClient>;

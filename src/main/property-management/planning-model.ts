@@ -8,6 +8,7 @@
  */
 import type { DataOrigin, HubSpotPropertyDef, PropertyEntry } from '@shared/types/properties';
 import type { PlanningAssociation } from '@shared/types/planning';
+import { USER_FRIENDLY_FIELD_TYPES } from '@shared/constants/planningFieldTypes';
 
 export const PLANNING_MAP_FEATURE_KEY = 'property-planning-map';
 export const PLANNING_SCHEMA_VERSION = 1;
@@ -57,6 +58,10 @@ const HS_HEADER = [
 const NHS = HS_HEADER.length;
 const CUSTOM_VALUES = ['No', 'Yes (Pending)', 'Yes (Created)'];
 const ORIGIN_VALUES = ['Migration', 'Integration'];
+// Columna Type: desplegable de tipos user-friendly (D6); la resolucion a config HubSpot y la
+// deteccion de ambiguedad ("necesita accion") ocurren en la ingest (planning-import.ts).
+const TYPE_VALUES = USER_FRIENDLY_FIELD_TYPES.map((t) => t.key);
+const TYPE_COL = 3; // 0-based en el bloque HubSpot (Custom, Name, Internal name, Type)
 const ORIGEN_HEADER = ['Objeto', 'Campo', '-> Propiedad HubSpot destino', 'Notas'];
 const ASOCIACIONES_HEADER = ['Objeto A', 'Objeto B', 'Clave de enlace', 'Notas'];
 const SHEET_NAME_MAX = 100;
@@ -287,6 +292,13 @@ export function buildPlanningWorkbook(input: PlanningInput): PlanningWorkbook {
         firstRow: 1,
         lastRow: dataCount,
         oneOf: CUSTOM_VALUES,
+      });
+      validations.push({
+        tab: tabTitle,
+        column: TYPE_COL,
+        firstRow: 1,
+        lastRow: dataCount,
+        oneOf: TYPE_VALUES,
       });
       originsHere.forEach((origin, i) => {
         const fieldCol = NHS + 3 * i; // 0-based: primera col del bloque de origen
