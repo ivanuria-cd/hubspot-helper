@@ -59,6 +59,8 @@ Limitaciones detectadas:
 
 ### 2.3 Separación de datos por objeto (Sheets de propiedades)
 
+> **DEPRECACIÓN PREVISTA — [SPEC-0016](SPEC-0016-mapa-campos-editable.md) (VALIDADO):** la separación por objeto del **Sheets de propiedades** que describe esta sección se **sustituye** por la estructura del skill (bloque HubSpot + bloques por origen, SPEC-0016 §2.2/§2.7). SPEC-0012 **sigue vigente** para el Doc de estado companion y para los Sheets de otras features.
+
 Hoy el libro de propiedades (`buildPropertyMapTabs`, SPEC-0006, `schema_version: 2`) tiene 5 hojas fijas y
 las hojas `02_Entradas`, `03_Fuentes` y `04_Opciones` mezclan todos los objetos con una columna `Objeto`.
 Cuando se mapean propiedades de varios objetos, esas hojas crecen mucho.
@@ -305,6 +307,8 @@ tutoriales nuevos.
 
 ## 12. Enmienda — Hoja de definición completa por objeto (IMPLEMENTADO, 2026-06-24)
 
+> **DEPRECACIÓN PREVISTA — [SPEC-0016](SPEC-0016-mapa-campos-editable.md) (VALIDADO):** aplica solo al **Sheets de propiedades**, sustituido por el mapa editable de SPEC-0016 (§2.7). Las hojas `Definicion`/`DefOpciones` dejan de generarse; la definición completa permanece en el Doc de estado companion (JSON).
+
 ### 12.1 Motivación
 
 Diagnóstico (verificación 2026-06-24): la hoja `<NN>_<Obj>_Campos` es una vista de **resumen**, no una
@@ -384,6 +388,8 @@ IMPLEMENTADO (2026-06-24). Hojas `Definicion` + `DefOpciones` por bloque en `bui
 ---
 
 ## 13. `numberFormat` por columna (IMPLEMENTADO, 2026-06-24)
+
+> **DEPRECACIÓN PREVISTA — [SPEC-0016](SPEC-0016-mapa-campos-editable.md) (VALIDADO):** aplica al **Sheets de propiedades**, sustituido por el mapa editable de SPEC-0016 (§2.7). Sigue vigente para los Sheets de otras features.
 
 Retira el diferido de §11 («`numberFormat` por columna diferido»). En `buildStyleRequests` (`sheets-style.ts`),
 para cada hoja de datos y cada columna, **dirigido por datos**: si todas las celdas no vacías del cuerpo son

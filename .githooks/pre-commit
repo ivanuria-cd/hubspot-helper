@@ -1,0 +1,23 @@
+#!/bin/sh
+# Pre-commit sin dependencias (informe 2026-07-02, hallazgo 11.2): ESLint + Prettier sobre lo
+# staged (SPEC-0000 §6). Activar una vez con: git config core.hooksPath .githooks
+# Saltar puntualmente con: git commit --no-verify
+
+# Excluye los ficheros que ESLint ya ignora (ignorePatterns '*.config.ts'): pasarselos provoca
+# el warning "File ignored" y bloquea el commit sin aportar nada.
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx)$' | grep -v '^doc/' | grep -v '^sandbox/' | grep -v '\.config\.ts$')
+
+if [ -z "$STAGED" ]; then
+  exit 0
+fi
+
+echo "[pre-commit] ESLint sobre $(echo "$STAGED" | wc -l) fichero(s) staged..."
+npx eslint $STAGED || exit 1
+
+echo "[pre-commit] Prettier (check)..."
+npx prettier --check $STAGED || {
+  echo "[pre-commit] Formatea con: npx prettier --write <ficheros>"
+  exit 1
+}
+
+exit 0

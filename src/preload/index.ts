@@ -77,6 +77,7 @@ const api: RevOpsApi = {
   originsCreate: (input) => ipcRenderer.invoke(IpcChannels.originsCreate, input),
   originsUpdate: (input) => ipcRenderer.invoke(IpcChannels.originsUpdate, input),
   originsDelete: (input) => ipcRenderer.invoke(IpcChannels.originsDelete, input),
+  originsSetObjectFields: (input) => ipcRenderer.invoke(IpcChannels.originsSetObjectFields, input),
   objectsListSchemas: (input) => ipcRenderer.invoke(IpcChannels.objectsListSchemas, input),
   objectsGetSchema: (input) => ipcRenderer.invoke(IpcChannels.objectsGetSchema, input),
   objectsUpsertDraft: (input) => ipcRenderer.invoke(IpcChannels.objectsUpsertDraft, input),
@@ -89,16 +90,14 @@ const api: RevOpsApi = {
     ipcRenderer.invoke(IpcChannels.customObjectsWriteSheets, input),
   customObjectsLoadSheets: (input) =>
     ipcRenderer.invoke(IpcChannels.customObjectsLoadSheets, input),
-  customObjectsDriveMeta: (input) =>
-    ipcRenderer.invoke(IpcChannels.customObjectsDriveMeta, input),
+  customObjectsDriveMeta: (input) => ipcRenderer.invoke(IpcChannels.customObjectsDriveMeta, input),
   formsList: (input) => ipcRenderer.invoke(IpcChannels.formsList, input),
   formsPendingChanges: (input) => ipcRenderer.invoke(IpcChannels.formsPendingChanges, input),
   formsSyncHubspot: (input) => ipcRenderer.invoke(IpcChannels.formsSyncHubspot, input),
   formsGet: (input) => ipcRenderer.invoke(IpcChannels.formsGet, input),
   formsCreateDefinition: (input) => ipcRenderer.invoke(IpcChannels.formsCreateDefinition, input),
   formsUpdateDefinition: (input) => ipcRenderer.invoke(IpcChannels.formsUpdateDefinition, input),
-  formsEditPendingChange: (input) =>
-    ipcRenderer.invoke(IpcChannels.formsEditPendingChange, input),
+  formsEditPendingChange: (input) => ipcRenderer.invoke(IpcChannels.formsEditPendingChange, input),
   formsListSubscriptionTypes: (input) =>
     ipcRenderer.invoke(IpcChannels.formsSubscriptionTypes, input),
   formsCoverage: (input) => ipcRenderer.invoke(IpcChannels.formsCoverage, input),

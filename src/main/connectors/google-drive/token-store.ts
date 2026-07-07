@@ -37,6 +37,7 @@ export function createGoogleTokenStore(backend: KeychainBackend): GoogleTokenSto
 
 export function createKeytarGoogleTokenStore(): GoogleTokenStore {
   // keytar es un módulo nativo; se carga de forma diferida para no afectar a los tests.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const keytar = require('keytar') as KeychainBackend;
   return createGoogleTokenStore(keytar);
 }

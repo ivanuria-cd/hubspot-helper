@@ -80,7 +80,11 @@ export function createGoogleCredentialsManager(
   function status(): GoogleCredentialsStatus {
     const envClientId = nonEmpty(deps.env.clientId);
     const envSecret = nonEmpty(deps.env.clientSecret);
-    const clientIdSource: GoogleCredentialSource = appClientId ? 'app' : envClientId ? 'env' : 'none';
+    const clientIdSource: GoogleCredentialSource = appClientId
+      ? 'app'
+      : envClientId
+        ? 'env'
+        : 'none';
     const secretSource: GoogleCredentialSource = appSecret ? 'app' : envSecret ? 'env' : 'none';
     return {
       clientId: {
@@ -116,7 +120,10 @@ export function createGoogleCredentialsManager(
       }
       return { success: true };
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Error al guardar credenciales' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error al guardar credenciales',
+      };
     }
   }
 
@@ -151,10 +158,16 @@ export function createElectronGoogleCredentialsManager(): GoogleCredentialsManag
     set: (value) => store.set('clientId', value),
     delete: () => store.delete('clientId'),
   };
+  // keytar es un módulo nativo; carga diferida deliberada (de ahí los disable de require).
   const secretBackend: SecretBackend = {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     get: () => (require('keytar') as KeytarLike).getPassword(KEYTAR_SERVICE, SECRET_ACCOUNT),
-    set: (value) => (require('keytar') as KeytarLike).setPassword(KEYTAR_SERVICE, SECRET_ACCOUNT, value),
+    set: (value) => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      return (require('keytar') as KeytarLike).setPassword(KEYTAR_SERVICE, SECRET_ACCOUNT, value);
+    },
     delete: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       await (require('keytar') as KeytarLike).deletePassword(KEYTAR_SERVICE, SECRET_ACCOUNT);
     },
   };

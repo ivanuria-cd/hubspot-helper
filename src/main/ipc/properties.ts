@@ -20,6 +20,7 @@ import type {
   HubSpotPropertiesInput,
   OriginCreateInput,
   OriginDeleteInput,
+  OriginSetObjectFieldsInput,
   OriginUpdateInput,
   ProjectScopedInput,
 } from '@shared/types/properties';
@@ -27,10 +28,7 @@ import type { PropertyService } from '../property-management/service';
 import type { GoogleDriveConnector } from '../connectors/google-drive';
 import type { DriveDocs } from '../drive-docs';
 import { PROPERTY_MAP_FEATURE_KEY } from '../property-management/sheets-model';
-import {
-  PROPERTY_STATE_FEATURE_KEY,
-  parsePropertyState,
-} from '../property-management/drive-state';
+import { PROPERTY_STATE_FEATURE_KEY, parsePropertyState } from '../property-management/drive-state';
 
 export interface PropertiesIpcDeps {
   properties: PropertyService;
@@ -110,7 +108,10 @@ export function registerPropertiesIpc(deps: PropertiesIpcDeps): void {
         properties.applyDriveState(input, { entries: state.entries, origins: state.origins });
         return { success: true, schemaVersion: state.schemaVersion };
       } catch (error) {
-        return { success: false, error: error instanceof Error ? error.message : 'Error al cargar' };
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Error al cargar',
+        };
       }
     },
   );
@@ -130,5 +131,8 @@ export function registerPropertiesIpc(deps: PropertiesIpcDeps): void {
   );
   ipcMain.handle(IpcChannels.originsDelete, (_event, input: OriginDeleteInput) =>
     properties.deleteOrigin(input),
+  );
+  ipcMain.handle(IpcChannels.originsSetObjectFields, (_event, input: OriginSetObjectFieldsInput) =>
+    properties.setObjectFields(input),
   );
 }

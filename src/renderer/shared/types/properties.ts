@@ -12,6 +12,8 @@ export type OriginType = 'integration' | 'migration' | 'user' | 'workflow';
 export interface OriginObject {
   id: string;
   name: string;
+  /** Catálogo de campos del origen para este objeto; alimenta los desplegables del mapa editable (SPEC-0016 D2). */
+  fields?: string[];
 }
 
 export interface DataOrigin {
@@ -298,6 +300,14 @@ export interface OriginUpdateInput {
 export interface OriginDeleteInput {
   projectId: string;
   originId: string;
+}
+
+/** Puebla el catálogo de campos de un objeto de origen para el mapa editable (SPEC-0016 D2). */
+export interface OriginSetObjectFieldsInput {
+  projectId: string;
+  originId: string;
+  objectId: string;
+  fields: string[];
 }
 
 export interface HubSpotPropertiesInput {

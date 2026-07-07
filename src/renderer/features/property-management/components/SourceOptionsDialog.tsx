@@ -62,6 +62,8 @@ export function SourceOptionsDialog({
     setReady(false);
     const id = window.setTimeout(() => setReady(true), 0);
     return () => window.clearTimeout(id);
+    // Solo al abrir: regenerar los ids con cada edición de `options` rompería las keys estables.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const update = (idx: number, patch: Partial<SourceEnumOption>): void => {
@@ -92,7 +94,12 @@ export function SourceOptionsDialog({
   const q = query.trim().toLowerCase();
   const visible = options
     .map((o, i) => ({ o, i }))
-    .filter(({ o }) => !q || o.sourceValue.toLowerCase().includes(q) || (o.hubspotValue ?? '').toLowerCase().includes(q));
+    .filter(
+      ({ o }) =>
+        !q ||
+        o.sourceValue.toLowerCase().includes(q) ||
+        (o.hubspotValue ?? '').toLowerCase().includes(q),
+    );
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -117,13 +124,24 @@ export function SourceOptionsDialog({
               </Typography>
             ) : (
               visible.map(({ o, i }) => (
-                <Stack key={rowIds[i] ?? `row-${i}`} direction="row" spacing={1} alignItems="center">
+                <Stack
+                  key={rowIds[i] ?? `row-${i}`}
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                >
                   <TextField
                     size="small"
                     label={t('properties.wizard.sourceValue')}
                     value={o.sourceValue}
                     onChange={(e) => update(i, { sourceValue: e.target.value })}
-                    InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.wizard.fieldHelp.optionValue" /></InputAdornment> }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <FieldTooltip helpKey="properties.wizard.fieldHelp.optionValue" />
+                        </InputAdornment>
+                      ),
+                    }}
                   />
                   <Typography>→</Typography>
                   {hubspotOptions.length > 0 ? (
@@ -134,10 +152,18 @@ export function SourceOptionsDialog({
                       value={o.hubspotValue ?? ''}
                       onChange={(e) => update(i, { hubspotValue: e.target.value })}
                       sx={{ minWidth: 160 }}
-                      InputProps={{ endAdornment: <InputAdornment position="end" sx={{ mr: 2 }}><FieldTooltip helpKey="properties.wizard.fieldHelp.optionLabel" /></InputAdornment> }}
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end" sx={{ mr: 2 }}>
+                            <FieldTooltip helpKey="properties.wizard.fieldHelp.optionLabel" />
+                          </InputAdornment>
+                        ),
+                      }}
                     >
                       {hubspotOptions.map((d) => (
-                        <MenuItem key={d.value} value={d.value}>{d.label || d.value}</MenuItem>
+                        <MenuItem key={d.value} value={d.value}>
+                          {d.label || d.value}
+                        </MenuItem>
                       ))}
                     </TextField>
                   ) : (
@@ -146,10 +172,20 @@ export function SourceOptionsDialog({
                       label={t('properties.wizard.hubspotValue')}
                       value={o.hubspotValue ?? ''}
                       onChange={(e) => update(i, { hubspotValue: e.target.value })}
-                      InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.wizard.fieldHelp.optionLabel" /></InputAdornment> }}
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <FieldTooltip helpKey="properties.wizard.fieldHelp.optionLabel" />
+                          </InputAdornment>
+                        ),
+                      }}
                     />
                   )}
-                  <IconButton size="small" aria-label={t('properties.panel.delete')} onClick={() => remove(i)}>
+                  <IconButton
+                    size="small"
+                    aria-label={t('properties.panel.delete')}
+                    onClick={() => remove(i)}
+                  >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Stack>
@@ -157,7 +193,12 @@ export function SourceOptionsDialog({
             )}
           </Stack>
           <Stack direction="row" spacing={1}>
-            <Button size="small" variant="text" startIcon={<ContentPasteIcon />} onClick={() => setBulkOpen((o) => !o)}>
+            <Button
+              size="small"
+              variant="text"
+              startIcon={<ContentPasteIcon />}
+              onClick={() => setBulkOpen((o) => !o)}
+            >
               {t('properties.wizard.pasteOptions')}
             </Button>
             <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={add}>
@@ -175,7 +216,13 @@ export function SourceOptionsDialog({
                 minRows={3}
                 helperText={t('properties.wizard.pasteSourceHint')}
               />
-              <Button size="small" variant="outlined" startIcon={<CheckIcon />} onClick={applyBulk} disabled={!bulkText.trim()}>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<CheckIcon />}
+                onClick={applyBulk}
+                disabled={!bulkText.trim()}
+              >
                 {t('properties.wizard.bulkApply')}
               </Button>
             </Stack>

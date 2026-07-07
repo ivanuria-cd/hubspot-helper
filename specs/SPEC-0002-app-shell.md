@@ -942,3 +942,53 @@ Primera ejecución real: 12 passed / 4 failed. Correcciones:
 Nota: el escaneo por pantalla se corta en la primera violación; tras estos fixes pueden aflorar hallazgos en
 las pantallas siguientes — iterar con la misma orden de dump. `e2e-dump.txt`/`e2e-results.json` añadidos a
 `.gitignore`.
+
+## 27. Tooling: CI, pre-commit y limpieza de configuración (IMPLEMENTADO, 2026-07-03)
+
+Del informe de revisión de código 2026-07-02, hallazgos 11.1–11.9 (transversal; se registra aquí como el §26).
+
+- **CI (§11.1)**: `.github/workflows/ci.yml` con dos jobs sobre `push` a main y `pull_request` — `unit`
+  (npm ci, typecheck, lint, `check:locales`, `check:tutoriales`, test:unit) y `e2e` (Playwright/Electron bajo
+  `xvfb-run`, con `pretest:e2e` compilando; artefactos de test-results subidos en fallo). Cumple SPEC-0000
+  §8/§11.
+- **Pre-commit sin dependencias (§11.2)**: `.githooks/pre-commit` (ESLint + Prettier --check sobre los `.ts(x)`
+  staged). Activación única por desarrollador: `git config core.hooksPath .githooks`. Sin husky/lint-staged
+  (cero dependencias nuevas).
+- **ESLint (§11.3)**: `ignorePatterns` ampliado (build, sandbox, coverage, test-results, playwright-report,
+  doc). Migración a flat config/ESLint 9 documentada como pendiente.
+- **Alias (§11.4)**: documentado en `vitest.config.ts` que los alias son la unión de ambos tsconfig y que el
+  typecheck por proceso es la fuente de verdad.
+- **Strictness (§11.5)**: `noFallthroughCasesInSwitch` en ambos tsconfig (seguro); `noUnusedLocals`/
+  `noUncheckedIndexedAccess` quedan como adopción futura (pueden requerir limpieza previa).
+- **§11.6**: cubierto en SPEC-0014 §12.2 (`check:locales`/`check:tutoriales`).
+- **§11.7**: `environmentMatchGlobs` anotado como deprecado (migrar a `projects` antes de Vitest 3).
+- **Limpieza de package.json (§11.8, §11.9)**: script `start` duplicado de `preview` eliminado;
+  `@testing-library/user-event` (sin un solo import) retirado de devDependencies — requiere `npm install` para
+  actualizar el lockfile.
+
+Estado: IMPLEMENTADO (2026-07-03). Verificación del workflow en el primer push; hook y lockfile en máquina.
+
+Fix tras la primera pasada real de lint (13 errores / 2 avisos): reglas `react/prop-types: off` (TS ya valida
+las props) y `no-unused-vars` con `argsIgnorePattern: '^_'` (convención existente del proyecto);
+`eslint-disable-next-line @typescript-eslint/no-require-imports` en las 7 cargas diferidas de módulos nativos
+(keytar/googleapis, patrón documentado en cada fichero); import `DriveFile` sin uso eliminado; los dos
+`useEffect` de rowIds (Options/SourceOptionsDialog) marcan la omisión de `options` como deliberada (regenerar
+ids en cada edición rompería las keys estables).
+
+## 28. Higiene del repo (IMPLEMENTADO, 2026-07-03)
+
+Del informe de revisión de código 2026-07-02, hallazgos 12.1–12.5.
+
+- **§12.1**: `test.txt` (salida stale de un typecheck de la v0.1.0, versionado en raíz) eliminado.
+- **§12.2**: los `.zip` de iconos ya no estaban en la raíz; guard `/*.zip` añadido a `.gitignore` (y
+  `unit-dump.txt` de la ronda de tests).
+- **§12.3**: `electron-builder.yml` excluye `out/*-types/**` (outDir composite de los tsconfig) del instalable.
+- **§12.4**: scripts one-shot históricos (`commit-inicial.cmd`, `setup-gdrive-deps.cmd`,
+  `verify-spec-0002.cmd`, `verify-spec-0004.cmd`) archivados en `doc/scripts-historicos/`; en `scripts/` quedan
+  los vivos (`setup.cmd`, `check-locale-parity.mjs`, `check-tutorial-parity.mjs`).
+- **§12.5**: los 4 `INFORME-*.md` movidos a `doc/informes/` (las citas por nombre en SPECs siguen válidas;
+  la única referencia con ruta, en CLAUDE.md, actualizada); `tests/functional/README.md` corregido
+  (`pnpm` → `npm run test:e2e`, y actualizado a la realidad de la suite: flujos locales, `--lang=es`,
+  userData temporal).
+
+Estado: IMPLEMENTADO (2026-07-03). Los movimientos son renames para git (mismo contenido).

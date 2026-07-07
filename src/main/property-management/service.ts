@@ -32,6 +32,7 @@ import type {
   OriginCreateInput,
   OriginDeleteInput,
   OriginExport,
+  OriginSetObjectFieldsInput,
   OriginUpdateInput,
   ProjectScopedInput,
   PropertiesSyncResult,
@@ -53,10 +54,16 @@ import type { PropertyDriveState } from './drive-state';
 /** Sanea las opciones de la definición destino para no almacenar opciones vacías. */
 function sanitizeRef(ref: HubSpotPropertyRef): HubSpotPropertyRef {
   if (ref.mode === 'new') {
-    return { ...ref, definition: { ...ref.definition, options: cleanOptions(ref.definition.options) } };
+    return {
+      ...ref,
+      definition: { ...ref.definition, options: cleanOptions(ref.definition.options) },
+    };
   }
   if (ref.definition) {
-    return { ...ref, definition: { ...ref.definition, options: cleanOptions(ref.definition.options) } };
+    return {
+      ...ref,
+      definition: { ...ref.definition, options: cleanOptions(ref.definition.options) },
+    };
   }
   return ref;
 }
@@ -79,7 +86,6 @@ function entryDestName(entry: PropertyEntry): string {
   if (ref.mode === 'existing') return ref.hubspotName ?? '';
   return ref.definition?.hubspotName ?? '';
 }
-
 
 function toDef(remote: RemoteProperty): HubSpotPropertyDef {
   return {
@@ -136,7 +142,9 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     return deps.objectsApiFor(input.projectId).listObjects();
   }
 
-  async function listHubSpotProperties(input: HubSpotPropertiesInput): Promise<HubSpotPropertyDef[]> {
+  async function listHubSpotProperties(
+    input: HubSpotPropertiesInput,
+  ): Promise<HubSpotPropertyDef[]> {
     const remotes = await deps.propertiesApiFor(input.projectId).listProperties(input.objectType);
     return remotes.map(toDef);
   }
@@ -294,7 +302,11 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     };
     const entries = state.entries.map((e) =>
       e.id === target.id
-        ? { ...e, hubspotProperty: { mode: 'new' as const, definition }, hubspotStatus: 'missing' as const }
+        ? {
+            ...e,
+            hubspotProperty: { mode: 'new' as const, definition },
+            hubspotStatus: 'missing' as const,
+          }
         : e,
     );
     deps.store.set(input.projectId, { ...state, entries });
@@ -304,16 +316,14 @@ export function createPropertyService(deps: PropertyServiceDeps) {
 
   /** Convierte en bloque todas las entradas en `missing` + modo `existing` (SPEC-0006 §35.4). */
   function convertMissingToNew(input: ConvertMissingInput): ConvertMissingResult {
-    const targets = deps.store
-      .get(input.projectId)
-      .entries.filter(
-        (e) =>
-          e.hubspotStatus === 'missing' &&
-          e.hubspotProperty.mode === 'existing' &&
-          // Las propiedades de sistema no se recrean (§43): se excluyen de la conversión en bloque.
-          !isSystemProperty(e.objectType, entryDestName(e)) &&
-          (!input.objectType || e.objectType === input.objectType),
-      );
+    const targets = deps.store.get(input.projectId).entries.filter(
+      (e) =>
+        e.hubspotStatus === 'missing' &&
+        e.hubspotProperty.mode === 'existing' &&
+        // Las propiedades de sistema no se recrean (§43): se excluyen de la conversión en bloque.
+        !isSystemProperty(e.objectType, entryDestName(e)) &&
+        (!input.objectType || e.objectType === input.objectType),
+    );
     let converted = 0;
     let seeded = 0;
     for (const t of targets) {
@@ -365,7 +375,12 @@ export function createPropertyService(deps: PropertyServiceDeps) {
             const remote = remotes.find((r) => r.name === def.hubspotName);
             if (remote) {
               for (const update of diffDefinition(entry.id, def, remote, changeFactory())) {
-                await api.patchProperty(entry.objectType, def.hubspotName, update.payload, input.environment);
+                await api.patchProperty(
+                  entry.objectType,
+                  def.hubspotName,
+                  update.payload,
+                  input.environment,
+                );
               }
             }
           }
@@ -537,6 +552,27 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     return updated;
   }
 
+  function setObjectFields(input: OriginSetObjectFieldsInput): DataOrigin {
+    const state = deps.store.get(input.projectId);
+    const existing = state.origins.find((origin) => origin.id === input.originId);
+    if (!existing) throw new Error('Origen no encontrado');
+    const objects = existing.objects ?? [];
+    if (!objects.some((object) => object.id === input.objectId)) {
+      throw new Error('Objeto de origen no encontrado');
+    }
+    const fields = [...new Set(input.fields.map((f) => f.trim()).filter(Boolean))];
+    const updated: DataOrigin = {
+      ...existing,
+      objects: objects.map((object) =>
+        object.id === input.objectId ? { ...object, fields } : object,
+      ),
+    };
+    const origins = state.origins.map((origin) => (origin.id === updated.id ? updated : origin));
+    deps.store.set(input.projectId, { ...state, origins });
+    markChanged(input.projectId);
+    return updated;
+  }
+
   function deleteOrigin(input: OriginDeleteInput): OperationResult {
     const state = deps.store.get(input.projectId);
     deps.store.set(input.projectId, {
@@ -604,6 +640,7 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     createOrigin,
     updateOrigin,
     deleteOrigin,
+    setObjectFields,
     exportJson,
     getDriveMeta,
     markDriveWritten,

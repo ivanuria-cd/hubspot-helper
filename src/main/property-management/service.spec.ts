@@ -16,7 +16,9 @@ function fakeProperties(remote: Omit<RemoteProperty, 'objectType'>[] = []): Prop
     patchProperty: vi.fn(() => Promise.resolve({ status: 200, data: {} })),
     deleteProperty: vi.fn(() => Promise.resolve({ status: 204, data: {} })),
     listGroups: vi.fn(() => Promise.resolve([])),
-    createGroup: vi.fn((_objectType: string, g: { name: string; label: string }) => Promise.resolve(g)),
+    createGroup: vi.fn((_objectType: string, g: { name: string; label: string }) =>
+      Promise.resolve(g),
+    ),
     deleteGroup: vi.fn(() => Promise.resolve({ status: 204, data: {} })),
   };
 }
@@ -42,7 +44,9 @@ describe('PropertyService (entradas)', () => {
 
   it('lista objetos del conector', async () => {
     const objs = fakeObjects([{ objectType: 'contacts', label: 'Contactos', custom: false }]);
-    const service = createPropertyService(deps(createMemoryPropertyStore(), fakeProperties(), objs));
+    const service = createPropertyService(
+      deps(createMemoryPropertyStore(), fakeProperties(), objs),
+    );
     const result = await service.listObjects({ projectId: 'p1' });
     expect(result[0]?.objectType).toBe('contacts');
   });
@@ -138,7 +142,13 @@ describe('PropertyService (entradas)', () => {
       { projectId: 'p1' },
       {
         origins: [
-          { id: 'o1', name: 'SF', type: 'migration', objects: [], createdAt: '2026-01-01T00:00:00.000Z' },
+          {
+            id: 'o1',
+            name: 'SF',
+            type: 'migration',
+            objects: [],
+            createdAt: '2026-01-01T00:00:00.000Z',
+          },
         ],
         entries: [
           {
@@ -162,7 +172,9 @@ describe('PropertyService (entradas)', () => {
   });
 
   it('§39: upsertEntry rechaza hubspotProperty como string', () => {
-    const service = createPropertyService(deps(createMemoryPropertyStore(), fakeProperties(), fakeObjects()));
+    const service = createPropertyService(
+      deps(createMemoryPropertyStore(), fakeProperties(), fakeObjects()),
+    );
     expect(() =>
       service.upsertEntry({
         projectId: 'p1',
@@ -177,7 +189,9 @@ describe('PropertyService (entradas)', () => {
   });
 
   it('§39: upsertEntry rechaza sources como array de strings', () => {
-    const service = createPropertyService(deps(createMemoryPropertyStore(), fakeProperties(), fakeObjects()));
+    const service = createPropertyService(
+      deps(createMemoryPropertyStore(), fakeProperties(), fakeObjects()),
+    );
     expect(() =>
       service.upsertEntry({
         projectId: 'p1',
@@ -201,7 +215,9 @@ describe('PropertyService (entradas)', () => {
           objectType: 'contacts',
           name: 'X',
           hubspotProperty: { mode: 'existing', hubspotName: 'custom_tier' },
-          sources: [{ id: 's1', originId: 'no-existe', sourceField: 'F', definition: { kind: 'text' } }],
+          sources: [
+            { id: 's1', originId: 'no-existe', sourceField: 'F', definition: { kind: 'text' } },
+          ],
         },
       }),
     ).toThrow(/Origen no encontrado/);
@@ -210,14 +226,19 @@ describe('PropertyService (entradas)', () => {
   it('upsertEntry acepta un source cuyo originId existe', () => {
     const store = createMemoryPropertyStore();
     const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));
-    const origin = service.createOrigin({ projectId: 'p1', origin: { name: 'SF', type: 'migration' } });
+    const origin = service.createOrigin({
+      projectId: 'p1',
+      origin: { name: 'SF', type: 'migration' },
+    });
     const entry = service.upsertEntry({
       projectId: 'p1',
       entry: {
         objectType: 'contacts',
         name: 'X',
         hubspotProperty: { mode: 'existing', hubspotName: 'custom_tier' },
-        sources: [{ id: 's1', originId: origin.id, sourceField: 'F', definition: { kind: 'text' } }],
+        sources: [
+          { id: 's1', originId: origin.id, sourceField: 'F', definition: { kind: 'text' } },
+        ],
       },
     });
     expect(entry.sources[0]?.originId).toBe(origin.id);
@@ -233,13 +254,21 @@ describe('PropertyService (entradas)', () => {
         name: 'Nueva',
         hubspotProperty: {
           mode: 'new',
-          definition: { hubspotName: 'np_old', label: 'Nueva', type: 'string', fieldType: 'text', groupName: 'g' },
+          definition: {
+            hubspotName: 'np_old',
+            label: 'Nueva',
+            type: 'string',
+            fieldType: 'text',
+            groupName: 'g',
+          },
         },
         sources: [],
       },
     });
     await service.syncHubspot({ projectId: 'p1' });
-    expect((service.listEntries({ projectId: 'p1' })[0]?.pendingChanges ?? []).length).toBeGreaterThan(0);
+    expect(
+      (service.listEntries({ projectId: 'p1' })[0]?.pendingChanges ?? []).length,
+    ).toBeGreaterThan(0);
 
     service.upsertEntry({
       projectId: 'p1',
@@ -249,7 +278,13 @@ describe('PropertyService (entradas)', () => {
         name: 'Nueva',
         hubspotProperty: {
           mode: 'new',
-          definition: { hubspotName: 'np_new', label: 'Nueva', type: 'string', fieldType: 'text', groupName: 'g' },
+          definition: {
+            hubspotName: 'np_new',
+            label: 'Nueva',
+            type: 'string',
+            fieldType: 'text',
+            groupName: 'g',
+          },
         },
         sources: [],
       },
@@ -261,7 +296,10 @@ describe('PropertyService (entradas)', () => {
     const store = createMemoryPropertyStore();
     const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));
     const def = (hubspotName: string) =>
-      ({ mode: 'new', definition: { hubspotName, label: 'X', type: 'string', fieldType: 'text', groupName: 'g' } }) as const;
+      ({
+        mode: 'new',
+        definition: { hubspotName, label: 'X', type: 'string', fieldType: 'text', groupName: 'g' },
+      }) as const;
     service.upsertEntry({
       projectId: 'p1',
       entry: { objectType: 'contacts', name: 'A', hubspotProperty: def('dup_name'), sources: [] },
@@ -327,6 +365,39 @@ describe('PropertyService (entradas)', () => {
     expect(updated.description).toBe('desc');
   });
 
+  it('SPEC-0016 D2: setObjectFields normaliza y exige origen/objeto existentes', () => {
+    const store = createMemoryPropertyStore();
+    const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));
+    const origin = service.createOrigin({
+      projectId: 'p1',
+      origin: { name: 'Pipedrive', type: 'migration' },
+    });
+    service.updateOrigin({
+      projectId: 'p1',
+      origin: { ...origin, objects: [{ id: 'obj1', name: 'People' }] },
+    });
+
+    expect(() =>
+      service.setObjectFields({ projectId: 'p1', originId: 'nope', objectId: 'obj1', fields: [] }),
+    ).toThrow('Origen no encontrado');
+    expect(() =>
+      service.setObjectFields({
+        projectId: 'p1',
+        originId: origin.id,
+        objectId: 'nope',
+        fields: [],
+      }),
+    ).toThrow('Objeto de origen no encontrado');
+
+    const updated = service.setObjectFields({
+      projectId: 'p1',
+      originId: origin.id,
+      objectId: 'obj1',
+      fields: [' email ', 'email', 'first_name', ''],
+    });
+    expect(updated.objects?.[0]?.fields).toEqual(['email', 'first_name']);
+  });
+
   it('H1: syncHubspot salta un objeto cuyo listProperties falla, sin abortar', async () => {
     const store = createMemoryPropertyStore();
     const props = fakeProperties([]);
@@ -352,7 +423,13 @@ describe('PropertyService (entradas)', () => {
         name: 'Nueva',
         hubspotProperty: {
           mode: 'new',
-          definition: { hubspotName: 'np', label: 'Nueva', type: 'string', fieldType: 'text', groupName: 'g' },
+          definition: {
+            hubspotName: 'np',
+            label: 'Nueva',
+            type: 'string',
+            fieldType: 'text',
+            groupName: 'g',
+          },
         },
         sources: [],
       },
@@ -375,13 +452,21 @@ describe('PropertyService (entradas)', () => {
         name: 'Nueva',
         hubspotProperty: {
           mode: 'new',
-          definition: { hubspotName: 'np', label: 'Nueva', type: 'string', fieldType: 'text', groupName: 'gym_information' },
+          definition: {
+            hubspotName: 'np',
+            label: 'Nueva',
+            type: 'string',
+            fieldType: 'text',
+            groupName: 'gym_information',
+          },
         },
         sources: [],
       },
     });
     await service.syncHubspot({ projectId: 'p1' });
-    const change = service.listEntries({ projectId: 'p1' }).flatMap((e) => e.pendingChanges ?? [])[0];
+    const change = service
+      .listEntries({ projectId: 'p1' })
+      .flatMap((e) => e.pendingChanges ?? [])[0];
     await service.applyChange({ projectId: 'p1', changeId: change.id, environment: 'production' });
     expect(props.createGroup).toHaveBeenCalledWith(
       'contacts',
@@ -407,7 +492,9 @@ describe('PropertyService (entradas)', () => {
       },
     });
 
-    expect(service.requestDelete({ projectId: 'p1', entryId: entry.id })).toEqual({ success: true });
+    expect(service.requestDelete({ projectId: 'p1', entryId: entry.id })).toEqual({
+      success: true,
+    });
     await service.syncHubspot({ projectId: 'p1' });
     const change = service
       .listEntries({ projectId: 'p1' })
@@ -450,14 +537,28 @@ describe('PropertyService (entradas)', () => {
       (objectType: string, environment?: string) => {
         if (environment === 'sandbox') {
           return Promise.resolve([
-            { name: 'x', objectType, label: 'Vieja', type: 'string', fieldType: 'text', groupName: 'g', options: [] },
+            {
+              name: 'x',
+              objectType,
+              label: 'Vieja',
+              type: 'string',
+              fieldType: 'text',
+              groupName: 'g',
+              options: [],
+            },
           ]);
         }
         return Promise.resolve([]);
       },
     );
     (props.createProperty as ReturnType<typeof vi.fn>).mockRejectedValue({
-      response: { status: 409, data: { category: 'OBJECT_ALREADY_EXISTS', message: "A property named 'x' already exists." } },
+      response: {
+        status: 409,
+        data: {
+          category: 'OBJECT_ALREADY_EXISTS',
+          message: "A property named 'x' already exists.",
+        },
+      },
     });
     const service = createPropertyService(deps(store, props, fakeObjects()));
     service.upsertEntry({
@@ -467,14 +568,26 @@ describe('PropertyService (entradas)', () => {
         name: 'X',
         hubspotProperty: {
           mode: 'new',
-          definition: { hubspotName: 'x', label: 'X', type: 'string', fieldType: 'text', groupName: 'g' },
+          definition: {
+            hubspotName: 'x',
+            label: 'X',
+            type: 'string',
+            fieldType: 'text',
+            groupName: 'g',
+          },
         },
         sources: [],
       },
     });
     await service.syncHubspot({ projectId: 'p1' });
-    const change = service.listEntries({ projectId: 'p1' }).flatMap((e) => e.pendingChanges ?? [])[0];
-    const result = await service.applyChange({ projectId: 'p1', changeId: change.id, environment: 'sandbox' });
+    const change = service
+      .listEntries({ projectId: 'p1' })
+      .flatMap((e) => e.pendingChanges ?? [])[0];
+    const result = await service.applyChange({
+      projectId: 'p1',
+      changeId: change.id,
+      environment: 'sandbox',
+    });
     expect(result.success).toBe(true);
     // La etiqueta difiere ('X' vs 'Vieja') → se aplica un patch de actualización en sandbox.
     expect(props.patchProperty).toHaveBeenCalledWith('contacts', 'x', { label: 'X' }, 'sandbox');
@@ -485,7 +598,7 @@ describe('PropertyService (entradas)', () => {
     expect(applied?.appliedToSandbox).toBe(true);
   });
 
-  it('§37: syncHubspot reconcilia contra producción (listProperties con \'production\')', async () => {
+  it("§37: syncHubspot reconcilia contra producción (listProperties con 'production')", async () => {
     const store = createMemoryPropertyStore();
     const props = fakeProperties([]);
     const service = createPropertyService(deps(store, props, fakeObjects()));
@@ -587,7 +700,13 @@ describe('PropertyService (entradas)', () => {
         name: 'Nueva',
         hubspotProperty: {
           mode: 'new',
-          definition: { hubspotName: 'np', label: 'Nueva', type: 'string', fieldType: 'text', groupName: 'g' },
+          definition: {
+            hubspotName: 'np',
+            label: 'Nueva',
+            type: 'string',
+            fieldType: 'text',
+            groupName: 'g',
+          },
         },
         sources: [],
       },
@@ -625,13 +744,18 @@ describe('PropertyService (entradas)', () => {
     expect(res).toEqual({ converted: 1, seeded: 1 });
     const byObject = service.listEntries({ projectId: 'p1' });
     expect(byObject.find((e) => e.objectType === 'contacts')?.hubspotProperty.mode).toBe('new');
-    expect(byObject.find((e) => e.objectType === 'companies')?.hubspotProperty.mode).toBe('existing');
+    expect(byObject.find((e) => e.objectType === 'companies')?.hubspotProperty.mode).toBe(
+      'existing',
+    );
   });
 
   it('CRUD de origenes y exportacion JSON v2', () => {
     const store = createMemoryPropertyStore();
     const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));
-    const origin = service.createOrigin({ projectId: 'p1', origin: { name: 'SF', type: 'migration' } });
+    const origin = service.createOrigin({
+      projectId: 'p1',
+      origin: { name: 'SF', type: 'migration' },
+    });
     expect(service.listOrigins({ projectId: 'p1' })).toHaveLength(1);
     const exported = service.exportJson({ projectId: 'p1', originId: origin.id });
     expect(exported.schema_version).toBe(2);
@@ -647,20 +771,37 @@ describe('PropertyService (borrado de grupos, SPEC-0006 §33)', () => {
   });
 
   it('requestGroupDelete crea un cambio pendiente y listGroupChanges lo devuelve', () => {
-    const service = createPropertyService(deps(createMemoryPropertyStore(), fakeProperties(), fakeObjects()));
+    const service = createPropertyService(
+      deps(createMemoryPropertyStore(), fakeProperties(), fakeObjects()),
+    );
     expect(
-      service.requestGroupDelete({ projectId: 'p1', objectType: 'contacts', groupName: 'gym_info', label: 'Gimnasio' }),
+      service.requestGroupDelete({
+        projectId: 'p1',
+        objectType: 'contacts',
+        groupName: 'gym_info',
+        label: 'Gimnasio',
+      }),
     ).toEqual({ success: true });
     const changes = service.listGroupChanges({ projectId: 'p1' });
     expect(changes).toHaveLength(1);
-    expect(changes[0]).toMatchObject({ objectType: 'contacts', groupName: 'gym_info', appliedToProduction: false });
+    expect(changes[0]).toMatchObject({
+      objectType: 'contacts',
+      groupName: 'gym_info',
+      appliedToProduction: false,
+    });
   });
 
   it('requestGroupDelete rechaza un duplicado para el mismo objeto/grupo', () => {
-    const service = createPropertyService(deps(createMemoryPropertyStore(), fakeProperties(), fakeObjects()));
+    const service = createPropertyService(
+      deps(createMemoryPropertyStore(), fakeProperties(), fakeObjects()),
+    );
     service.requestGroupDelete({ projectId: 'p1', objectType: 'contacts', groupName: 'gym_info' });
     expect(
-      service.requestGroupDelete({ projectId: 'p1', objectType: 'contacts', groupName: 'gym_info' }),
+      service.requestGroupDelete({
+        projectId: 'p1',
+        objectType: 'contacts',
+        groupName: 'gym_info',
+      }),
     ).toEqual({ success: false, error: 'Ya hay un borrado pendiente para ese grupo' });
   });
 
@@ -672,7 +813,11 @@ describe('PropertyService (borrado de grupos, SPEC-0006 §33)', () => {
     const service = createPropertyService(deps(createMemoryPropertyStore(), props, fakeObjects()));
     service.requestGroupDelete({ projectId: 'p1', objectType: 'contacts', groupName: 'gym_info' });
     const change = service.listGroupChanges({ projectId: 'p1' })[0];
-    const result = await service.applyGroupChange({ projectId: 'p1', changeId: change.id, environment: 'production' });
+    const result = await service.applyGroupChange({
+      projectId: 'p1',
+      changeId: change.id,
+      environment: 'production',
+    });
     expect(result.success).toBe(false);
     expect(props.deleteGroup).not.toHaveBeenCalled();
     // El cambio sigue pendiente al no aplicarse.
@@ -684,17 +829,27 @@ describe('PropertyService (borrado de grupos, SPEC-0006 §33)', () => {
     const service = createPropertyService(deps(createMemoryPropertyStore(), props, fakeObjects()));
     service.requestGroupDelete({ projectId: 'p1', objectType: 'contacts', groupName: 'gym_info' });
     const change = service.listGroupChanges({ projectId: 'p1' })[0];
-    const result = await service.applyGroupChange({ projectId: 'p1', changeId: change.id, environment: 'production' });
+    const result = await service.applyGroupChange({
+      projectId: 'p1',
+      changeId: change.id,
+      environment: 'production',
+    });
     expect(result.success).toBe(true);
     expect(props.deleteGroup).toHaveBeenCalledWith('contacts', 'gym_info', 'production');
     expect(service.listGroupChanges({ projectId: 'p1' })).toHaveLength(0);
   });
 
   it('applyGroupChange en sandbox marca el flag sin retirar el cambio', async () => {
-    const service = createPropertyService(deps(createMemoryPropertyStore(), fakeProperties([]), fakeObjects()));
+    const service = createPropertyService(
+      deps(createMemoryPropertyStore(), fakeProperties([]), fakeObjects()),
+    );
     service.requestGroupDelete({ projectId: 'p1', objectType: 'contacts', groupName: 'gym_info' });
     const change = service.listGroupChanges({ projectId: 'p1' })[0];
-    await service.applyGroupChange({ projectId: 'p1', changeId: change.id, environment: 'sandbox' });
+    await service.applyGroupChange({
+      projectId: 'p1',
+      changeId: change.id,
+      environment: 'sandbox',
+    });
     const after = service.listGroupChanges({ projectId: 'p1' });
     expect(after).toHaveLength(1);
     expect(after[0].appliedToSandbox).toBe(true);
@@ -702,10 +857,14 @@ describe('PropertyService (borrado de grupos, SPEC-0006 §33)', () => {
   });
 
   it('discardGroupChange retira el cambio; error si no existe', () => {
-    const service = createPropertyService(deps(createMemoryPropertyStore(), fakeProperties(), fakeObjects()));
+    const service = createPropertyService(
+      deps(createMemoryPropertyStore(), fakeProperties(), fakeObjects()),
+    );
     service.requestGroupDelete({ projectId: 'p1', objectType: 'contacts', groupName: 'gym_info' });
     const change = service.listGroupChanges({ projectId: 'p1' })[0];
-    expect(service.discardGroupChange({ projectId: 'p1', changeId: change.id })).toEqual({ success: true });
+    expect(service.discardGroupChange({ projectId: 'p1', changeId: change.id })).toEqual({
+      success: true,
+    });
     expect(service.listGroupChanges({ projectId: 'p1' })).toHaveLength(0);
     expect(service.discardGroupChange({ projectId: 'p1', changeId: 'nope' })).toEqual({
       success: false,

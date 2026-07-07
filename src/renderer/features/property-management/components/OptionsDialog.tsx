@@ -49,7 +49,13 @@ interface OptionsDialogProps {
 }
 
 /** Editor de opciones de enumeración «aparte»: lista con scroll propio, búsqueda y pegado masivo. */
-export function OptionsDialog({ open, title, options, onChange, onClose }: OptionsDialogProps): JSX.Element {
+export function OptionsDialog({
+  open,
+  title,
+  options,
+  onChange,
+  onClose,
+}: OptionsDialogProps): JSX.Element {
   const { t } = useTranslation('common');
   const [query, setQuery] = useState('');
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -74,6 +80,8 @@ export function OptionsDialog({ open, title, options, onChange, onClose }: Optio
     setReady(false);
     const id = window.setTimeout(() => setReady(true), 0);
     return () => window.clearTimeout(id);
+    // Solo al abrir: regenerar los ids con cada edición de `options` rompería las keys estables.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const updateOption = (idx: number, patch: Partial<HsPropertyOption>): void => {
@@ -90,7 +98,9 @@ export function OptionsDialog({ open, title, options, onChange, onClose }: Optio
   const applyBulk = (): void => {
     const parsed = parseBulkOptions(bulkText, bulkSep);
     if (parsed.length > 0) {
-      onChange(reindex([...options, ...parsed.map((o) => ({ ...o, displayOrder: 0, hidden: false }))]));
+      onChange(
+        reindex([...options, ...parsed.map((o) => ({ ...o, displayOrder: 0, hidden: false }))]),
+      );
       setRowIds((ids) => [...ids, ...parsed.map(() => crypto.randomUUID())]);
     }
     setBulkText('');
@@ -101,7 +111,9 @@ export function OptionsDialog({ open, title, options, onChange, onClose }: Optio
   const q = query.trim().toLowerCase();
   const visible = options
     .map((o, i) => ({ o, i }))
-    .filter(({ o }) => !q || o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q));
+    .filter(
+      ({ o }) => !q || o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q),
+    );
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -126,22 +138,43 @@ export function OptionsDialog({ open, title, options, onChange, onClose }: Optio
               </Typography>
             ) : (
               visible.map(({ o, i }) => (
-                <Stack key={rowIds[i] ?? `row-${i}`} direction="row" spacing={1} alignItems="center">
+                <Stack
+                  key={rowIds[i] ?? `row-${i}`}
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                >
                   <TextField
                     size="small"
                     label={t('properties.wizard.optionLabel')}
                     value={o.label}
                     onChange={(e) => updateOption(i, { label: e.target.value })}
-                    InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.wizard.fieldHelp.optionLabel" /></InputAdornment> }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <FieldTooltip helpKey="properties.wizard.fieldHelp.optionLabel" />
+                        </InputAdornment>
+                      ),
+                    }}
                   />
                   <TextField
                     size="small"
                     label={t('properties.wizard.optionValue')}
                     value={o.value}
                     onChange={(e) => updateOption(i, { value: e.target.value })}
-                    InputProps={{ endAdornment: <InputAdornment position="end"><FieldTooltip helpKey="properties.wizard.fieldHelp.optionValue" /></InputAdornment> }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <FieldTooltip helpKey="properties.wizard.fieldHelp.optionValue" />
+                        </InputAdornment>
+                      ),
+                    }}
                   />
-                  <IconButton size="small" aria-label={t('properties.panel.delete')} onClick={() => removeOption(i)}>
+                  <IconButton
+                    size="small"
+                    aria-label={t('properties.panel.delete')}
+                    onClick={() => removeOption(i)}
+                  >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Stack>
@@ -149,7 +182,12 @@ export function OptionsDialog({ open, title, options, onChange, onClose }: Optio
             )}
           </Stack>
           <Stack direction="row" spacing={1}>
-            <Button size="small" variant="text" startIcon={<ContentPasteIcon />} onClick={() => setBulkOpen((o) => !o)}>
+            <Button
+              size="small"
+              variant="text"
+              startIcon={<ContentPasteIcon />}
+              onClick={() => setBulkOpen((o) => !o)}
+            >
               {t('properties.wizard.pasteOptions')}
             </Button>
             <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={addOption}>
@@ -174,7 +212,13 @@ export function OptionsDialog({ open, title, options, onChange, onClose }: Optio
                 minRows={3}
                 helperText={t('properties.wizard.pasteHint')}
               />
-              <Button size="small" variant="outlined" startIcon={<CheckIcon />} onClick={applyBulk} disabled={!bulkText.trim()}>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<CheckIcon />}
+                onClick={applyBulk}
+                disabled={!bulkText.trim()}
+              >
                 {t('properties.wizard.bulkApply')}
               </Button>
             </Stack>

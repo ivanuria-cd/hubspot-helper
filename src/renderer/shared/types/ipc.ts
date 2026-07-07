@@ -75,6 +75,7 @@ import type {
   OriginCreateInput,
   OriginDeleteInput,
   OriginExport,
+  OriginSetObjectFieldsInput,
   OriginUpdateInput,
   ProjectScopedInput,
   PropertiesSyncResult,
@@ -181,6 +182,7 @@ export const IpcChannels = {
   originsCreate: 'origins:create',
   originsUpdate: 'origins:update',
   originsDelete: 'origins:delete',
+  originsSetObjectFields: 'origins:set-object-fields',
   objectsListSchemas: 'objects:list-schemas',
   objectsGetSchema: 'objects:get-schema',
   objectsUpsertDraft: 'objects:upsert-draft',
@@ -285,6 +287,7 @@ export interface RevOpsApi {
   originsCreate(input: OriginCreateInput): Promise<DataOrigin>;
   originsUpdate(input: OriginUpdateInput): Promise<DataOrigin>;
   originsDelete(input: OriginDeleteInput): Promise<OperationResult>;
+  originsSetObjectFields(input: OriginSetObjectFieldsInput): Promise<DataOrigin>;
   objectsListSchemas(input: ObjectsListSchemasInput): Promise<CustomObjectDefinition[]>;
   objectsGetSchema(input: ObjectGetSchemaInput): Promise<CustomObjectDefinition | null>;
   objectsUpsertDraft(input: ObjectUpsertDraftInput): Promise<CustomObjectDefinition>;

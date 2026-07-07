@@ -11,7 +11,13 @@ import { EntryWizard } from './EntryWizard';
 const i18n = createI18n('es');
 
 const HS_PROPS: HubSpotPropertyDef[] = [
-  { hubspotName: 'email', label: 'Email', type: 'string', fieldType: 'text', groupName: 'contactinformation' },
+  {
+    hubspotName: 'email',
+    label: 'Email',
+    type: 'string',
+    fieldType: 'text',
+    groupName: 'contactinformation',
+  },
 ];
 
 const GROUPS: HubSpotGroup[] = [{ name: 'contactinformation', label: 'Información de contacto' }];
@@ -26,7 +32,10 @@ function setApi(): ApiMock {
     hubspotPropertiesList: vi.fn().mockResolvedValue(HS_PROPS),
     groupsList: vi.fn().mockResolvedValue(GROUPS),
   };
-  (window as unknown as { api: Record<string, unknown> }).api = api as unknown as Record<string, unknown>;
+  (window as unknown as { api: Record<string, unknown> }).api = api as unknown as Record<
+    string,
+    unknown
+  >;
   return api;
 }
 
@@ -56,6 +65,11 @@ function saveButton(): HTMLElement {
   return screen.getByRole('button', { name: 'Guardar' });
 }
 
+/** Espera a que termine la carga inicial (flush de los setState del efecto: sin warnings de act). */
+async function waitForLoaded(): Promise<void> {
+  await waitFor(() => expect(screen.queryByRole('progressbar')).not.toBeInTheDocument());
+}
+
 beforeEach(async () => {
   await i18n.changeLanguage('es');
 });
@@ -67,9 +81,13 @@ describe('EntryWizard', () => {
 
     expect(screen.getByText('Añadir propiedad')).toBeInTheDocument();
     await waitFor(() => {
-      expect(api.hubspotPropertiesList).toHaveBeenCalledWith({ projectId: 'p1', objectType: 'contacts' });
+      expect(api.hubspotPropertiesList).toHaveBeenCalledWith({
+        projectId: 'p1',
+        objectType: 'contacts',
+      });
       expect(api.groupsList).toHaveBeenCalledWith({ projectId: 'p1', objectType: 'contacts' });
     });
+    await waitForLoaded();
 
     // Sin nombre de entrada (y sin propiedad destino) no se puede guardar.
     expect(saveButton()).toBeDisabled();
@@ -78,6 +96,7 @@ describe('EntryWizard', () => {
   it('en modo «existing», el nombre solo no basta: hace falta la propiedad destino', async () => {
     setApi();
     renderWizard();
+    await waitForLoaded();
 
     fireEvent.change(screen.getByLabelText('Nombre de la propiedad'), {
       target: { value: 'Mi entrada' },
@@ -88,7 +107,7 @@ describe('EntryWizard', () => {
   it('en modo «new» exige nombre técnico y etiqueta para habilitar Guardar', async () => {
     setApi();
     renderWizard();
-    await waitFor(() => expect(screen.queryByRole('progressbar')).not.toBeInTheDocument());
+    await waitForLoaded();
 
     fireEvent.change(screen.getByLabelText('Nombre de la propiedad'), {
       target: { value: 'Mi entrada' },

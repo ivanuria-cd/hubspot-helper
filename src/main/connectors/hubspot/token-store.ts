@@ -40,6 +40,7 @@ export function createTokenStore(backend: KeychainBackend): TokenStore {
 
 export function createKeytarTokenStore(): TokenStore {
   // keytar es un módulo nativo; se carga de forma diferida para no afectar a los tests.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const keytar = require('keytar') as KeychainBackend;
   return createTokenStore(keytar);
 }

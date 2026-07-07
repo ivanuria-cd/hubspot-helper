@@ -4,7 +4,6 @@ import { shell } from 'electron';
 import axios from 'axios';
 import Store from 'electron-store';
 import type {
-  DriveFile,
   DriveFolder,
   GoogleCredentialsInput,
   GoogleCredentialsStatus,
@@ -32,14 +31,14 @@ import {
 import { createProjectRecord } from '../../shared/project-record';
 import { createDriveClient, type DriveApi, type DriveClient } from './client';
 import { retried } from './retry';
-import {
-  createSheetsClient,
-  type SheetsClient,
-  type SheetTab,
-} from './sheets-client';
+import { createSheetsClient, type SheetsClient, type SheetTab } from './sheets-client';
 import { buildCover, type CoverInput } from './cover-template';
 import { reconcile } from './sync';
-import { createGoogleTokenStore, createKeytarGoogleTokenStore, type GoogleTokenStore } from './token-store';
+import {
+  createGoogleTokenStore,
+  createKeytarGoogleTokenStore,
+  type GoogleTokenStore,
+} from './token-store';
 import {
   createElectronGoogleCredentialsManager,
   type GoogleCredentialsManager,
@@ -243,13 +242,17 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
     return deps.credentials.status();
   }
 
-  function setCredentials(input: GoogleCredentialsInput): Promise<{ success: boolean; error?: string }> {
-    if (!deps.credentials) return Promise.resolve({ success: false, error: 'Credenciales no disponibles' });
+  function setCredentials(
+    input: GoogleCredentialsInput,
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!deps.credentials)
+      return Promise.resolve({ success: false, error: 'Credenciales no disponibles' });
     return deps.credentials.set(input);
   }
 
   function clearCredentials(): Promise<{ success: boolean; error?: string }> {
-    if (!deps.credentials) return Promise.resolve({ success: false, error: 'Credenciales no disponibles' });
+    if (!deps.credentials)
+      return Promise.resolve({ success: false, error: 'Credenciales no disponibles' });
     return deps.credentials.clear();
   }
 
@@ -302,7 +305,11 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
       const existing = files.find((file) => file.featureKey === input.featureKey);
       let driveId: string;
       if (existing) {
-        await client.replaceDocumentBody({ driveId: existing.driveId, cover, content: input.content });
+        await client.replaceDocumentBody({
+          driveId: existing.driveId,
+          cover,
+          content: input.content,
+        });
         existing.lastModifiedLocal = isoNow();
         existing.syncStatus = 'pending';
         driveId = existing.driveId;
@@ -315,7 +322,11 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
         );
         if (managed.length > 0) {
           const [reused, ...duplicates] = managed;
-          await client.replaceDocumentBody({ driveId: reused.driveId, cover, content: input.content });
+          await client.replaceDocumentBody({
+            driveId: reused.driveId,
+            cover,
+            content: input.content,
+          });
           for (const duplicate of duplicates) {
             try {
               await client.deleteFile(duplicate.driveId);
@@ -363,9 +374,12 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
       console.error(
         `[gdrive] writeFile falló para featureKey="${input.featureKey}": ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       );
-      return { success: false, error: error instanceof Error ? error.message : 'Error al escribir' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error al escribir',
+      };
     }
   }
 
@@ -376,7 +390,8 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
     try {
       const config = deps.configs.get(input.projectId);
       const existing = config?.files?.find((file) => file.featureKey === input.featureKey);
-      if (!existing) return { success: false, error: 'No existe un archivo para esta característica' };
+      if (!existing)
+        return { success: false, error: 'No existe un archivo para esta característica' };
       const accessToken = await getValidAccessToken(input.projectId);
       const client = deps.driveClientFor(accessToken);
       const content = await client.readManagedContent(existing.driveId);
@@ -424,7 +439,10 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
       deps.configs.set(input.projectId, { ...config, files });
       return { success: true, spreadsheetId };
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Error al escribir' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error al escribir',
+      };
     }
   }
 
@@ -481,6 +499,7 @@ interface GoogleApisModule {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function googleDriveClientFor(accessToken: string): DriveClient {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- carga diferida del módulo nativo
   const { google } = require('googleapis') as GoogleApisModule;
   const auth = new google.auth.OAuth2();
   auth.setCredentials({ access_token: accessToken });
@@ -527,6 +546,7 @@ function googleDriveClientFor(accessToken: string): DriveClient {
 }
 
 function googleSheetsClientFor(accessToken: string): SheetsClient {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- carga diferida del módulo nativo
   const { google } = require('googleapis') as GoogleApisModule;
   const auth = new google.auth.OAuth2();
   auth.setCredentials({ access_token: accessToken });

@@ -5,6 +5,8 @@ directories:
   buildResources: build
 files:
   - out/**/*
+  # Informe 2026-07-02 §12.3: los outDir composite de los tsconfig no van al instalable.
+  - '!out/*-types/**'
   - package.json
 publish:
   provider: github
