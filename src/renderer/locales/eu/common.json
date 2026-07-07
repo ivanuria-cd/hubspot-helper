@@ -290,6 +290,28 @@
       "close": "Itxi"
     },
     "exportJson": "Esportatu JSON",
+    "planningMap": {
+      "generate": "Sortu plangintza-mapa",
+      "generating": "Sortzen…",
+      "generateDone": "Plangintza-mapa Driven sortu da.",
+      "import": "Inportatu plangintza",
+      "importing": "Mapa irakurtzen…",
+      "noChanges": "Mapak ez du aldaketarik proiektuarekiko.",
+      "changelogTitle": "Mapan hautemandako aldaketak",
+      "changelogIntro": "Berrikusi aldaketak zirriborroak sortu aurretik. Ez da ezer aplikatzen HubSpoten.",
+      "needsActionTitle": "Ekintza behar duten eremuak (mota anbiguoa ebatzi gabe)",
+      "apply": "Sortu zirriborroak",
+      "cancel": "Utzi",
+      "applyDone": "{{applied}} zirriborro sortu/eguneratu dira.",
+      "applyBlocked": "{{blocked}} eremu blokeatuta mota ebatzi gabe.",
+      "error": "Ezin izan da osatu: {{error}}",
+      "kind": {
+        "entry-added": "Alta",
+        "entry-removed": "Baja",
+        "mapping-changed": "Mapaketa-aldaketa",
+        "definition-changed": "Mota-aldaketa"
+      }
+    },
     "writeSheets": {
       "button": "Isuri Google Sheets-era",
       "busy": "Isurtzen…",

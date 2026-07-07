@@ -290,6 +290,28 @@
       "close": "Tancar"
     },
     "exportJson": "Exporta JSON",
+    "planningMap": {
+      "generate": "Generar mapa de planificació",
+      "generating": "Generant…",
+      "generateDone": "Mapa de planificació generat a Drive.",
+      "import": "Importar planificació",
+      "importing": "Llegint el mapa…",
+      "noChanges": "El mapa no té canvis respecte al projecte.",
+      "changelogTitle": "Canvis detectats al mapa",
+      "changelogIntro": "Revisa els canvis abans de crear esborranys. No s'aplica res a HubSpot.",
+      "needsActionTitle": "Camps que necessiten acció (tipus ambigu sense resoldre)",
+      "apply": "Crear esborranys",
+      "cancel": "Cancel·la",
+      "applyDone": "{{applied}} esborranys creats/actualitzats.",
+      "applyBlocked": "{{blocked}} camps bloquejats per tipus sense resoldre.",
+      "error": "No s'ha pogut completar: {{error}}",
+      "kind": {
+        "entry-added": "Alta",
+        "entry-removed": "Baixa",
+        "mapping-changed": "Canvi de mapatge",
+        "definition-changed": "Canvi de tipus"
+      }
+    },
     "writeSheets": {
       "button": "Bolca a Google Sheets",
       "busy": "Bolcant…",

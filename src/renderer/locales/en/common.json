@@ -290,6 +290,28 @@
       "close": "Close"
     },
     "exportJson": "Export JSON",
+    "planningMap": {
+      "generate": "Generate planning map",
+      "generating": "Generating…",
+      "generateDone": "Planning map generated in Drive.",
+      "import": "Import planning",
+      "importing": "Reading the map…",
+      "noChanges": "The map has no changes compared to the project.",
+      "changelogTitle": "Changes detected in the map",
+      "changelogIntro": "Review the changes before creating drafts. Nothing is applied in HubSpot.",
+      "needsActionTitle": "Fields that need action (unresolved ambiguous type)",
+      "apply": "Create drafts",
+      "cancel": "Cancel",
+      "applyDone": "{{applied}} drafts created/updated.",
+      "applyBlocked": "{{blocked}} fields blocked by unresolved type.",
+      "error": "Could not complete: {{error}}",
+      "kind": {
+        "entry-added": "Added",
+        "entry-removed": "Removed",
+        "mapping-changed": "Mapping change",
+        "definition-changed": "Type change"
+      }
+    },
     "writeSheets": {
       "button": "Export to Google Sheets",
       "busy": "Exporting…",

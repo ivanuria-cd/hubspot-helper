@@ -660,7 +660,11 @@ function googleSheetsClientFor(accessToken: string): SheetsClient {
           ranges: args.ranges,
         });
         return {
-          valueRanges: (res.data.valueRanges ?? []).map((r) => ({ values: r.values ?? undefined })),
+          valueRanges: (res.data.valueRanges ?? []).map(
+            (r: { values?: (string | number | boolean)[][] | null }) => ({
+              values: r.values ?? undefined,
+            }),
+          ),
         };
       },
     }),

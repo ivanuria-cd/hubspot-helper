@@ -295,6 +295,28 @@
       "close": "Pechar"
     },
     "exportJson": "Exportar JSON",
+    "planningMap": {
+      "generate": "Xerar mapa de planificación",
+      "generating": "Xerando…",
+      "generateDone": "Mapa de planificación xerado en Drive.",
+      "import": "Importar planificación",
+      "importing": "Lendo o mapa…",
+      "noChanges": "O mapa non ten cambios respecto ao proxecto.",
+      "changelogTitle": "Cambios detectados no mapa",
+      "changelogIntro": "Revisa os cambios antes de crear borradores. Non se aplica nada en HubSpot.",
+      "needsActionTitle": "Campos que precisan acción (tipo ambiguo sen resolver)",
+      "apply": "Crear borradores",
+      "cancel": "Cancelar",
+      "applyDone": "{{applied}} borradores creados/actualizados.",
+      "applyBlocked": "{{blocked}} campos bloqueados por tipo sen resolver.",
+      "error": "Non se puido completar: {{error}}",
+      "kind": {
+        "entry-added": "Alta",
+        "entry-removed": "Baixa",
+        "mapping-changed": "Cambio de mapeo",
+        "definition-changed": "Cambio de tipo"
+      }
+    },
     "writeSheets": {
       "button": "Verter a Google Sheets",
       "busy": "Vertendo…",

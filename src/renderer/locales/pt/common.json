@@ -295,6 +295,28 @@
       "close": "Fechar"
     },
     "exportJson": "Exportar JSON",
+    "planningMap": {
+      "generate": "Gerar mapa de planeamento",
+      "generating": "A gerar…",
+      "generateDone": "Mapa de planeamento gerado no Drive.",
+      "import": "Importar planeamento",
+      "importing": "A ler o mapa…",
+      "noChanges": "O mapa não tem alterações em relação ao projeto.",
+      "changelogTitle": "Alterações detetadas no mapa",
+      "changelogIntro": "Reveja as alterações antes de criar rascunhos. Nada é aplicado no HubSpot.",
+      "needsActionTitle": "Campos que precisam de ação (tipo ambíguo por resolver)",
+      "apply": "Criar rascunhos",
+      "cancel": "Cancelar",
+      "applyDone": "{{applied}} rascunhos criados/atualizados.",
+      "applyBlocked": "{{blocked}} campos bloqueados por tipo por resolver.",
+      "error": "Não foi possível concluir: {{error}}",
+      "kind": {
+        "entry-added": "Adição",
+        "entry-removed": "Remoção",
+        "mapping-changed": "Alteração de mapeamento",
+        "definition-changed": "Alteração de tipo"
+      }
+    },
     "writeSheets": {
       "button": "Despejar para o Google Sheets",
       "busy": "A despejar…",

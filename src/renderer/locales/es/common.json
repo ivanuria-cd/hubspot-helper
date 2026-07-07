@@ -301,6 +301,28 @@
       "success": "Mapa volcado a Google Sheets (id: {{id}}).",
       "error": "No se pudo volcar: {{error}}"
     },
+    "planningMap": {
+      "generate": "Generar mapa de planificación",
+      "generating": "Generando…",
+      "generateDone": "Mapa de planificación generado en Drive.",
+      "import": "Importar planificación",
+      "importing": "Leyendo el mapa…",
+      "noChanges": "El mapa no tiene cambios respecto al proyecto.",
+      "changelogTitle": "Cambios detectados en el mapa",
+      "changelogIntro": "Revisa los cambios antes de crear borradores. No se aplica nada en HubSpot.",
+      "needsActionTitle": "Campos que necesitan acción (tipo ambiguo sin resolver)",
+      "apply": "Crear borradores",
+      "cancel": "Cancelar",
+      "applyDone": "{{applied}} borradores creados/actualizados.",
+      "applyBlocked": "{{blocked}} campos bloqueados por tipo sin resolver.",
+      "error": "No se pudo completar: {{error}}",
+      "kind": {
+        "entry-added": "Alta",
+        "entry-removed": "Baja",
+        "mapping-changed": "Cambio de mapeo",
+        "definition-changed": "Cambio de tipo"
+      }
+    },
     "pendingChanges": "Cambios pendientes ({{count}})",
     "search": "Buscar…",
     "loading": "Cargando propiedades…",

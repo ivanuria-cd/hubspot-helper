@@ -42,12 +42,12 @@ import { EntryPanel } from './EntryPanel';
 import { OriginsModal } from './OriginsModal';
 import { GroupsModal } from './GroupsModal';
 import { PendingChangesView } from './PendingChangesView';
+import { PlanningMapActions } from './PlanningMapActions';
 
 /** Normaliza para búsqueda: minúsculas y sin acentos. */
 function norm(value: string): string {
   return value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 }
-
 
 export function PropertyManagementScreen(): JSX.Element | null {
   const { t } = useTranslation('common');
@@ -72,8 +72,13 @@ export function PropertyManagementScreen(): JSX.Element | null {
     discardChange,
   } = useEntriesStore();
   const { objects, load: loadObjects } = useObjectsStore();
-  const { origins, load: loadOrigins, create: createOrigin, update: updateOrigin, remove: removeOrigin } =
-    useOriginsStore();
+  const {
+    origins,
+    load: loadOrigins,
+    create: createOrigin,
+    update: updateOrigin,
+    remove: removeOrigin,
+  } = useOriginsStore();
 
   const [objectType, setObjectType] = useState('contacts');
   const [view, setView] = useState<'list' | 'changes'>('list');
@@ -116,7 +121,7 @@ export function PropertyManagementScreen(): JSX.Element | null {
   });
 
   const selected = useMemo(
-    () => (selectedId ? (entries ?? []).find((e) => e.id === selectedId) ?? null : null),
+    () => (selectedId ? ((entries ?? []).find((e) => e.id === selectedId) ?? null) : null),
     [entries, selectedId],
   );
   const objectEntries = useMemo(
@@ -155,9 +160,15 @@ export function PropertyManagementScreen(): JSX.Element | null {
     // SPEC-0006 §50: errores notificados en vez de unhandled rejection.
     try {
       const result = await convertMissing(projectId, objectType);
-      notify({ message: t('properties.convert.done', { converted: result.converted }), severity: 'success' });
+      notify({
+        message: t('properties.convert.done', { converted: result.converted }),
+        severity: 'success',
+      });
       if (result.seeded > 0) {
-        notify({ message: t('properties.convert.seededWarning', { seeded: result.seeded }), severity: 'warning' });
+        notify({
+          message: t('properties.convert.seededWarning', { seeded: result.seeded }),
+          severity: 'warning',
+        });
       }
     } catch (error) {
       notify({
@@ -177,13 +188,17 @@ export function PropertyManagementScreen(): JSX.Element | null {
         notify({ message: t('properties.applyToastDone'), severity: 'success' });
       } else {
         notify({
-          message: t('properties.applyToastError', { error: useEntriesStore.getState().error ?? '' }),
+          message: t('properties.applyToastError', {
+            error: useEntriesStore.getState().error ?? '',
+          }),
           severity: 'error',
         });
       }
     } catch (error) {
       notify({
-        message: t('properties.applyToastError', { error: error instanceof Error ? error.message : '' }),
+        message: t('properties.applyToastError', {
+          error: error instanceof Error ? error.message : '',
+        }),
         severity: 'error',
       });
     } finally {
@@ -218,7 +233,12 @@ export function PropertyManagementScreen(): JSX.Element | null {
           {view === 'list' ? t('properties.title') : t('properties.changes.title')}
         </Typography>
         {view === 'list' ? (
-          <BusyButton variant="outlined" busy={syncing} startIcon={<SyncIcon />} onClick={() => sync(projectId)}>
+          <BusyButton
+            variant="outlined"
+            busy={syncing}
+            startIcon={<SyncIcon />}
+            onClick={() => sync(projectId)}
+          >
             {t('properties.syncHs')}
           </BusyButton>
         ) : (
@@ -286,10 +306,18 @@ export function PropertyManagementScreen(): JSX.Element | null {
             >
               {t('properties.addProperty')}
             </Button>
-            <Button variant="outlined" startIcon={<SettingsIcon />} onClick={() => setOriginsOpen(true)}>
+            <Button
+              variant="outlined"
+              startIcon={<SettingsIcon />}
+              onClick={() => setOriginsOpen(true)}
+            >
               {t('properties.manageOrigins', { count: (origins ?? []).length })}
             </Button>
-            <Button variant="outlined" startIcon={<FolderOutlinedIcon />} onClick={() => setGroupsOpen(true)}>
+            <Button
+              variant="outlined"
+              startIcon={<FolderOutlinedIcon />}
+              onClick={() => setGroupsOpen(true)}
+            >
               {t('properties.manageGroups')}
             </Button>
             <Button
@@ -301,6 +329,11 @@ export function PropertyManagementScreen(): JSX.Element | null {
               {t('properties.exportJson')}
             </Button>
             <DriveDocActions doc={driveDoc} updateDisabled={(entries?.length ?? 0) === 0} />
+            <PlanningMapActions
+              projectId={projectId}
+              disabled={(entries?.length ?? 0) === 0}
+              onApplied={() => void load(projectId)}
+            />
             <Button
               variant="text"
               startIcon={<PendingActionsIcon />}
@@ -309,7 +342,11 @@ export function PropertyManagementScreen(): JSX.Element | null {
             >
               {t('properties.pendingChanges', { count: pendingCount })}
             </Button>
-            <Menu anchorEl={exportAnchor} open={Boolean(exportAnchor)} onClose={() => setExportAnchor(null)}>
+            <Menu
+              anchorEl={exportAnchor}
+              open={Boolean(exportAnchor)}
+              onClose={() => setExportAnchor(null)}
+            >
               {(origins ?? []).map((origin) => (
                 <MenuItem key={origin.id} onClick={() => handleExport(origin.id, origin.name)}>
                   {origin.name}
@@ -323,7 +360,12 @@ export function PropertyManagementScreen(): JSX.Element | null {
               severity="warning"
               sx={{ mb: 2 }}
               action={
-                <Button color="inherit" size="small" startIcon={<AddIcon />} onClick={handleConvertAll}>
+                <Button
+                  color="inherit"
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={handleConvertAll}
+                >
                   {t('properties.blocked.convertAll', { count: blockedCount })}
                 </Button>
               }
@@ -344,7 +386,12 @@ export function PropertyManagementScreen(): JSX.Element | null {
                 <ListItemButton
                   key={entry.id}
                   onClick={() => setSelectedId(entry.id)}
-                  sx={{ borderBottom: '1px solid', borderColor: 'divider', display: 'block', py: 1.5 }}
+                  sx={{
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    display: 'block',
+                    py: 1.5,
+                  }}
                 >
                   <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
                     <Typography sx={{ fontWeight: 600, minWidth: 200 }}>{entry.name}</Typography>
@@ -353,7 +400,11 @@ export function PropertyManagementScreen(): JSX.Element | null {
                     </Typography>
                     <StatusBadge status={entry.hubspotStatus} blocked={isBlocked(entry)} />
                     <Box sx={{ flexGrow: 1 }} />
-                    <Chip size="small" variant="outlined" label={t('properties.entry.sourceCount', { count: entry.sources.length })} />
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={t('properties.entry.sourceCount', { count: entry.sources.length })}
+                    />
                     <IconButton
                       size="small"
                       aria-label={t('properties.wizard.editTitle')}
@@ -417,7 +468,10 @@ export function PropertyManagementScreen(): JSX.Element | null {
           const result = await convertToNew(projectId, entryId);
           notify({ message: t('properties.convert.done', { converted: 1 }), severity: 'success' });
           if (result.seeded) {
-            notify({ message: t('properties.convert.seededWarning', { seeded: 1 }), severity: 'warning' });
+            notify({
+              message: t('properties.convert.seededWarning', { seeded: 1 }),
+              severity: 'warning',
+            });
           }
         }}
       />

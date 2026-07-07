@@ -295,6 +295,28 @@
       "close": "Fermer"
     },
     "exportJson": "Exporter JSON",
+    "planningMap": {
+      "generate": "Générer la carte de planification",
+      "generating": "Génération…",
+      "generateDone": "Carte de planification générée dans Drive.",
+      "import": "Importer la planification",
+      "importing": "Lecture de la carte…",
+      "noChanges": "La carte ne présente aucun changement par rapport au projet.",
+      "changelogTitle": "Changements détectés dans la carte",
+      "changelogIntro": "Vérifiez les changements avant de créer des brouillons. Rien n'est appliqué dans HubSpot.",
+      "needsActionTitle": "Champs nécessitant une action (type ambigu non résolu)",
+      "apply": "Créer des brouillons",
+      "cancel": "Annuler",
+      "applyDone": "{{applied}} brouillons créés/mis à jour.",
+      "applyBlocked": "{{blocked}} champs bloqués par un type non résolu.",
+      "error": "Impossible de terminer : {{error}}",
+      "kind": {
+        "entry-added": "Ajout",
+        "entry-removed": "Suppression",
+        "mapping-changed": "Changement de mappage",
+        "definition-changed": "Changement de type"
+      }
+    },
     "writeSheets": {
       "button": "Exporter vers Google Sheets",
       "busy": "Export…",

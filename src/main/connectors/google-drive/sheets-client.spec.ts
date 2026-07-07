@@ -5,7 +5,9 @@ function makeApis(opts: { existingFileId?: string | null; existingTitles?: strin
   const driveCreate = vi.fn(() => Promise.resolve({ id: 'new-sheet' }));
   const drive: SheetsDriveApi = {
     filesList: vi.fn(() =>
-      Promise.resolve({ files: opts.existingFileId ? [{ id: opts.existingFileId, name: 'Mapa' }] : [] }),
+      Promise.resolve({
+        files: opts.existingFileId ? [{ id: opts.existingFileId, name: 'Mapa' }] : [],
+      }),
     ),
     filesCreate: driveCreate,
   };
@@ -20,6 +22,9 @@ function makeApis(opts: { existingFileId?: string | null; existingTitles?: strin
   const valuesBatchClear = vi.fn((_args: { spreadsheetId: string; ranges: string[] }) =>
     Promise.resolve({}),
   );
+  const valuesBatchGet = vi.fn((_args: { spreadsheetId: string; ranges: string[] }) =>
+    Promise.resolve({ valueRanges: [] }),
+  );
   const sheets: SheetsRawApi = {
     get: vi.fn(() =>
       Promise.resolve({
@@ -31,8 +36,17 @@ function makeApis(opts: { existingFileId?: string | null; existingTitles?: strin
     batchUpdate,
     valuesBatchClear,
     valuesBatchUpdate,
+    valuesBatchGet,
   };
-  return { drive, sheets, driveCreate, batchUpdate, valuesBatchUpdate, valuesBatchClear };
+  return {
+    drive,
+    sheets,
+    driveCreate,
+    batchUpdate,
+    valuesBatchUpdate,
+    valuesBatchClear,
+    valuesBatchGet,
+  };
 }
 
 const tabs = [
@@ -93,7 +107,9 @@ describe('createSheetsClient', () => {
     });
 
     expect(apis.driveCreate).not.toHaveBeenCalled();
-    const requests = apis.batchUpdate.mock.calls[0]?.[0]?.requests as Array<Record<string, unknown>>;
+    const requests = apis.batchUpdate.mock.calls[0]?.[0]?.requests as Array<
+      Record<string, unknown>
+    >;
     // Añade las 2 hojas pedidas y elimina la hoja por defecto 'Sheet1'.
     expect(requests.filter((r) => 'addSheet' in r)).toHaveLength(2);
     expect(requests.filter((r) => 'deleteSheet' in r)).toHaveLength(1);
