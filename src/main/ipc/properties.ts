@@ -24,6 +24,7 @@ import type {
   OriginUpdateInput,
   ProjectScopedInput,
 } from '@shared/types/properties';
+import type { PlanningApplyInput } from '@shared/types/planning';
 import type { PropertyService } from '../property-management/service';
 import type { GoogleDriveConnector } from '../connectors/google-drive';
 import type { DriveDocs } from '../drive-docs';
@@ -95,6 +96,12 @@ export function registerPropertiesIpc(deps: PropertiesIpcDeps): void {
   );
   ipcMain.handle(IpcChannels.propertiesWritePlanningMap, (_event, input: ProjectScopedInput) =>
     driveDocs.writePlanningMap(input.projectId),
+  );
+  ipcMain.handle(IpcChannels.propertiesImportPlanningMap, (_event, input: ProjectScopedInput) =>
+    driveDocs.importPlanningMap(input.projectId),
+  );
+  ipcMain.handle(IpcChannels.propertiesApplyPlanningImport, (_event, input: PlanningApplyInput) =>
+    driveDocs.applyPlanningImport(input.projectId, input.resolutions),
   );
   ipcMain.handle(
     IpcChannels.propertiesLoadSheets,

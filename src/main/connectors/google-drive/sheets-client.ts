@@ -64,6 +64,11 @@ export interface SheetsRawApi {
     data: Array<{ range: string; values: CellValue[][] }>;
     valueInputOption?: 'RAW' | 'USER_ENTERED';
   }): Promise<unknown>;
+  // SPEC-0016 incr. 6.2b: lectura de valores para la ingest del mapa editable.
+  valuesBatchGet(args: {
+    spreadsheetId: string;
+    ranges: string[];
+  }): Promise<{ valueRanges?: Array<{ values?: CellValue[][] }> }>;
 }
 
 function quote(value: string): string {
@@ -206,7 +211,24 @@ export function createSheetsClient(drive: SheetsDriveApi, sheets: SheetsRawApi) 
     return { spreadsheetId };
   }
 
-  return { writeSpreadsheet, writePlanningWorkbook };
+  /** Lee las pestañas (titulo + filas) del documento gestionado por featureKey (SPEC-0016 ingest). */
+  async function readManagedTabs(folderId: string, featureKey: string): Promise<SheetTab[]> {
+    const spreadsheetId = await findManaged(folderId, featureKey);
+    if (!spreadsheetId) return [];
+    const meta = await sheets.get({ spreadsheetId });
+    const titles = (meta.sheets ?? [])
+      .map((sheet) => sheet.properties?.title)
+      .filter((title): title is string => Boolean(title));
+    if (titles.length === 0) return [];
+    const res = await sheets.valuesBatchGet({
+      spreadsheetId,
+      ranges: titles.map((title) => `'${quote(title)}'`),
+    });
+    const valueRanges = res.valueRanges ?? [];
+    return titles.map((title, index) => ({ title, rows: valueRanges[index]?.values ?? [] }));
+  }
+
+  return { writeSpreadsheet, writePlanningWorkbook, readManagedTabs };
 }
 
 export type SheetsClient = ReturnType<typeof createSheetsClient>;

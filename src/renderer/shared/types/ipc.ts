@@ -83,6 +83,11 @@ import type {
   WriteSheetsResult,
 } from '@shared/types/properties';
 import type {
+  PlanningApplyInput,
+  PlanningApplyResult,
+  PlanningImportResult,
+} from '@shared/types/planning';
+import type {
   CustomObjectDefinition,
   CustomObjectsSyncResult,
   ObjectApplyChangeInput,
@@ -177,6 +182,8 @@ export const IpcChannels = {
   propertiesExportJson: 'properties:export-json',
   propertiesWriteSheets: 'properties:write-sheets',
   propertiesWritePlanningMap: 'properties:write-planning-map',
+  propertiesImportPlanningMap: 'properties:import-planning-map',
+  propertiesApplyPlanningImport: 'properties:apply-planning-import',
   propertiesLoadSheets: 'properties:load-sheets',
   propertiesDriveMeta: 'properties:drive-meta',
   originsList: 'origins:list',
@@ -283,6 +290,8 @@ export interface RevOpsApi {
   propertiesExportJson(input: ExportJsonInput): Promise<OriginExport>;
   propertiesWriteSheets(input: ProjectScopedInput): Promise<WriteSheetsResult>;
   propertiesWritePlanningMap(input: ProjectScopedInput): Promise<WriteSheetsResult>;
+  propertiesImportPlanningMap(input: ProjectScopedInput): Promise<PlanningImportResult>;
+  propertiesApplyPlanningImport(input: PlanningApplyInput): Promise<PlanningApplyResult>;
   propertiesLoadSheets(input: ProjectScopedInput): Promise<LoadSheetsResult>;
   propertiesDriveMeta(input: ProjectScopedInput): Promise<DriveDocMeta>;
   originsList(input: ProjectScopedInput): Promise<DataOrigin[]>;

@@ -493,6 +493,18 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
     }
   }
 
+  /** Lee las pestañas del mapa editable (SPEC-0016 ingest). [] si no hay carpeta o documento. */
+  async function readPlanningWorkbookTabs(
+    projectId: string,
+    featureKey: string,
+  ): Promise<SheetTab[]> {
+    const config = deps.configs.get(projectId);
+    if (!config?.folderId) return [];
+    const accessToken = await getValidAccessToken(projectId);
+    const client = deps.sheetsClientFor(accessToken);
+    return client.readManagedTabs(config.folderId, featureKey);
+  }
+
   return {
     startAuth,
     listFolders,
@@ -505,6 +517,7 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
     readFile,
     writeSpreadsheet,
     writePlanningWorkbook,
+    readPlanningWorkbookTabs,
     getCredentialsStatus,
     setCredentials,
     clearCredentials,
@@ -640,6 +653,15 @@ function googleSheetsClientFor(accessToken: string): SheetsClient {
           // RAW por defecto (export); USER_ENTERED para el mapa editable (fórmulas, SPEC-0016).
           requestBody: { valueInputOption: args.valueInputOption ?? 'RAW', data: args.data },
         });
+      },
+      async valuesBatchGet(args) {
+        const res = await sheets.spreadsheets.values.batchGet({
+          spreadsheetId: args.spreadsheetId,
+          ranges: args.ranges,
+        });
+        return {
+          valueRanges: (res.data.valueRanges ?? []).map((r) => ({ values: r.values ?? undefined })),
+        };
       },
     }),
   );

@@ -18,6 +18,7 @@ import type {
   PlanningChange,
   PlanningChangelog,
   PlanningNeedsAction,
+  PlanningResolution,
   UserFriendlyFieldTypeKey,
 } from '@shared/types/planning';
 import {
@@ -224,12 +225,8 @@ export function ingestPlanning(tabs: ReadTab[], state: PlanningState): PlanningC
   return buildPlanningChangelog(parsePlanningTabs(tabs, state.origins), state);
 }
 
-/** Resolucion aportada por el usuario para un tipo user-friendly ambiguo (D6). */
-export interface PlanningResolution {
-  objectType: string;
-  entryName: string;
-  config: HubSpotFieldConfig;
-}
+// PlanningResolution vive en @shared/types/planning (fuente unica); reexport por compatibilidad.
+export type { PlanningResolution };
 
 export type DraftEntry = EntryUpsertInput['entry'];
 

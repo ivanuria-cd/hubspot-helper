@@ -19,6 +19,12 @@ import {
   PLANNING_SCHEMA_VERSION,
 } from './property-management/planning-model';
 import {
+  buildDraftEntries,
+  ingestPlanning,
+  parsePlanningTabs,
+  type PlanningResolution,
+} from './property-management/planning-import';
+import {
   PROPERTY_STATE_FEATURE_KEY,
   serializePropertyState,
 } from './property-management/drive-state';
@@ -171,6 +177,30 @@ export function createDriveDocs(deps: DriveDocsDeps) {
     });
   }
 
+  /** Ingest (SPEC-0016 §2.6): lee el mapa editable y devuelve el changelog SIN crear borradores. */
+  async function importPlanningMap(projectId: string) {
+    const tabs = await gdrive.readPlanningWorkbookTabs(projectId, PLANNING_MAP_FEATURE_KEY);
+    const entries = properties.listEntries({ projectId });
+    const origins = properties.listOrigins({ projectId });
+    return { success: true as const, changelog: ingestPlanning(tabs, { entries, origins }) };
+  }
+
+  /**
+   * Apply del ingest (SPEC-0016 §2.6): tras confirmar el changelog, crea/actualiza borradores. Los
+   * tipos ambiguos sin resolver quedan en `blocked` (no se crean). No aplica cambios en HubSpot.
+   */
+  async function applyPlanningImport(projectId: string, resolutions: PlanningResolution[]) {
+    const tabs = await gdrive.readPlanningWorkbookTabs(projectId, PLANNING_MAP_FEATURE_KEY);
+    const entries = properties.listEntries({ projectId });
+    const origins = properties.listOrigins({ projectId });
+    const parsed = parsePlanningTabs(tabs, origins);
+    const { drafts, blocked } = buildDraftEntries(parsed, { entries, origins }, resolutions);
+    for (const entry of drafts) {
+      properties.upsertEntry({ projectId, entry });
+    }
+    return { success: true as const, applied: drafts.length, blocked };
+  }
+
   const buildRefreshFeatures = (projectId: string): RefreshFeature[] => [
     {
       featureKey: PROPERTY_MAP_FEATURE_KEY,
@@ -211,6 +241,8 @@ export function createDriveDocs(deps: DriveDocsDeps) {
     managedSpreadsheetId,
     writePropertiesSheets,
     writePlanningMap,
+    importPlanningMap,
+    applyPlanningImport,
     writeCustomObjectsSheets,
     writeFormsSheets,
     buildRefreshFeatures,

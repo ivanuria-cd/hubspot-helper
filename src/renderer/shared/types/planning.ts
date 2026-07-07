@@ -74,3 +74,30 @@ export interface PlanningChangelog {
   changes: PlanningChange[];
   needsAction: PlanningNeedsAction[];
 }
+
+/** Resolucion aportada por el usuario para un tipo user-friendly ambiguo (D6). */
+export interface PlanningResolution {
+  objectType: string;
+  entryName: string;
+  config: HubSpotFieldConfig;
+}
+
+/** Resultado de la ingest (SPEC-0016 2.6): devuelve el changelog sin crear borradores. */
+export interface PlanningImportResult {
+  success: boolean;
+  changelog?: PlanningChangelog;
+  error?: string;
+}
+
+/** Resultado del apply del ingest: borradores creados/actualizados + los bloqueados por tipo. */
+export interface PlanningApplyResult {
+  success: boolean;
+  applied?: number;
+  blocked?: PlanningNeedsAction[];
+  error?: string;
+}
+
+export interface PlanningApplyInput {
+  projectId: string;
+  resolutions: PlanningResolution[];
+}

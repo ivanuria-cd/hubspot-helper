@@ -9,11 +9,15 @@ import { createElectronGoogleDriveConnector } from './connectors/google-drive';
 import { createElectronMcpService, mcpRegistry } from './mcp';
 import { createElectronPropertyService } from './property-management';
 import { registerPropertyTools } from './property-management/mcp-tools';
+import { registerPlanningTools } from './property-management/planning-mcp-tools';
 import { createElectronCustomObjectService } from './custom-objects';
 import { registerCustomObjectTools } from './custom-objects/mcp-tools';
 import { createElectronFormService } from './forms-management';
 import { registerFormTools } from './forms-management/mcp-tools';
-import { PROPERTY_STATE_SCHEMA_VERSION, type PropertyDriveState } from './property-management/drive-state';
+import {
+  PROPERTY_STATE_SCHEMA_VERSION,
+  type PropertyDriveState,
+} from './property-management/drive-state';
 import {
   CUSTOM_OBJECTS_STATE_SCHEMA_VERSION,
   type CustomObjectsDriveState,
@@ -42,9 +46,8 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   const gdrive = createElectronGoogleDriveConnector();
 
   // Proyecto activo en la sesión MCP: el último abierto, o el más reciente al arrancar.
-  let activeProjectId = projects.list().sort((a, b) =>
-    b.lastOpenedAt.localeCompare(a.lastOpenedAt),
-  )[0]?.id ?? '';
+  let activeProjectId =
+    projects.list().sort((a, b) => b.lastOpenedAt.localeCompare(a.lastOpenedAt))[0]?.id ?? '';
 
   const mcp = createElectronMcpService({
     version: app.getVersion(),
@@ -90,6 +93,9 @@ function registerIpcHandlers(): ReturnType<typeof createElectronMcpService> {
   });
 
   const driveDocs = createDriveDocs({ gdrive, properties, customObjects, forms });
+
+  // SPEC-0016 D5: tools MCP del mapa editable (necesitan Drive; registrar tras crear driveDocs).
+  registerPlanningTools(mcpRegistry, { service: properties, drive: driveDocs });
 
   registerAppSettingsIpc();
   registerProjectsIpc({
@@ -153,8 +159,8 @@ app.on('before-quit', (event) => {
     mcpStopped = true;
     app.quit();
   };
-  Promise.race([
-    mcpService.stop(),
-    new Promise<void>((resolve) => setTimeout(resolve, 3000)),
-  ]).then(finish, finish);
+  Promise.race([mcpService.stop(), new Promise<void>((resolve) => setTimeout(resolve, 3000))]).then(
+    finish,
+    finish,
+  );
 });
