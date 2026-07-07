@@ -32,6 +32,7 @@ import { createProjectRecord } from '../../shared/project-record';
 import { createDriveClient, type DriveApi, type DriveClient } from './client';
 import { retried } from './retry';
 import { createSheetsClient, type SheetsClient, type SheetTab } from './sheets-client';
+import type { PlanningWorkbook } from '../../property-management/planning-model';
 import { buildCover, type CoverInput } from './cover-template';
 import { reconcile } from './sync';
 import {
@@ -446,6 +447,52 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
     }
   }
 
+  /** Escribe el mapa de campos editable (SPEC-0016): documento propio, editable, sin proteccion. */
+  async function writePlanningWorkbook(input: {
+    projectId: string;
+    name: string;
+    featureKey: string;
+    schemaVersion: number;
+    workbook: PlanningWorkbook;
+  }): Promise<{ success: boolean; spreadsheetId?: string; error?: string }> {
+    try {
+      const config = deps.configs.get(input.projectId);
+      if (!config?.folderId) throw new Error('Proyecto sin carpeta de trabajo seleccionada');
+      const accessToken = await getValidAccessToken(input.projectId);
+      const client = deps.sheetsClientFor(accessToken);
+      const { spreadsheetId } = await client.writePlanningWorkbook({
+        folderId: config.folderId,
+        name: input.name,
+        featureKey: input.featureKey,
+        schemaVersion: input.schemaVersion,
+        workbook: input.workbook,
+      });
+      const files = [...(config.files ?? [])];
+      const existing = files.find((file) => file.featureKey === input.featureKey);
+      if (existing) {
+        existing.lastModifiedLocal = isoNow();
+        existing.syncStatus = 'pending';
+      } else {
+        files.push({
+          driveId: spreadsheetId,
+          name: input.name,
+          mimeType: 'application/vnd.google-apps.spreadsheet',
+          featureKey: input.featureKey,
+          lastModifiedDrive: '',
+          lastModifiedLocal: isoNow(),
+          syncStatus: 'pending',
+        });
+      }
+      deps.configs.set(input.projectId, { ...config, files });
+      return { success: true, spreadsheetId };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error al escribir',
+      };
+    }
+  }
+
   return {
     startAuth,
     listFolders,
@@ -457,6 +504,7 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
     writeFile,
     readFile,
     writeSpreadsheet,
+    writePlanningWorkbook,
     getCredentialsStatus,
     setCredentials,
     clearCredentials,

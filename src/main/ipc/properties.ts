@@ -93,6 +93,9 @@ export function registerPropertiesIpc(deps: PropertiesIpcDeps): void {
   ipcMain.handle(IpcChannels.propertiesWriteSheets, (_event, input: ProjectScopedInput) =>
     driveDocs.writePropertiesSheets(input.projectId),
   );
+  ipcMain.handle(IpcChannels.propertiesWritePlanningMap, (_event, input: ProjectScopedInput) =>
+    driveDocs.writePlanningMap(input.projectId),
+  );
   ipcMain.handle(
     IpcChannels.propertiesLoadSheets,
     async (_event, input: ProjectScopedInput): Promise<LoadSheetsResult> => {

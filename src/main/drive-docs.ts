@@ -14,6 +14,11 @@ import {
   SHEETS_SCHEMA_VERSION,
 } from './property-management/sheets-model';
 import {
+  buildPlanningWorkbook,
+  PLANNING_MAP_FEATURE_KEY,
+  PLANNING_SCHEMA_VERSION,
+} from './property-management/planning-model';
+import {
   PROPERTY_STATE_FEATURE_KEY,
   serializePropertyState,
 } from './property-management/drive-state';
@@ -74,7 +79,10 @@ export function createDriveDocs(deps: DriveDocsDeps) {
         content: serializePropertyState({ entries, origins }),
       });
       if (!stateWrite.success) {
-        return { success: false, error: stateWrite.error ?? 'No se pudo escribir el documento de estado en Drive.' };
+        return {
+          success: false,
+          error: stateWrite.error ?? 'No se pudo escribir el documento de estado en Drive.',
+        };
       }
       properties.markDriveWritten({ projectId });
     }
@@ -99,7 +107,10 @@ export function createDriveDocs(deps: DriveDocsDeps) {
         content: serializeCustomObjectsState({ objects }),
       });
       if (!stateWrite.success) {
-        return { success: false, error: stateWrite.error ?? 'No se pudo escribir el documento de estado en Drive.' };
+        return {
+          success: false,
+          error: stateWrite.error ?? 'No se pudo escribir el documento de estado en Drive.',
+        };
       }
       customObjects.markDriveWritten({ projectId });
     }
@@ -132,11 +143,32 @@ export function createDriveDocs(deps: DriveDocsDeps) {
         content: serializeFormsState({ forms: formsList, links }),
       });
       if (!stateWrite.success) {
-        return { success: false, error: stateWrite.error ?? 'No se pudo escribir el documento de estado en Drive.' };
+        return {
+          success: false,
+          error: stateWrite.error ?? 'No se pudo escribir el documento de estado en Drive.',
+        };
       }
       forms.markDriveWritten({ projectId });
     }
     return result;
+  }
+
+  /**
+   * Escribe el mapa de campos editable (SPEC-0016). Documento propio (PLANNING_MAP_FEATURE_KEY),
+   * editable y sin proteccion. No escribe el Doc de estado companion (se conserva vía la ruta del
+   * export; §2.7). La sustitucion del export legible se aborda en la fase de deprecacion.
+   */
+  async function writePlanningMap(projectId: string) {
+    const entries = properties.listEntries({ projectId });
+    const origins = properties.listOrigins({ projectId });
+    const workbook = buildPlanningWorkbook({ entries, origins });
+    return gdrive.writePlanningWorkbook({
+      projectId,
+      name: 'Mapa de campos (planificacion)',
+      featureKey: PLANNING_MAP_FEATURE_KEY,
+      schemaVersion: PLANNING_SCHEMA_VERSION,
+      workbook,
+    });
   }
 
   const buildRefreshFeatures = (projectId: string): RefreshFeature[] => [
@@ -145,7 +177,10 @@ export function createDriveDocs(deps: DriveDocsDeps) {
       name: 'Mapa de propiedades CRM',
       hasData: () => properties.listEntries({ projectId }).length > 0,
       isStale: () =>
-        isDriveDocStale(properties.getDriveMeta({ projectId }), managedSpreadsheetId(projectId, PROPERTY_MAP_FEATURE_KEY)),
+        isDriveDocStale(
+          properties.getDriveMeta({ projectId }),
+          managedSpreadsheetId(projectId, PROPERTY_MAP_FEATURE_KEY),
+        ),
       write: () => writePropertiesSheets(projectId),
     },
     {
@@ -153,7 +188,10 @@ export function createDriveDocs(deps: DriveDocsDeps) {
       name: 'Objetos custom',
       hasData: () => customObjects.listDefinitions({ projectId }).length > 0,
       isStale: () =>
-        isDriveDocStale(customObjects.getDriveMeta({ projectId }), managedSpreadsheetId(projectId, CUSTOM_OBJECTS_FEATURE_KEY)),
+        isDriveDocStale(
+          customObjects.getDriveMeta({ projectId }),
+          managedSpreadsheetId(projectId, CUSTOM_OBJECTS_FEATURE_KEY),
+        ),
       write: () => writeCustomObjectsSheets(projectId),
     },
     {
@@ -161,7 +199,10 @@ export function createDriveDocs(deps: DriveDocsDeps) {
       name: 'Formularios HubSpot',
       hasData: () => forms.listForms({ projectId }).length > 0,
       isStale: () =>
-        isDriveDocStale(forms.getDriveMeta({ projectId }), managedSpreadsheetId(projectId, FORMS_FEATURE_KEY)),
+        isDriveDocStale(
+          forms.getDriveMeta({ projectId }),
+          managedSpreadsheetId(projectId, FORMS_FEATURE_KEY),
+        ),
       write: () => writeFormsSheets(projectId),
     },
   ];
@@ -169,6 +210,7 @@ export function createDriveDocs(deps: DriveDocsDeps) {
   return {
     managedSpreadsheetId,
     writePropertiesSheets,
+    writePlanningMap,
     writeCustomObjectsSheets,
     writeFormsSheets,
     buildRefreshFeatures,

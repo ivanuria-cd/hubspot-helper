@@ -9,6 +9,7 @@ import { EntryValidationError } from './entry-validation';
 import { isSystemProperty } from './system-properties';
 import type { EntryUpsertInput } from '@shared/types/properties';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
+import { USER_FRIENDLY_FIELD_TYPES } from '@shared/constants/planningFieldTypes';
 
 const PROPERTY_GUIDANCE = `Una entrada del mapa apunta a una propiedad de HubSpot en uno de dos modos:
 - "existing": la propiedad YA existe en HubSpot; la entrada solo la mapea.
@@ -130,6 +131,25 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
   });
 
   registry.register({
+    name: 'planning_field_types',
+    description:
+      'Catalogo de tipos user-friendly del mapa de campos editable (SPEC-0016 D6) y su resolucion a ' +
+      'configuracion(es) de HubSpot. «ambiguous: true» = el tipo mapea a varias configs y «necesita accion» ' +
+      '(el usuario debe elegir la config concreta antes de pasar a borrador).',
+    inputSchema: { type: 'object', properties: {} },
+    featureKey: feature,
+    requiredScopes: SCOPES,
+    handler: () =>
+      Promise.resolve(
+        USER_FRIENDLY_FIELD_TYPES.map((t) => ({
+          key: t.key,
+          configs: t.configs,
+          ambiguous: t.configs.length > 1,
+        })),
+      ),
+  });
+
+  registry.register({
     name: 'properties_pending_changes',
     description:
       'Lista los cambios pendientes de aplicar en HubSpot, junto con los `blockers`: entradas en estado ' +
@@ -149,7 +169,8 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
       const blockers = entries
         .filter((e) => e.hubspotStatus === 'missing' && e.hubspotProperty.mode === 'existing')
         .map((e) => {
-          const hubspotName = e.hubspotProperty.mode === 'existing' ? e.hubspotProperty.hubspotName : '';
+          const hubspotName =
+            e.hubspotProperty.mode === 'existing' ? e.hubspotProperty.hubspotName : '';
           const system = isSystemProperty(e.objectType, hubspotName);
           return {
             entryId: e.id,
@@ -176,7 +197,9 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
     requiredScopes: SCOPES,
     handler: (input, ctx) => {
       const { originId } = (input ?? {}) as { originId?: string };
-      return Promise.resolve(service.exportJson({ projectId: ctx.projectId, originId: originId ?? '' }));
+      return Promise.resolve(
+        service.exportJson({ projectId: ctx.projectId, originId: originId ?? '' }),
+      );
     },
   });
 
@@ -198,7 +221,7 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
             name: { type: 'string', description: 'Etiqueta de la entrada.' },
             hubspotProperty: {
               type: 'object',
-              description: "Discriminado por «mode». Existente o nueva. NUNCA un string.",
+              description: 'Discriminado por «mode». Existente o nueva. NUNCA un string.',
               oneOf: [
                 {
                   required: ['mode', 'hubspotName'],
@@ -276,7 +299,9 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
       } catch (error) {
         // Error de validación → respuesta estructurada y accionable (SPEC-0006 §39.9), no excepción opaca.
         if (error instanceof EntryValidationError) {
-          return Promise.resolve({ error: { code: error.code, message: error.message, issues: error.issues } });
+          return Promise.resolve({
+            error: { code: error.code, message: error.message, issues: error.issues },
+          });
         }
         throw error;
       }
@@ -286,13 +311,19 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
   registry.register({
     name: 'entries_delete',
     description: 'Elimina una entrada del mapa por su ID.',
-    inputSchema: { type: 'object', properties: { entryId: { type: 'string' } }, required: ['entryId'] },
+    inputSchema: {
+      type: 'object',
+      properties: { entryId: { type: 'string' } },
+      required: ['entryId'],
+    },
     featureKey: feature,
     requiredScopes: WRITE_SCOPES,
     requiresGuidance: true,
     handler: (input, ctx) => {
       const { entryId } = (input ?? {}) as { entryId?: string };
-      return Promise.resolve(service.deleteEntry({ projectId: ctx.projectId, entryId: entryId ?? '' }));
+      return Promise.resolve(
+        service.deleteEntry({ projectId: ctx.projectId, entryId: entryId ?? '' }),
+      );
     },
   });
 
@@ -443,7 +474,8 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
   registry.register({
     name: 'groups_create',
     requiresGuidance: true,
-    description: 'Crea un grupo de propiedades en un objeto de HubSpot (escritura, entorno activo).',
+    description:
+      'Crea un grupo de propiedades en un objeto de HubSpot (escritura, entorno activo).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -456,7 +488,11 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
     featureKey: feature,
     requiredScopes: WRITE_SCOPES,
     handler: (input, ctx) => {
-      const { objectType, name, label } = (input ?? {}) as { objectType: string; name: string; label: string };
+      const { objectType, name, label } = (input ?? {}) as {
+        objectType: string;
+        name: string;
+        label: string;
+      };
       return service.createGroup({ projectId: ctx.projectId, objectType, name, label });
     },
   });
@@ -480,7 +516,11 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
       'Convierte una entrada de modo «existing» (que apunta a una propiedad inexistente) a modo «new» ' +
       'para poder crearla. Solo afecta a entradas en modo existing. La creación real requiere despues ' +
       'properties_sync + properties_apply_change (por entorno).',
-    inputSchema: { type: 'object', properties: { entryId: { type: 'string' } }, required: ['entryId'] },
+    inputSchema: {
+      type: 'object',
+      properties: { entryId: { type: 'string' } },
+      required: ['entryId'],
+    },
     featureKey: feature,
     requiredScopes: WRITE_SCOPES,
     requiresGuidance: true,
@@ -504,16 +544,15 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
     requiresGuidance: true,
     handler: (input, ctx) => {
       const { objectType } = (input ?? {}) as { objectType?: string };
-      return Promise.resolve(
-        service.convertMissingToNew({ projectId: ctx.projectId, objectType }),
-      );
+      return Promise.resolve(service.convertMissingToNew({ projectId: ctx.projectId, objectType }));
     },
   });
 
   registry.register({
     name: 'properties_apply_change',
     requiresGuidance: true,
-    description: 'Aplica un cambio pendiente en HubSpot en el entorno indicado (sandbox o production).',
+    description:
+      'Aplica un cambio pendiente en HubSpot en el entorno indicado (sandbox o production).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -537,12 +576,18 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
     name: 'properties_discard_change',
     requiresGuidance: true,
     description: 'Descarta un cambio pendiente del proyecto.',
-    inputSchema: { type: 'object', properties: { changeId: { type: 'string' } }, required: ['changeId'] },
+    inputSchema: {
+      type: 'object',
+      properties: { changeId: { type: 'string' } },
+      required: ['changeId'],
+    },
     featureKey: feature,
     requiredScopes: WRITE_SCOPES,
     handler: (input, ctx) => {
       const { changeId } = (input ?? {}) as { changeId?: string };
-      return Promise.resolve(service.discardChange({ projectId: ctx.projectId, changeId: changeId ?? '' }));
+      return Promise.resolve(
+        service.discardChange({ projectId: ctx.projectId, changeId: changeId ?? '' }),
+      );
     },
   });
 
@@ -553,12 +598,18 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
       'Solicita ARCHIVAR (borrado logico, recuperable) la propiedad destino de una entrada en HubSpot. ' +
       'No borra al instante: genera un cambio pendiente `delete` que aparece tras properties_sync y se ejecuta ' +
       'solo al aplicarlo por entorno con properties_apply_change (sandbox/production). Para cancelarlo, descartar el cambio.',
-    inputSchema: { type: 'object', properties: { entryId: { type: 'string' } }, required: ['entryId'] },
+    inputSchema: {
+      type: 'object',
+      properties: { entryId: { type: 'string' } },
+      required: ['entryId'],
+    },
     featureKey: feature,
     requiredScopes: WRITE_SCOPES,
     handler: (input, ctx) => {
       const { entryId } = (input ?? {}) as { entryId?: string };
-      return Promise.resolve(service.requestDelete({ projectId: ctx.projectId, entryId: entryId ?? '' }));
+      return Promise.resolve(
+        service.requestDelete({ projectId: ctx.projectId, entryId: entryId ?? '' }),
+      );
     },
   });
 
@@ -604,7 +655,8 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
     inputSchema: { type: 'object', properties: {} },
     featureKey: feature,
     requiredScopes: SCOPES,
-    handler: (_input, ctx) => Promise.resolve(service.listGroupChanges({ projectId: ctx.projectId })),
+    handler: (_input, ctx) =>
+      Promise.resolve(service.listGroupChanges({ projectId: ctx.projectId })),
   });
 
   registry.register({
@@ -636,7 +688,11 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
     name: 'properties_groups_discard_change',
     requiresGuidance: true,
     description: 'Descarta un borrado de grupo pendiente del proyecto.',
-    inputSchema: { type: 'object', properties: { changeId: { type: 'string' } }, required: ['changeId'] },
+    inputSchema: {
+      type: 'object',
+      properties: { changeId: { type: 'string' } },
+      required: ['changeId'],
+    },
     featureKey: feature,
     requiredScopes: WRITE_SCOPES,
     handler: (input, ctx) => {

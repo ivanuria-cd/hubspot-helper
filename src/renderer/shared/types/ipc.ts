@@ -176,6 +176,7 @@ export const IpcChannels = {
   propertiesDiscardChange: 'properties:discard-change',
   propertiesExportJson: 'properties:export-json',
   propertiesWriteSheets: 'properties:write-sheets',
+  propertiesWritePlanningMap: 'properties:write-planning-map',
   propertiesLoadSheets: 'properties:load-sheets',
   propertiesDriveMeta: 'properties:drive-meta',
   originsList: 'origins:list',
@@ -281,6 +282,7 @@ export interface RevOpsApi {
   propertiesDiscardChange(input: DiscardChangeInput): Promise<OperationResult>;
   propertiesExportJson(input: ExportJsonInput): Promise<OriginExport>;
   propertiesWriteSheets(input: ProjectScopedInput): Promise<WriteSheetsResult>;
+  propertiesWritePlanningMap(input: ProjectScopedInput): Promise<WriteSheetsResult>;
   propertiesLoadSheets(input: ProjectScopedInput): Promise<LoadSheetsResult>;
   propertiesDriveMeta(input: ProjectScopedInput): Promise<DriveDocMeta>;
   originsList(input: ProjectScopedInput): Promise<DataOrigin[]>;

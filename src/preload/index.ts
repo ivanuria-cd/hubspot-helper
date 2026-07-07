@@ -71,6 +71,8 @@ const api: RevOpsApi = {
     ipcRenderer.invoke(IpcChannels.propertiesDiscardChange, input),
   propertiesExportJson: (input) => ipcRenderer.invoke(IpcChannels.propertiesExportJson, input),
   propertiesWriteSheets: (input) => ipcRenderer.invoke(IpcChannels.propertiesWriteSheets, input),
+  propertiesWritePlanningMap: (input) =>
+    ipcRenderer.invoke(IpcChannels.propertiesWritePlanningMap, input),
   propertiesLoadSheets: (input) => ipcRenderer.invoke(IpcChannels.propertiesLoadSheets, input),
   propertiesDriveMeta: (input) => ipcRenderer.invoke(IpcChannels.propertiesDriveMeta, input),
   originsList: (input) => ipcRenderer.invoke(IpcChannels.originsList, input),

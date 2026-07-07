@@ -342,3 +342,17 @@ Canónico en `es` + traducciones `ca`/`eu`/`en`/`gl`/`pt`/`fr` (SPEC-0009/0014).
 - **Write-path (`sheets-client.ts`):** `writePlanningWorkbook(input)` (find/create por `featureKey`, `syncTabs`, clear, `valuesBatchUpdate` con **`USER_ENTERED`** para que las fórmulas de destino calculen, y `buildPlanningStyleRequests`). Interfaz `SheetsRawApi.valuesBatchUpdate` gana `valueInputOption?` y el wiring (`index.ts`) usa `args.valueInputOption ?? 'RAW'` (export intacto en RAW).
 - **Layering:** `planning-style.ts`/`sheets-client.ts` importan **el tipo** `PlanningWorkbook` de `property-management/planning-model` (import de solo tipo; sin regla de import que lo prohíba). Posible refactor futuro: mover los tipos a `@shared/types/planning`.
 - **Verificación:** `planning-style.spec.ts` (6 casos: oculta Listas, sin protección, limpia bandas, Custom `ONE_OF_LIST`, Field name `ONE_OF_RANGE`, cabecera de marca) **no ejecutable en sandbox**: el espejo degradó `package.json`/`tsconfig.json` con bytes nulos y Vitest ya no arranca en esta sesión. Ficheros nuevos con **0 bytes no-ASCII** (verificado). typecheck/test:unit en la máquina.
+
+### 12.6 Incremento 6 (parte 1) — Write-path IPC + MCP de lectura (2026-07-07)
+
+Implementado (mecánico, patrón de `write-sheets`; **no verificable en sandbox**, typecheck/test en la máquina):
+
+- **Conector façade** (`connectors/google-drive/index.ts`): `writePlanningWorkbook(projectId, name, featureKey, schemaVersion, workbook)` → `client.writePlanningWorkbook` (incr. 5) + registro del fichero gestionado (igual que `writeSpreadsheet`).
+- **`drive-docs.ts`**: `writePlanningMap(projectId)` construye el workbook (`buildPlanningWorkbook`) y escribe vía el conector con `PLANNING_MAP_FEATURE_KEY` (documento propio, editable; no toca el Doc de estado companion).
+- **IPC** `properties:write-planning-map`: canal en `ipc.ts` + `RevOpsApi` (→ `WriteSheetsResult`), preload y handler en `ipc/properties.ts` (→ `driveDocs.writePlanningMap`).
+- **MCP** `planning_field_types` (lectura, sin gate): devuelve el catálogo user-friendly con `configs` y `ambiguous` (D6). Registrada en `registerPropertyTools`. Test aprobado `mcp-tools.spec.ts` actualizado (lista `READ_TOOLS` + conteo 25→26; autorizado por este SPEC, SPEC-0000 §8).
+
+**Diferido a 6 (parte 2)** por requerir capacidad/decisión nuevas:
+
+- **Ingest (D3/§2.6):** leer el Sheets rellenado necesita una **capacidad de lectura de valores de Sheets** en el conector (hoy solo escribe; «Cargar desde Drive» del export lee el Doc JSON, no el Sheets). Se añadirá `readSpreadsheetTabs` (Sheets `values.batchGet`) + `drive-docs`/IPC `properties:import-planning-map` y `properties:apply-planning-import`.
+- **Tools MCP de escritura/ingest (`planning_write_map`, `planning_import_map`, `planning_apply_import`, `planning_resolve_field_type`, `origins_set_object_fields`):** requieren que las tools MCP accedan a **Drive** (hoy `registerPropertyTools` solo recibe `service`). Decisión de diseño: pasar un **orquestador con Drive** (estilo `drive-docs`) al registro de tools. Con el gate de guía (`requiresGuidance`) en las que mutan.
