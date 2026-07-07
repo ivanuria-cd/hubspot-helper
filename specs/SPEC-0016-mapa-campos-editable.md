@@ -409,7 +409,12 @@ Implementa §2.7 (corregido 2026-07-07). Verificación en la máquina:
 ### 12.14 Incremento 7b (parte 2) — Resolución de tipo inline (D6) (2026-07-07)
 
 - **`PlanningMapActions`:** en el diálogo de importación, cada fila de `needsAction` muestra un `Select` con sus `candidates` (`type / fieldType (hint)`); la elección se guarda en `picks` (índice por entrada). `handleApply` construye `resolutions: PlanningResolution[]` con las elegidas y las pasa a `properties:apply-planning-import`; las no resueltas quedan bloqueadas y se informan (`applyBlocked`). `picks` se resetea al reimportar. Sin claves i18n nuevas (placeholder «—», etiquetas técnicas de config y `aria-label` = nombre de la entrada).
-- Con esto **SPEC-0016 queda completo** salvo el cierre: test unitario de `planning-mcp-tools`, anotar DEPRECATED definitivo en SPEC-0006 §18/§19/§21.1 y decidir si se retira el canal `properties:write-sheets`.
+### 12.15 Cierre (2026-07-07)
+
+- **Test `planning-mcp-tools.spec.ts`** (nuevo): registra las 5 tools, verifica `requiresGuidance` en las que mutan, que `planning_import_map`/`planning_apply_import` delegan en el orquestador (con las `resolutions`), `planning_resolve_field_type` y `origins_set_object_fields`. Verificación en la máquina (el espejo del sandbox no arranca Vitest).
+- **Deprecación anotada como DEPRECATED (IMPLEMENTADO)** en SPEC-0006 §18/§19/§21.1/§32 y SPEC-0012 §2.3/§12/§13 (enlazadas a este SPEC).
+- **Decisión `properties:write-sheets`:** se **mantiene dormido** (no se retira). El canal/handler/preload siguen existiendo pero no hay UI que los invoque y el refresco ya no los usa; retirarlos tocaría el contrato IPC compartido sin beneficio. `buildPropertyMapTabs`/`sheets-style` de propiedades quedan sin uso efectivo.
+- **SPEC-0016 COMPLETO** (D1–D6 + UI + MCP + i18n×7 + tutorial×7 + deprecación). Pendiente solo la verificación e2e/PR/merge en la máquina del usuario.
 
 ### 12.12 Ajustes de UX (2026-07-07)
 

@@ -592,7 +592,7 @@ Dos defectos detectados al aplicar y revisar entradas de tipo enumeración:
 
 ## 18. Volcado del mapa de propiedades a Google Sheets (IMPLEMENTADO, 2026-06-15)
 
-> **DEPRECACIÓN PREVISTA — [SPEC-0016](SPEC-0016-mapa-campos-editable.md) (VALIDADO):** el export legible de propiedades descrito aquí (`buildPropertyMapTabs` / `sheets-model.ts`) se **sustituye** por el mapa de campos **editable** de SPEC-0016 (§2.7), que pasa a ser el único mapa de propiedades en Drive. Se aplicará al validar e implementar SPEC-0016. El Doc de estado companion (§21.2) se conserva.
+> **DEPRECATED — [SPEC-0016](SPEC-0016-mapa-campos-editable.md) (IMPLEMENTADO):** el export legible de propiedades descrito aquí (`buildPropertyMapTabs` / `sheets-model.ts`) se **sustituye** por el mapa de campos **editable** de SPEC-0016 (§2.7), que pasa a ser el único mapa de propiedades en Drive. Se aplicará al validar e implementar SPEC-0016. El Doc de estado companion (§21.2) se conserva.
 
 La escritura a Drive (§16.4) quedó diferida porque el conector de Drive no funcionaba; `sheets-model.ts`
 y `sheets-writer.ts` son stubs. Con el conector ya operativo (SPEC-0004 §13/§14), se implementa el volcado.
@@ -666,7 +666,7 @@ se configure el conector.
 
 ## 19. Estilo corporativo y bloqueo del Sheets generado (IMPLEMENTADO, 2026-06-15)
 
-> **DEPRECACIÓN PREVISTA — [SPEC-0016](SPEC-0016-mapa-campos-editable.md) (VALIDADO):** el bloqueo/protección de rangos que describe esta sección **no aplica** al nuevo mapa: SPEC-0016 lo sustituye por un documento **editable, sin protección** (§2.7). El estilo de marca CD se conserva vía `brand.ts`.
+> **DEPRECATED — [SPEC-0016](SPEC-0016-mapa-campos-editable.md) (IMPLEMENTADO):** el bloqueo/protección de rangos que describe esta sección **no aplica** al nuevo mapa: SPEC-0016 lo sustituye por un documento **editable, sin protección** (§2.7). El estilo de marca CD se conserva vía `brand.ts`.
 
 Tras escribir los valores (§18), se aplica un `batchUpdate` de formato + protección. Sigue la guía de marca
 Cloud District (tokens en `skills/cloud-district-brand`), regla «Table Alternation».
@@ -783,7 +783,7 @@ común y añade la carga desde Drive.
 
 ### 21.1 Cambios respecto a §18
 
-> **DEPRECACIÓN PREVISTA — [SPEC-0016](SPEC-0016-mapa-campos-editable.md) (VALIDADO):** la acción **«Actualizar archivo en Drive»** pasará a generar el mapa de campos **editable** (SPEC-0016 §2.7) en lugar del export protegido; conserva crear-o-actualizar, `lastWrittenAt` y el slot `PROPERTY_MAP_FEATURE_KEY`. **«Cargar desde Drive»** (§21.2, Doc de estado JSON) se conserva; la ingest del mapa editable (SPEC-0016 §2.6) es una vía adicional.
+> **DEPRECATED — [SPEC-0016](SPEC-0016-mapa-campos-editable.md) (IMPLEMENTADO):** la acción **«Actualizar archivo en Drive»** pasará a generar el mapa de campos **editable** (SPEC-0016 §2.7) en lugar del export protegido; conserva crear-o-actualizar, `lastWrittenAt` y el slot `PROPERTY_MAP_FEATURE_KEY`. **«Cargar desde Drive»** (§21.2, Doc de estado JSON) se conserva; la ingest del mapa editable (SPEC-0016 §2.6) es una vía adicional.
 
 - El botón **«Volcar a Google Sheets»** se renombra a **«Actualizar archivo en Drive»** y pasa a usar el
   componente compartido `DriveDocActions` con las claves i18n compartidas `drive.doc.*`. Se retiran las
@@ -1193,7 +1193,7 @@ Claves en `es`/`ca`/`eu`/`en`. typecheck/test en máquina.
 
 ## 32. Hoja de definición completa por objeto (SPEC-0012 §12) (IMPLEMENTADO, 2026-06-24)
 
-> **DEPRECACIÓN PREVISTA — [SPEC-0016](SPEC-0016-mapa-campos-editable.md) (VALIDADO):** el layout por objeto del Sheets de propiedades (`Campos`/`Definicion`/`Fuentes`/`Opciones`/`DefOpciones`) se **sustituye** por la estructura del skill (bloque HubSpot + bloques por origen, SPEC-0016 §2.2/§2.7). La definición completa de la propiedad destino sigue viviendo en el estado (Doc companion JSON), no en el Sheets.
+> **DEPRECATED — [SPEC-0016](SPEC-0016-mapa-campos-editable.md) (IMPLEMENTADO):** el layout por objeto del Sheets de propiedades (`Campos`/`Definicion`/`Fuentes`/`Opciones`/`DefOpciones`) se **sustituye** por la estructura del skill (bloque HubSpot + bloques por origen, SPEC-0016 §2.2/§2.7). La definición completa de la propiedad destino sigue viviendo en el estado (Doc companion JSON), no en el Sheets.
 
 ### 32.1 Diagnóstico
 
