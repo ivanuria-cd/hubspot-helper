@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { DataOrigin, PropertyEntry } from '@shared/types/properties';
-import { ingestPlanning, type ReadTab, type CellValue } from './planning-import';
+import {
+  buildDraftEntries,
+  ingestPlanning,
+  type CellValue,
+  type ParsedPlanningEntry,
+  type PlanningResolution,
+  type ReadTab,
+} from './planning-import';
 
 const origins: DataOrigin[] = [
   {
@@ -191,5 +198,87 @@ describe('ingestPlanning (SPEC-0016 2.6 / incremento 4)', () => {
     expect(log.needsAction).toHaveLength(1);
     expect(log.needsAction[0].userFriendlyType).toBe('choice');
     expect(log.needsAction[0].candidates.length).toBeGreaterThan(1);
+  });
+});
+
+describe('buildDraftEntries (SPEC-0016 2.6 apply / incremento 6 parte 2)', () => {
+  const parsedExisting: ParsedPlanningEntry = {
+    objectType: 'contacts',
+    custom: 'No',
+    name: 'Correo',
+    internalName: 'email',
+    type: 'string (text)',
+    sources: [
+      {
+        originId: 'o1',
+        originName: 'Pipedrive',
+        sourceField: 'email',
+        originType: 'Migration',
+        comments: '',
+      },
+    ],
+  };
+  const parsedNewText: ParsedPlanningEntry = {
+    objectType: 'contacts',
+    custom: 'Yes (Pending)',
+    name: 'Ciudad',
+    internalName: 'city',
+    type: 'text',
+    sources: [],
+  };
+  const parsedNewChoice: ParsedPlanningEntry = {
+    objectType: 'contacts',
+    custom: 'Yes (Pending)',
+    name: 'Segmento',
+    internalName: 'segment',
+    type: 'choice',
+    sources: [],
+  };
+
+  it('fila existente reutiliza el id de la entrada actual (update)', () => {
+    const { drafts } = buildDraftEntries([parsedExisting], { entries, origins });
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0].id).toBe('e1');
+    expect(drafts[0].hubspotProperty.mode).toBe('existing');
+  });
+
+  it('fila nueva 1:1 genera definicion (text -> string/text) sin id', () => {
+    const { drafts } = buildDraftEntries([parsedNewText], { entries, origins });
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0].id).toBeUndefined();
+    const ref = drafts[0].hubspotProperty;
+    expect(ref.mode).toBe('new');
+    if (ref.mode === 'new') {
+      expect(ref.definition.type).toBe('string');
+      expect(ref.definition.fieldType).toBe('text');
+    }
+  });
+
+  it('tipo ambiguo sin resolver -> bloqueado, sin borrador', () => {
+    const { drafts, blocked } = buildDraftEntries([parsedNewChoice], { entries, origins });
+    expect(drafts).toHaveLength(0);
+    expect(blocked).toHaveLength(1);
+    expect(blocked[0].userFriendlyType).toBe('choice');
+  });
+
+  it('tipo ambiguo resuelto por el usuario -> borrador con la config elegida', () => {
+    const resolutions: PlanningResolution[] = [
+      {
+        objectType: 'contacts',
+        entryName: 'Segmento',
+        config: { type: 'enumeration', fieldType: 'select' },
+      },
+    ];
+    const { drafts, blocked } = buildDraftEntries(
+      [parsedNewChoice],
+      { entries, origins },
+      resolutions,
+    );
+    expect(blocked).toHaveLength(0);
+    expect(drafts).toHaveLength(1);
+    const ref = drafts[0].hubspotProperty;
+    if (ref.mode === 'new') {
+      expect(ref.definition.fieldType).toBe('select');
+    }
   });
 });

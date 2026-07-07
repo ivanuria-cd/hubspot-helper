@@ -6,8 +6,15 @@
  * no importa el builder (evita acoplar el layout) ni ficheros con mirror corrupto en sandbox.
  * ASCII intencionado. Erratas reflejadas tal cual.
  */
-import type { DataOrigin, HubSpotPropertyDef, PropertyEntry } from '@shared/types/properties';
 import type {
+  DataOrigin,
+  EntryUpsertInput,
+  HubSpotPropertyDef,
+  PropertyEntry,
+  SourceFieldKind,
+} from '@shared/types/properties';
+import type {
+  HubSpotFieldConfig,
   PlanningChange,
   PlanningChangelog,
   PlanningNeedsAction,
@@ -16,6 +23,7 @@ import type {
 import {
   configsFor,
   isAmbiguous,
+  resolveUserFriendlyType,
   userFriendlyFieldType,
 } from '@shared/constants/planningFieldTypes';
 
@@ -214,4 +222,127 @@ export function buildPlanningChangelog(
 /** Ingest completo: parsea las pestanas y produce el changelog (SPEC-0016 2.6). */
 export function ingestPlanning(tabs: ReadTab[], state: PlanningState): PlanningChangelog {
   return buildPlanningChangelog(parsePlanningTabs(tabs, state.origins), state);
+}
+
+/** Resolucion aportada por el usuario para un tipo user-friendly ambiguo (D6). */
+export interface PlanningResolution {
+  objectType: string;
+  entryName: string;
+  config: HubSpotFieldConfig;
+}
+
+export type DraftEntry = EntryUpsertInput['entry'];
+
+export interface PlanningDraftsResult {
+  drafts: DraftEntry[];
+  blocked: PlanningNeedsAction[];
+}
+
+function kindForType(type: string | undefined): SourceFieldKind {
+  switch (type) {
+    case 'number':
+      return 'number';
+    case 'bool':
+      return 'boolean';
+    case 'enumeration':
+      return 'enum';
+    default:
+      return 'text';
+  }
+}
+
+/** Config de HubSpot para una fila nueva: resuelta (1:1), aportada por el usuario, o `null` si sigue ambigua. */
+function resolveRowConfig(
+  row: ParsedPlanningEntry,
+  resolutions: PlanningResolution[],
+): HubSpotFieldConfig | null {
+  if (!isUserFriendlyKey(row.type)) return null;
+  const single = resolveUserFriendlyType(row.type);
+  if (single) return single;
+  const match = resolutions.find(
+    (r) => r.objectType === row.objectType && r.entryName === (row.name || row.internalName),
+  );
+  return match ? match.config : null;
+}
+
+function draftSources(
+  row: ParsedPlanningEntry,
+  config: HubSpotFieldConfig | null,
+): DraftEntry['sources'] {
+  const kind = kindForType(config?.type);
+  // id vacio: el servicio lo asigna con `source.id || newId()` (service.upsertEntry, SPEC-0006 §41).
+  return row.sources.map((source) => ({
+    id: '',
+    originId: source.originId,
+    sourceField: source.sourceField,
+    definition: { kind },
+    ...(source.comments ? { notes: source.comments } : {}),
+  }));
+}
+
+/**
+ * Convierte las filas parseadas en borradores de PropertyEntry (SPEC-0016 2.6, paso «apply»).
+ * Las filas «Yes (Pending)» cuyo tipo user-friendly es ambiguo y no viene resuelto se devuelven en
+ * `blocked` (no se crean). Las filas existentes reutilizan el id de la entrada actual (update).
+ */
+export function buildDraftEntries(
+  parsed: ParsedPlanningEntry[],
+  state: PlanningState,
+  resolutions: PlanningResolution[] = [],
+): PlanningDraftsResult {
+  const idByKey = new Map<string, string>();
+  for (const entry of state.entries) {
+    idByKey.set(entryKey(entry.objectType, destName(entry), entry.name), entry.id);
+  }
+
+  const drafts: DraftEntry[] = [];
+  const blocked: PlanningNeedsAction[] = [];
+
+  for (const row of parsed) {
+    const id = idByKey.get(entryKey(row.objectType, row.internalName, row.name));
+    const isNew = row.custom === 'Yes (Pending)';
+    let config: HubSpotFieldConfig | null = null;
+
+    if (isNew) {
+      config = resolveRowConfig(row, resolutions);
+      if (!config) {
+        // Tipo ausente o ambiguo sin resolver: no se puede crear la propiedad. Bloqueada (D6).
+        blocked.push({
+          objectType: row.objectType,
+          entryName: row.name || row.internalName,
+          userFriendlyType: isUserFriendlyKey(row.type)
+            ? row.type
+            : ('text' as UserFriendlyFieldTypeKey),
+          candidates: isUserFriendlyKey(row.type) ? configsFor(row.type) : [],
+        });
+        continue;
+      }
+    }
+
+    const hubspotProperty: DraftEntry['hubspotProperty'] = isNew
+      ? {
+          mode: 'new',
+          definition: {
+            hubspotName: row.internalName,
+            label: row.name || row.internalName,
+            type: config!.type,
+            fieldType: config!.fieldType,
+            groupName: '',
+            ...(config!.numberDisplayHint ? { numberDisplayHint: config!.numberDisplayHint } : {}),
+            ...(config!.showCurrencySymbol ? { showCurrencySymbol: true } : {}),
+            ...(config!.textDisplayHint ? { textDisplayHint: config!.textDisplayHint } : {}),
+          },
+        }
+      : { mode: 'existing', hubspotName: row.internalName };
+
+    drafts.push({
+      ...(id ? { id } : {}),
+      objectType: row.objectType,
+      name: row.name || row.internalName,
+      hubspotProperty,
+      sources: draftSources(row, config),
+    });
+  }
+
+  return { drafts, blocked };
 }
