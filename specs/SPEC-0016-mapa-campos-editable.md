@@ -88,12 +88,16 @@ Al pasar este SPEC a IMPLEMENTADO se marcan como **DEPRECATED** (no se borran; s
 - **SPEC-0006 §18** — `buildPropertyMapTabs` / `sheets-model.ts` como export legible: sustituido por `planning-model.ts` (§4.2).
 - **SPEC-0006 §19** — estilo + bloqueo (rangos protegidos) del Sheets de propiedades: el nuevo documento es **editable, sin protección**.
 - **SPEC-0006 §32** y **SPEC-0012 §2.3 / §12 / §13** — layout por objeto del Sheets de propiedades (`Campos`/`Definicion`/`Fuentes`/`Opciones`/`DefOpciones`), separación por objeto y `numberFormat`: sustituidos por la estructura del skill (§2.2). SPEC-0012 **sigue vigente** para el Doc de estado y para los Sheets de otras features.
-- **Acción «Actualizar archivo en Drive»** (SPEC-0006 §21.1): pasa a generar el mapa editable en lugar del export protegido; conserva crear-o-actualizar y `lastWrittenAt`, y el slot `PROPERTY_MAP_FEATURE_KEY`.
+**Modelo de acciones de Drive en Propiedades (decisión 2026-07-07, corrige §21.1):**
+
+- **«Actualizar archivo en Drive» se elimina** en Propiedades. Ya no hay volcado manual del export legible: el documento visible pasa a ser el **mapa editable**, que se crea/actualiza con **«Generar mapa de planificación»** (acción propia). No se «repunta» la acción antigua; se retira.
+- **El Doc de estado companion (JSON) se genera automáticamente** («casi solo»): la app lo reescribe **best-effort** al cambiar el estado del proyecto (tras `entries_upsert`, `apply_planning_import`, convert, apply/discard, cambios de orígenes…), sin acción manual, si hay carpeta de Drive. Trigger concreto en §7c-impl (debounce + al abrir/cerrar proyecto vía el refresco de SPEC-0004 §19). Deja de depender del botón retirado.
+- **«Abrir en Drive» apunta al mapa editable** (`PLANNING_MAP_FEATURE_KEY`), no al export (que ya no se genera).
+- **«Cargar desde Drive»** se mantiene (restauración fiel del estado desde el JSON companion); la ingest del mapa editable (§2.6) es la vía para traer las decisiones del cliente como borradores.
 
 **Se conserva (no se deprecia):**
 
-- **Doc de estado companion** (JSON, `PROPERTY_STATE_FEATURE_KEY`, SPEC-0006 §21.2 / SPEC-0004 §15.5): round-trip fiel de estado, invisible al cliente. «Cargar desde Drive» mantiene la restauración fiel desde el JSON; la ingest del mapa editable (§2.6) es una vía **adicional** (cliente rellena → changelog → borradores), no lo sustituye.
-- **Decisión a validar:** si se prefiere retirar también el Doc de estado companion y que la única carga sea la ingest del mapa editable, indicarlo (se perdería el round-trip 100 % fiel; la ingest es *lossy* y va a borradores por diseño).
+- **Doc de estado companion** (JSON, `PROPERTY_STATE_FEATURE_KEY`): sigue siendo el round-trip fiel del estado (ahora escrito automáticamente, ver arriba).
 
 ---
 
@@ -386,4 +390,14 @@ Implementado (cableado; **verificación en la máquina**):
 ### 12.10 Incremento 7c (tutorial) — Documentación de usuario (2026-07-07)
 
 - **Tutorial** `doc/tutoriales/propiedades/crear-mapa-planificacion.md` en los **7 idiomas** (`es` canónico + `en`/`ca`/`eu`/`gl`/`pt`/`fr`): generar el mapa, rellenarlo con el cliente y reimportarlo (alerta + changelog → borradores). Paridad de slug verificada (7/7 presentes); `check:tutoriales` en la máquina (el espejo del sandbox corrompe `package.json` y no deja correr npm aquí).
-- **Pendiente 7b + 7c-deprecación:** resolución de tipo «necesita acción» inline en el diálogo + modal de catálogo de campos por origen (D2); y la **deprecación efectiva** del export legible (§2.7): retirar `buildPropertyMapTabs`/protección de propiedades y repuntar la acción «Actualizar archivo en Drive» al mapa editable. Es un cambio destructivo (retira el export actual); recomendado hacerlo tras confirmar el mapa editable funcionando en la app.
+- **Pendiente 7b:** resolución de tipo «necesita acción» inline en el diálogo + modal de catálogo de campos por origen (D2) en `OriginsModal`.
+
+### 12.11 Incremento 7c (deprecación efectiva del export en Propiedades) (2026-07-07)
+
+Implementa §2.7 (corregido 2026-07-07). Verificación en la máquina:
+
+- **«Actualizar archivo en Drive» oculto en Propiedades:** `DriveDocActions` gana un prop `hideUpdate` (aditivo; objetos/forms no lo pasan y siguen igual); la pantalla lo activa. El volcado manual del export legible desaparece de la UI.
+- **«Abrir en Drive» → mapa editable:** el handler `properties:drive-meta` devuelve ahora `fileId = managedSpreadsheetId(PLANNING_MAP_FEATURE_KEY)` (antes el export). El botón abre la planificación.
+- **Estado JSON «casi solo»:** nuevo `drive-docs.writePropertyState(projectId)` escribe **solo** el Doc de estado companion (best-effort). El **refresco al abrir** (SPEC-0004 §19) se repunta a este helper (antes `writePropertiesSheets`): como las mutaciones marcan `lastChangedAt`, el estado se persiste automáticamente al abrir el proyecto si está desactualizado, sin botón. Además, `applyPlanningImport` llama a `writePropertyState` tras crear borradores.
+- **Export legible dormido:** `writePropertiesSheets` (Sheets bonito + estado) ya no se invoca desde UI ni desde el refresco; queda accesible solo por el canal `properties:write-sheets` (dormido). El pretty Sheets deja de generarse. `buildPropertyMapTabs`/`sheets-style` de propiedades quedan sin uso efectivo (deprecados, §2.7).
+- **Pendiente:** anotar DEPRECATED definitivo en SPEC-0006 §18/§19/§21.1 (ya enlazados a SPEC-0016) y decidir si se retira del todo `properties:write-sheets`.

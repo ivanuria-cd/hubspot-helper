@@ -198,20 +198,39 @@ export function createDriveDocs(deps: DriveDocsDeps) {
     for (const entry of drafts) {
       properties.upsertEntry({ projectId, entry });
     }
+    await writePropertyState(projectId);
     return { success: true as const, applied: drafts.length, blocked };
+  }
+
+  /**
+   * Escribe SOLO el Doc de estado companion (JSON) de propiedades (SPEC-0016 §2.7): el mapa editable
+   * sustituye al export legible, así que el estado se persiste «casi solo» (best-effort, sin acción
+   * manual) — lo dispara el refresco al abrir (las mutaciones marcan `lastChangedAt`) y la ingest.
+   */
+  async function writePropertyState(projectId: string) {
+    const entries = properties.listEntries({ projectId });
+    const origins = properties.listOrigins({ projectId });
+    const result = await gdrive.writeFile({
+      projectId,
+      featureKey: PROPERTY_STATE_FEATURE_KEY,
+      content: serializePropertyState({ entries, origins }),
+    });
+    if (result.success) properties.markDriveWritten({ projectId });
+    return result;
   }
 
   const buildRefreshFeatures = (projectId: string): RefreshFeature[] => [
     {
-      featureKey: PROPERTY_MAP_FEATURE_KEY,
-      name: 'Mapa de propiedades CRM',
+      // SPEC-0016 §2.7: el export legible se retira; el refresco auto-persiste el Doc de estado JSON.
+      featureKey: PROPERTY_STATE_FEATURE_KEY,
+      name: 'Estado del mapa de propiedades',
       hasData: () => properties.listEntries({ projectId }).length > 0,
       isStale: () =>
         isDriveDocStale(
           properties.getDriveMeta({ projectId }),
-          managedSpreadsheetId(projectId, PROPERTY_MAP_FEATURE_KEY),
+          managedSpreadsheetId(projectId, PROPERTY_STATE_FEATURE_KEY),
         ),
-      write: () => writePropertiesSheets(projectId),
+      write: () => writePropertyState(projectId),
     },
     {
       featureKey: CUSTOM_OBJECTS_FEATURE_KEY,

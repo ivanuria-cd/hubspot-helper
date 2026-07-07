@@ -28,7 +28,7 @@ import type { PlanningApplyInput } from '@shared/types/planning';
 import type { PropertyService } from '../property-management/service';
 import type { GoogleDriveConnector } from '../connectors/google-drive';
 import type { DriveDocs } from '../drive-docs';
-import { PROPERTY_MAP_FEATURE_KEY } from '../property-management/sheets-model';
+import { PLANNING_MAP_FEATURE_KEY } from '../property-management/planning-model';
 import { PROPERTY_STATE_FEATURE_KEY, parsePropertyState } from '../property-management/drive-state';
 
 export interface PropertiesIpcDeps {
@@ -127,7 +127,7 @@ export function registerPropertiesIpc(deps: PropertiesIpcDeps): void {
   );
   ipcMain.handle(IpcChannels.propertiesDriveMeta, (_event, input: ProjectScopedInput) => ({
     ...properties.getDriveMeta(input),
-    fileId: driveDocs.managedSpreadsheetId(input.projectId, PROPERTY_MAP_FEATURE_KEY),
+    fileId: driveDocs.managedSpreadsheetId(input.projectId, PLANNING_MAP_FEATURE_KEY),
     configured: Boolean(gdrive.getStatus(input.projectId)?.folderId),
   }));
   ipcMain.handle(IpcChannels.originsList, (_event, input: ProjectScopedInput) =>

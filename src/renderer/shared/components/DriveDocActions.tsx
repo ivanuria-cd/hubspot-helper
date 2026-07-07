@@ -25,12 +25,15 @@ interface DriveDocActionsProps {
   doc: DriveDocController;
   updateDisabled?: boolean;
   loadDisabled?: boolean;
+  /** Oculta «Actualizar archivo en Drive» (SPEC-0016 §2.7: en Propiedades el estado se escribe solo). */
+  hideUpdate?: boolean;
 }
 
 export function DriveDocActions({
   doc,
   updateDisabled = false,
   loadDisabled = false,
+  hideUpdate = false,
 }: DriveDocActionsProps): JSX.Element {
   const { t } = useTranslation();
   const [confirmLoad, setConfirmLoad] = useState(false);
@@ -43,14 +46,16 @@ export function DriveDocActions({
   return (
     <Stack spacing={1}>
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-        <Button
-          variant="outlined"
-          startIcon={<CloudUploadIcon />}
-          disabled={updateDisabled || doc.updating}
-          onClick={() => void doc.update()}
-        >
-          {doc.updating ? t('drive.doc.updating') : t('drive.doc.update')}
-        </Button>
+        {hideUpdate ? null : (
+          <Button
+            variant="outlined"
+            startIcon={<CloudUploadIcon />}
+            disabled={updateDisabled || doc.updating}
+            onClick={() => void doc.update()}
+          >
+            {doc.updating ? t('drive.doc.updating') : t('drive.doc.update')}
+          </Button>
+        )}
         <Button
           variant="text"
           startIcon={<FileDownloadOutlinedIcon />}
