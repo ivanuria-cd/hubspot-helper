@@ -68,9 +68,7 @@ test('flujo de formularios: estado vacío, cambio pendiente y descarte', async (
   await window.getByRole('button', { name: 'Formularios' }).click();
   await expect(window.getByText('CRM / Formularios')).toBeVisible();
   await expect(window.getByRole('status')).toBeVisible();
-  await expect(
-    window.getByRole('button', { name: /Cambios pendientes \(0\)/ }),
-  ).toBeDisabled();
+  await expect(window.getByRole('button', { name: /Cambios pendientes \(0\)/ })).toBeDisabled();
   await expect(window.getByRole('button', { name: 'Sincronizar HubSpot' })).toBeVisible();
 
   // Crear un cambio pendiente local (origen + entrada + formulario).
@@ -79,9 +77,13 @@ test('flujo de formularios: estado vacío, cambio pendiente y descarte', async (
   await window.getByRole('button', { name: 'Formulario', exact: true }).click();
   const wizard = window.getByRole('dialog');
   // Rol textbox explícito: el botón del FieldTooltip comparte prefijo de aria-label con el campo.
-  await wizard.getByRole('textbox', { name: 'Nombre del formulario', exact: true }).fill('Alta newsletter');
+  await wizard
+    .getByRole('textbox', { name: 'Nombre del formulario', exact: true })
+    .fill('Alta newsletter');
   await wizard.getByRole('checkbox', { name: 'CSV Newsletter' }).check();
-  await expect(wizard.getByRole('checkbox', { name: 'newsletter_email' })).toBeChecked();
+  await expect(
+    wizard.getByRole('checkbox', { name: 'newsletter_email', exact: true }),
+  ).toBeChecked();
   await wizard.getByRole('button', { name: 'Crear', exact: true }).click();
 
   // Vista de cambios pendientes y vuelta a la lista.

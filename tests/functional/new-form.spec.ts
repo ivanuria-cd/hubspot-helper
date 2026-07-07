@@ -68,9 +68,7 @@ test('crear un formulario desde el asistente genera un cambio pendiente', async 
 
   await window.getByRole('button', { name: 'Formularios' }).click();
   await expect(window.getByText('CRM / Formularios')).toBeVisible();
-  await expect(
-    window.getByRole('button', { name: /Cambios pendientes \(0\)/ }),
-  ).toBeDisabled();
+  await expect(window.getByRole('button', { name: /Cambios pendientes \(0\)/ })).toBeDisabled();
 
   // Abrir el asistente de creación.
   await window.getByRole('button', { name: 'Formulario', exact: true }).click();
@@ -78,14 +76,16 @@ test('crear un formulario desde el asistente genera un cambio pendiente', async 
   await expect(wizard.getByText('Crear formulario')).toBeVisible();
 
   // Rol textbox explícito: el botón del FieldTooltip comparte prefijo de aria-label con el campo.
-  await wizard.getByRole('textbox', { name: 'Nombre del formulario', exact: true }).fill('Formulario Web');
+  await wizard
+    .getByRole('textbox', { name: 'Nombre del formulario', exact: true })
+    .fill('Formulario Web');
   const createButton = wizard.getByRole('button', { name: 'Crear', exact: true });
   // Sin campos seleccionados no se puede crear.
   await expect(createButton).toBeDisabled();
 
   // Al marcar el origen se preselecciona el campo de la entrada (form_email).
   await wizard.getByRole('checkbox', { name: 'CSV Web' }).check();
-  await expect(wizard.getByRole('checkbox', { name: 'form_email' })).toBeChecked();
+  await expect(wizard.getByRole('checkbox', { name: 'form_email', exact: true })).toBeChecked();
   await expect(createButton).toBeEnabled();
   await createButton.click();
 

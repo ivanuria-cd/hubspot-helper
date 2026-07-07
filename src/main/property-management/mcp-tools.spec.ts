@@ -25,7 +25,9 @@ function fakeProperties(remote: Omit<RemoteProperty, 'objectType'>[] = []): Prop
     patchProperty: vi.fn(() => Promise.resolve({ status: 200, data: {} })),
     deleteProperty: vi.fn(() => Promise.resolve({ status: 204, data: {} })),
     listGroups: vi.fn(() => Promise.resolve([])),
-    createGroup: vi.fn((_objectType: string, g: { name: string; label: string }) => Promise.resolve(g)),
+    createGroup: vi.fn((_objectType: string, g: { name: string; label: string }) =>
+      Promise.resolve(g),
+    ),
     deleteGroup: vi.fn(() => Promise.resolve({ status: 204, data: {} })),
   };
 }
@@ -83,6 +85,7 @@ const READ_TOOLS = [
   'hubspot_properties_list',
   'entries_list',
   'origins_list',
+  'planning_field_types',
   'properties_pending_changes',
   'properties_export_origin',
   'groups_list',
@@ -166,7 +169,13 @@ describe('registerPropertyTools (tools MCP de propiedades)', () => {
         name: 'Nueva',
         hubspotProperty: {
           mode: 'new',
-          definition: { hubspotName: 'np', label: 'Nueva', type: 'string', fieldType: 'text', groupName: 'g' },
+          definition: {
+            hubspotName: 'np',
+            label: 'Nueva',
+            type: 'string',
+            fieldType: 'text',
+            groupName: 'g',
+          },
         },
         sources: [],
       },

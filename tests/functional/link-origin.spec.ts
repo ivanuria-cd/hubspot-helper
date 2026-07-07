@@ -71,9 +71,13 @@ test('asociar orígenes a un formulario pendiente y editarlos antes de aplicar',
   await window.getByRole('button', { name: 'Formulario', exact: true }).click();
   const createWizard = window.getByRole('dialog');
   // Rol textbox explícito: el botón del FieldTooltip comparte prefijo de aria-label con el campo.
-  await createWizard.getByRole('textbox', { name: 'Nombre del formulario', exact: true }).fill('Formulario Web');
+  await createWizard
+    .getByRole('textbox', { name: 'Nombre del formulario', exact: true })
+    .fill('Formulario Web');
   await createWizard.getByRole('checkbox', { name: 'CSV Web' }).check();
-  await expect(createWizard.getByRole('checkbox', { name: 'web_email' })).toBeChecked();
+  await expect(
+    createWizard.getByRole('checkbox', { name: 'web_email', exact: true }),
+  ).toBeChecked();
   await createWizard.getByRole('button', { name: 'Crear', exact: true }).click();
 
   // Editar el cambio pendiente: la sección «Orígenes asociados» refleja el vínculo.
