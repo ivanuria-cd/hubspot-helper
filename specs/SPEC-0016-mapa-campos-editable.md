@@ -406,7 +406,10 @@ Implementa §2.7 (corregido 2026-07-07). Verificación en la máquina:
 
 - **`OriginsModal` / `OriginObjects`:** por cada objeto de un origen se añade un `ObjectFieldsEditor` (textarea, un campo por línea) que normaliza (trim/dedupe/sin vacíos) y persiste con el `onUpdate` existente (`origins:update`, reflejo inmediato en UI). Estos campos alimentan el desplegable «Field name» del mapa editable (antes solo aparecían los ya mapeados).
 - **i18n:** `properties.originsModal.fields` / `fieldsPlaceholder` / `saveFields` + `fieldHelp.fields` (tooltip, SPEC-0000 §3) en los **7 locales**.
-- **Pendiente 7b (parte 2):** resolución de tipo «necesita acción» inline en el diálogo de importación (hoy `resolutions=[]` → ambiguos bloqueados).
+### 12.14 Incremento 7b (parte 2) — Resolución de tipo inline (D6) (2026-07-07)
+
+- **`PlanningMapActions`:** en el diálogo de importación, cada fila de `needsAction` muestra un `Select` con sus `candidates` (`type / fieldType (hint)`); la elección se guarda en `picks` (índice por entrada). `handleApply` construye `resolutions: PlanningResolution[]` con las elegidas y las pasa a `properties:apply-planning-import`; las no resueltas quedan bloqueadas y se informan (`applyBlocked`). `picks` se resetea al reimportar. Sin claves i18n nuevas (placeholder «—», etiquetas técnicas de config y `aria-label` = nombre de la entrada).
+- Con esto **SPEC-0016 queda completo** salvo el cierre: test unitario de `planning-mcp-tools`, anotar DEPRECATED definitivo en SPEC-0006 §18/§19/§21.1 y decidir si se retira el canal `properties:write-sheets`.
 
 ### 12.12 Ajustes de UX (2026-07-07)
 
