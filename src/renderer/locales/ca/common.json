@@ -420,12 +420,16 @@
         "name": "Nom identificatiu de l'origen de dades.",
         "type": "Naturalesa de l'origen: integració, migració, usuari o workflow.",
         "description": "Descripció de l'origen i de quines dades aporta.",
-        "objectName": "Objecte de HubSpot al qual afecta aquest origen."
+        "objectName": "Objecte de HubSpot al qual afecta aquest origen.",
+        "fields": "Camps disponibles d'aquest objecte de l'origen; alimenten el desplegable «Field name» del mapa editable."
       },
       "objects": "Objectes de l'origen",
       "addObject": "Afegir objecte",
       "objectName": "Nom de l'objecte",
-      "noObjects": "Sense objectes"
+      "noObjects": "Sense objectes",
+      "fields": "Camps de l'origen",
+      "fieldsPlaceholder": "Un camp per línia",
+      "saveFields": "Desa els camps"
     },
     "changes": {
       "title": "Propietats / Canvis pendents",

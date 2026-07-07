@@ -420,12 +420,16 @@
         "name": "Datu-jatorria identifikatzeko izena.",
         "type": "Jatorriaren izaera: integrazioa, migrazioa, erabiltzailea edo workflow.",
         "description": "Jatorriaren deskribapena eta zer datu ekartzen dituen.",
-        "objectName": "Jatorri honek eragiten dion HubSpot-eko objektua."
+        "objectName": "Jatorri honek eragiten dion HubSpot-eko objektua.",
+        "fields": "Jatorriko objektu honen eremu erabilgarriak; mapa editagarriaren «Field name» goitibehera elikatzen dute."
       },
       "objects": "Jatorriaren objektuak",
       "addObject": "Gehitu objektua",
       "objectName": "Objektuaren izena",
-      "noObjects": "Objekturik gabe"
+      "noObjects": "Objekturik gabe",
+      "fields": "Jatorriko eremuak",
+      "fieldsPlaceholder": "Eremu bat lerroko",
+      "saveFields": "Gorde eremuak"
     },
     "changes": {
       "title": "Propietateak / Aldaketa zain",

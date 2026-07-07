@@ -62,6 +62,8 @@ const ORIGIN_VALUES = ['Migration', 'Integration'];
 // deteccion de ambiguedad ("necesita accion") ocurren en la ingest (planning-import.ts).
 const TYPE_VALUES = USER_FRIENDLY_FIELD_TYPES.map((t) => t.key);
 const TYPE_COL = 3; // 0-based en el bloque HubSpot (Custom, Name, Internal name, Type)
+const UNIQUE_VALUES = ['Yes', 'No'];
+const UNIQUE_COL = 4; // 0-based: columna Unique del bloque HubSpot
 const ORIGEN_HEADER = ['Objeto', 'Campo', '-> Propiedad HubSpot destino', 'Notas'];
 const ASOCIACIONES_HEADER = ['Objeto A', 'Objeto B', 'Clave de enlace', 'Notas'];
 const SHEET_NAME_MAX = 100;
@@ -299,6 +301,13 @@ export function buildPlanningWorkbook(input: PlanningInput): PlanningWorkbook {
         firstRow: 1,
         lastRow: dataCount,
         oneOf: TYPE_VALUES,
+      });
+      validations.push({
+        tab: tabTitle,
+        column: UNIQUE_COL,
+        firstRow: 1,
+        lastRow: dataCount,
+        oneOf: UNIQUE_VALUES,
       });
       originsHere.forEach((origin, i) => {
         const fieldCol = NHS + 3 * i; // 0-based: primera col del bloque de origen

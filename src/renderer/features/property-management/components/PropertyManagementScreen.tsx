@@ -329,7 +329,7 @@ export function PropertyManagementScreen(): JSX.Element | null {
               {t('properties.exportJson')}
             </Button>
             {/* SPEC-0016 §2.7: sin «Actualizar» (el estado se escribe solo); «Abrir en Drive» abre el mapa editable. */}
-            <DriveDocActions doc={driveDoc} hideUpdate />
+            <DriveDocActions doc={driveDoc} hideUpdate hideOpen />
             <PlanningMapActions
               projectId={projectId}
               disabled={(entries?.length ?? 0) === 0}

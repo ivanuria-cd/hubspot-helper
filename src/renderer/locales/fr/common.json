@@ -425,11 +425,15 @@
       "addObject": "Ajouter un objet",
       "objectName": "Nom de l'objet",
       "noObjects": "Sans objets",
+      "fields": "Champs de l'origine",
+      "fieldsPlaceholder": "Un champ par ligne",
+      "saveFields": "Enregistrer les champs",
       "fieldHelp": {
         "name": "Nom identifiant la source de données.",
         "type": "Nature de l'origine : intégration, migration, utilisateur ou workflow.",
         "description": "Description de l'origine et des données qu'elle fournit.",
-        "objectName": "Objet de HubSpot affecté par cette origine."
+        "objectName": "Objet de HubSpot affecté par cette origine.",
+        "fields": "Champs disponibles de cet objet d'origine ; ils alimentent le menu « Field name » de la carte modifiable."
       }
     },
     "changes": {

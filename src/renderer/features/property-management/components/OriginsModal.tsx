@@ -33,6 +33,71 @@ interface OriginsModalProps {
   onDelete: (originId: string) => Promise<void>;
 }
 
+/**
+ * Editor del catálogo de campos de un objeto de origen (SPEC-0016 D2): alimenta el desplegable
+ * «Field name» del mapa editable. Un campo por línea; se normaliza (trim/dedupe/sin vacíos) y se
+ * persiste con el mismo `onUpdate` que el resto del origen.
+ */
+function ObjectFieldsEditor({
+  origin,
+  objectId,
+  fields,
+  onUpdate,
+}: {
+  origin: DataOrigin;
+  objectId: string;
+  fields: string[];
+  onUpdate: (origin: DataOrigin) => Promise<void>;
+}): JSX.Element {
+  const { t } = useTranslation('common');
+  const fieldsHelp = useFieldHelp('properties.originsModal.fieldHelp.fields');
+  const [text, setText] = useState(fields.join('\n'));
+  const [saving, setSaving] = useState(false);
+
+  const save = async (): Promise<void> => {
+    const next = [
+      ...new Set(
+        text
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean),
+      ),
+    ];
+    setSaving(true);
+    try {
+      await onUpdate({
+        ...origin,
+        objects: (origin.objects ?? []).map((object) =>
+          object.id === objectId ? { ...object, fields: next } : object,
+        ),
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+      <TextField
+        size="small"
+        multiline
+        minRows={2}
+        label={t('properties.originsModal.fields')}
+        placeholder={t('properties.originsModal.fieldsPlaceholder')}
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        inputProps={{ 'aria-describedby': fieldsHelp.describedById }}
+      />
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Button size="small" variant="outlined" onClick={() => void save()} disabled={saving}>
+          {t('properties.originsModal.saveFields')}
+        </Button>
+        {fieldsHelp.tooltip}
+      </Stack>
+    </Stack>
+  );
+}
+
 function OriginObjects({
   origin,
   onUpdate,
@@ -64,14 +129,29 @@ function OriginObjects({
       <Typography variant="caption" color="text.primary">
         {t('properties.originsModal.objects')}
       </Typography>
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 0.5, mb: 1 }}>
+      <Stack spacing={1} sx={{ mt: 0.5, mb: 1 }}>
         {objects.length === 0 ? (
           <Typography variant="body2" color="text.primary">
             {t('properties.originsModal.noObjects')}
           </Typography>
         ) : (
           objects.map((object) => (
-            <Chip key={object.id} label={object.name} onDelete={() => void removeObject(object.id)} size="small" />
+            <Box
+              key={object.id}
+              sx={{ p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}
+            >
+              <Chip
+                label={object.name}
+                onDelete={() => void removeObject(object.id)}
+                size="small"
+              />
+              <ObjectFieldsEditor
+                origin={origin}
+                objectId={object.id}
+                fields={object.fields ?? []}
+                onUpdate={onUpdate}
+              />
+            </Box>
           ))
         )}
       </Stack>
@@ -82,9 +162,17 @@ function OriginObjects({
           value={objectName}
           onChange={(event) => setObjectName(event.target.value)}
           inputProps={{ 'aria-describedby': objectNameHelp.describedById }}
-          InputProps={{ endAdornment: <InputAdornment position="end">{objectNameHelp.tooltip}</InputAdornment> }}
+          InputProps={{
+            endAdornment: <InputAdornment position="end">{objectNameHelp.tooltip}</InputAdornment>,
+          }}
         />
-        <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={addObject} disabled={!objectName.trim()}>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<AddIcon />}
+          onClick={addObject}
+          disabled={!objectName.trim()}
+        >
           {t('properties.originsModal.addObject')}
         </Button>
       </Stack>
@@ -135,7 +223,10 @@ export function OriginsModal({
         ) : (
           <Stack spacing={1.5}>
             {origins.map((origin) => (
-              <Box key={origin.id} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+              <Box
+                key={origin.id}
+                sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}
+              >
                 <Stack direction="row" alignItems="center">
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography sx={{ fontWeight: 600 }}>{origin.name}</Typography>
@@ -144,7 +235,10 @@ export function OriginsModal({
                       {origin.description ? ` — ${origin.description}` : ''}
                     </Typography>
                   </Box>
-                  <IconButton aria-label={t('properties.originsModal.delete')} onClick={() => void handleDelete(origin.id)}>
+                  <IconButton
+                    aria-label={t('properties.originsModal.delete')}
+                    onClick={() => void handleDelete(origin.id)}
+                  >
                     <DeleteIcon />
                   </IconButton>
                 </Stack>
@@ -165,7 +259,9 @@ export function OriginsModal({
             onChange={(e) => setName(e.target.value)}
             fullWidth
             inputProps={{ 'aria-describedby': nameHelp.describedById }}
-            InputProps={{ endAdornment: <InputAdornment position="end">{nameHelp.tooltip}</InputAdornment> }}
+            InputProps={{
+              endAdornment: <InputAdornment position="end">{nameHelp.tooltip}</InputAdornment>,
+            }}
           />
           <TextField
             select
@@ -173,7 +269,13 @@ export function OriginsModal({
             value={type}
             onChange={(e) => setType(e.target.value as OriginType)}
             fullWidth
-            InputProps={{ endAdornment: <InputAdornment position="end" sx={{ mr: 2 }}>{typeHelp.tooltip}</InputAdornment> }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end" sx={{ mr: 2 }}>
+                  {typeHelp.tooltip}
+                </InputAdornment>
+              ),
+            }}
           >
             {ORIGIN_TYPES.map((value) => (
               <MenuItem key={value} value={value}>
@@ -187,9 +289,18 @@ export function OriginsModal({
             onChange={(e) => setDescription(e.target.value)}
             fullWidth
             inputProps={{ 'aria-describedby': descriptionHelp.describedById }}
-            InputProps={{ endAdornment: <InputAdornment position="end">{descriptionHelp.tooltip}</InputAdornment> }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">{descriptionHelp.tooltip}</InputAdornment>
+              ),
+            }}
           />
-          <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAdd} disabled={!name.trim()}>
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={handleAdd}
+            disabled={!name.trim()}
+          >
             {t('properties.originsModal.add')}
           </Button>
         </Stack>

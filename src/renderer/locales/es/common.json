@@ -425,11 +425,15 @@
       "addObject": "Añadir objeto",
       "objectName": "Nombre del objeto",
       "noObjects": "Sin objetos",
+      "fields": "Campos del origen",
+      "fieldsPlaceholder": "Un campo por línea",
+      "saveFields": "Guardar campos",
       "fieldHelp": {
         "name": "Nombre identificativo del origen de datos.",
         "type": "Naturaleza del origen: integración, migración, usuario o workflow.",
         "description": "Descripción del origen y de qué datos aporta.",
-        "objectName": "Objeto de HubSpot al que afecta este origen."
+        "objectName": "Objeto de HubSpot al que afecta este origen.",
+        "fields": "Campos disponibles de este objeto del origen; alimentan el desplegable «Field name» del mapa editable."
       }
     },
     "changes": {

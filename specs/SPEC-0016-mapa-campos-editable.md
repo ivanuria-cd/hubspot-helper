@@ -401,3 +401,14 @@ Implementa §2.7 (corregido 2026-07-07). Verificación en la máquina:
 - **Estado JSON «casi solo»:** nuevo `drive-docs.writePropertyState(projectId)` escribe **solo** el Doc de estado companion (best-effort). El **refresco al abrir** (SPEC-0004 §19) se repunta a este helper (antes `writePropertiesSheets`): como las mutaciones marcan `lastChangedAt`, el estado se persiste automáticamente al abrir el proyecto si está desactualizado, sin botón. Además, `applyPlanningImport` llama a `writePropertyState` tras crear borradores.
 - **Export legible dormido:** `writePropertiesSheets` (Sheets bonito + estado) ya no se invoca desde UI ni desde el refresco; queda accesible solo por el canal `properties:write-sheets` (dormido). El pretty Sheets deja de generarse. `buildPropertyMapTabs`/`sheets-style` de propiedades quedan sin uso efectivo (deprecados, §2.7).
 - **Pendiente:** anotar DEPRECATED definitivo en SPEC-0006 §18/§19/§21.1 (ya enlazados a SPEC-0016) y decidir si se retira del todo `properties:write-sheets`.
+
+### 12.13 Incremento 7b (parte 1) — Catálogo de campos por origen en la UI (D2) (2026-07-07)
+
+- **`OriginsModal` / `OriginObjects`:** por cada objeto de un origen se añade un `ObjectFieldsEditor` (textarea, un campo por línea) que normaliza (trim/dedupe/sin vacíos) y persiste con el `onUpdate` existente (`origins:update`, reflejo inmediato en UI). Estos campos alimentan el desplegable «Field name» del mapa editable (antes solo aparecían los ya mapeados).
+- **i18n:** `properties.originsModal.fields` / `fieldsPlaceholder` / `saveFields` + `fieldHelp.fields` (tooltip, SPEC-0000 §3) en los **7 locales**.
+- **Pendiente 7b (parte 2):** resolución de tipo «necesita acción» inline en el diálogo de importación (hoy `resolutions=[]` → ambiguos bloqueados).
+
+### 12.12 Ajustes de UX (2026-07-07)
+
+- **«Abrir en Drive» instantáneo y en `PlanningMapActions`:** dependía de `useDriveDoc` (solo lee metadatos al montar), por eso solo aparecía tras salir y volver a entrar. Se traslada a `PlanningMapActions`: se pinta al instante tras «Generar» usando el `spreadsheetId` devuelto, y al montar consulta `properties:drive-meta` para mostrarlo si el mapa ya existe. Se oculta en `DriveDocActions` (nuevo prop `hideOpen`, activado en Propiedades) para no duplicarlo; el botón apunta al mapa editable (URL vía `driveFileUrl`, reutiliza la etiqueta i18n `drive.doc.open`).
+- **Columna `Unique` como desplegable:** el builder añade validación `oneOf ['Yes','No']` en la columna `Unique` (índice 4) de cada objeto (antes texto libre). `planning-model.spec.ts` lo comprueba.

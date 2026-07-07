@@ -425,11 +425,15 @@
       "addObject": "Engadir obxecto",
       "objectName": "Nome do obxecto",
       "noObjects": "Sen obxectos",
+      "fields": "Campos da orixe",
+      "fieldsPlaceholder": "Un campo por liña",
+      "saveFields": "Gardar campos",
       "fieldHelp": {
         "name": "Nome identificativo da orixe de datos.",
         "type": "Natureza da orixe: integración, migración, usuario ou workflow.",
         "description": "Descrición da orixe e de que datos achega.",
-        "objectName": "Obxecto de HubSpot ao que afecta esta orixe."
+        "objectName": "Obxecto de HubSpot ao que afecta esta orixe.",
+        "fields": "Campos dispoñibles deste obxecto da orixe; alimentan o despregable «Field name» do mapa editable."
       }
     },
     "changes": {

@@ -157,6 +157,8 @@ describe('buildPlanningWorkbook (SPEC-0016 incremento 3)', () => {
     expect(fieldName?.listRange).toMatch(/^Listas!\$/);
     const origin = wb.validations.find((v) => v.tab === 'contacts' && v.column === 10);
     expect(origin?.oneOf).toEqual(['Migration', 'Integration']);
+    const unique = wb.validations.find((v) => v.tab === 'contacts' && v.column === 4);
+    expect(unique?.oneOf).toEqual(['Yes', 'No']);
   });
 
   it('Listas oculta con una columna por (objeto, origen)', () => {

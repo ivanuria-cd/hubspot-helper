@@ -27,6 +27,8 @@ interface DriveDocActionsProps {
   loadDisabled?: boolean;
   /** Oculta «Actualizar archivo en Drive» (SPEC-0016 §2.7: en Propiedades el estado se escribe solo). */
   hideUpdate?: boolean;
+  /** Oculta «Abrir en Drive» (SPEC-0016: en Propiedades lo aporta PlanningMapActions, apuntando al mapa editable). */
+  hideOpen?: boolean;
 }
 
 export function DriveDocActions({
@@ -34,6 +36,7 @@ export function DriveDocActions({
   updateDisabled = false,
   loadDisabled = false,
   hideUpdate = false,
+  hideOpen = false,
 }: DriveDocActionsProps): JSX.Element {
   const { t } = useTranslation();
   const [confirmLoad, setConfirmLoad] = useState(false);
@@ -64,7 +67,7 @@ export function DriveDocActions({
         >
           {doc.loading ? t('drive.doc.loading') : t('drive.doc.load')}
         </Button>
-        {doc.fileUrl ? (
+        {!hideOpen && doc.fileUrl ? (
           <Button
             variant="text"
             startIcon={<OpenInNewIcon />}

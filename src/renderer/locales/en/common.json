@@ -420,12 +420,16 @@
         "name": "Identifying name of the data origin.",
         "type": "Nature of the origin: integration, migration, user or workflow.",
         "description": "Description of the origin and which data it provides.",
-        "objectName": "HubSpot object affected by this origin."
+        "objectName": "HubSpot object affected by this origin.",
+        "fields": "Available fields of this origin object; they feed the «Field name» dropdown of the editable map."
       },
       "objects": "Origin objects",
       "addObject": "Add object",
       "objectName": "Object name",
-      "noObjects": "No objects"
+      "noObjects": "No objects",
+      "fields": "Origin fields",
+      "fieldsPlaceholder": "One field per line",
+      "saveFields": "Save fields"
     },
     "changes": {
       "title": "Properties / Pending changes",

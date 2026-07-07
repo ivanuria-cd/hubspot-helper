@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Button,
   Dialog,
@@ -13,11 +13,15 @@ import {
   Typography,
 } from '@mui/material';
 import MoveToInboxIcon from '@mui/icons-material/MoveToInbox';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import { useTranslation } from 'react-i18next';
 import { BusyButton, useSnackbar } from '@shared/components/feedback';
+import { driveFileUrl } from '@shared/utils/driveFileUrl';
 import type { PlanningChangelog } from '@shared/types/planning';
+
+const SPREADSHEET_MIME = 'application/vnd.google-apps.spreadsheet';
 
 interface PlanningMapActionsProps {
   projectId: string;
@@ -42,14 +46,35 @@ export function PlanningMapActions({
   const [importing, setImporting] = useState(false);
   const [applying, setApplying] = useState(false);
   const [changelog, setChangelog] = useState<PlanningChangelog | null>(null);
+  const [mapUrl, setMapUrl] = useState<string | null>(null);
 
   const p = (key: string, opts?: Record<string, unknown>): string =>
     t(`properties.planningMap.${key}`, opts);
+
+  // Al montar: si el mapa ya existe en Drive, muestra «Abrir en Drive» sin esperar a regenerarlo.
+  useEffect(() => {
+    let active = true;
+    void window.api
+      .propertiesDriveMeta({ projectId })
+      .then((meta) => {
+        if (active && meta.fileId) setMapUrl(driveFileUrl(meta.fileId, SPREADSHEET_MIME));
+      })
+      .catch(() => {
+        /* metadatos no disponibles: sin botón hasta generar */
+      });
+    return () => {
+      active = false;
+    };
+  }, [projectId]);
 
   async function handleGenerate(): Promise<void> {
     setGenerating(true);
     try {
       const result = await window.api.propertiesWritePlanningMap({ projectId });
+      if (result.success && result.spreadsheetId) {
+        // «Abrir en Drive» aparece al instante, sin recargar la pantalla.
+        setMapUrl(driveFileUrl(result.spreadsheetId, SPREADSHEET_MIME));
+      }
       notify(
         result.success
           ? { message: p('generateDone'), severity: 'success' }
@@ -120,6 +145,18 @@ export function PlanningMapActions({
         >
           {p('import')}
         </BusyButton>
+        {mapUrl ? (
+          <Button
+            variant="text"
+            startIcon={<OpenInNewIcon />}
+            component="a"
+            href={mapUrl}
+            target="_blank"
+            rel="noopener"
+          >
+            {t('drive.doc.open')}
+          </Button>
+        ) : null}
       </Stack>
 
       <Dialog open={changelog !== null} onClose={() => setChangelog(null)} maxWidth="sm" fullWidth>
