@@ -1739,6 +1739,27 @@ resumen y los cambios pendientes se recalculan al vuelo al cambiar de entorno, s
 - Verificación: e2e/manual (no hay `PropertyManagementScreen.spec`); el hook `useHubspotEnvironmentChange` ya tiene
   su unit test. Requiere **rebuild de la app**.
 
+### 37.9 Reconciliar al entrar en Propiedades y refresco del Dashboard (IMPLEMENTADO, 2026-07-08)
+
+Al depender el estado del entorno activo (§37), no basta con reconciliar al cambiar de entorno (§37.8): también hay
+que hacerlo al **entrar** en la pantalla y mantener coherente el **Dashboard**.
+
+- **Propiedades al montar**: el `useEffect` de `projectId` añade `void sync(projectId)` junto a
+  `load`/`loadObjects`/`loadOrigins`. Se conserva `load` para el render inmediato (SPEC-0002 §17) y `sync` reconcilia
+  contra el entorno activo. `sync` se añade al array de dependencias.
+- **Dashboard al cambiar de entorno**: los contadores de pendientes salen del estado **persistido**
+  (`entriesList`/`objectsListSchemas`/`formsPendingChanges` en `useDashboardStatus`), que para propiedades solo
+  refleja el nuevo entorno tras un `sync`. El callback de `useHubspotEnvironmentChange` en `DashboardScreen` pasa de
+  solo `status.reload()` a **reconciliar propiedades** (`window.api.propertiesSyncHubspot`) y luego `reload()`
+  (`.catch` silencioso si HubSpot no responde; el `reload` corre igual). La etiqueta de entorno activo ya se
+  refrescaba vía `reload`.
+- **Nota de alcance (SPEC-0010)**: el Dashboard es de solo lectura y no crea lógica de negocio; disparar un
+  `propertiesSyncHubspot` es un reconcile (lee HubSpot + recalcula estado local de propiedades), no una escritura en
+  HubSpot. Se acepta para que sus contadores reflejen el entorno. Objetos y Formularios **no** se reconcilian aquí:
+  pendiente prioridad BAJA (SPEC-0007 §22 / SPEC-0008 §33).
+- Ficheros: `PropertyManagementScreen.tsx` (mount), `DashboardScreen.tsx` (env-change). Verificación e2e/manual.
+  Requiere **rebuild de la app**.
+
 ---
 
 ## 38. `create` ya existente en el entorno → reconciliar y aplicar update (BORRADOR, 2026-06-25)

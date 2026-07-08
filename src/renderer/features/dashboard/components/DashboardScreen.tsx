@@ -1,14 +1,5 @@
 import { useMemo } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Chip, Stack, Typography } from '@mui/material';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useTranslation } from 'react-i18next';
@@ -31,9 +22,20 @@ export function DashboardScreen(): JSX.Element | null {
   const projectId = activeProject?.id ?? '';
   const status = useDashboardStatus(projectId);
 
-  // Refresca al cambiar el entorno activo (SPEC-0003 §16).
+  // SPEC-0006 §37.9: al cambiar de entorno se reconcilian las propiedades (su estado depende del
+  // entorno, §37) antes de refrescar el panel, para que los contadores reflejen el nuevo entorno.
+  // Objetos/Formularios: pendiente prioridad BAJA (SPEC-0007 §22 / SPEC-0008 §33).
   useHubspotEnvironmentChange(() => {
-    void status.reload();
+    if (!projectId) {
+      void status.reload();
+      return;
+    }
+    void window.api
+      .propertiesSyncHubspot({ projectId })
+      .catch(() => undefined)
+      .finally(() => {
+        void status.reload();
+      });
   });
 
   const connectorCards = useMemo(
@@ -42,9 +44,12 @@ export function DashboardScreen(): JSX.Element | null {
         key: 'hubspot',
         title: t('dashboard.hubspot'),
         connected: status.hubspot.connected,
-        detail: status.hubspot.connected && status.hubspot.activeEnvironment
-          ? t('dashboard.envActive', { environment: t('environment.' + status.hubspot.activeEnvironment) })
-          : undefined,
+        detail:
+          status.hubspot.connected && status.hubspot.activeEnvironment
+            ? t('dashboard.envActive', {
+                environment: t('environment.' + status.hubspot.activeEnvironment),
+              })
+            : undefined,
         to: 'config/connectors/hubspot',
       },
       {
@@ -73,8 +78,18 @@ export function DashboardScreen(): JSX.Element | null {
 
   const pendingCards = useMemo(
     () => [
-      { key: 'properties', title: t('dashboard.properties'), count: status.pending.properties, to: 'crm/properties' },
-      { key: 'objects', title: t('dashboard.objects'), count: status.pending.objects, to: 'crm/objects' },
+      {
+        key: 'properties',
+        title: t('dashboard.properties'),
+        count: status.pending.properties,
+        to: 'crm/properties',
+      },
+      {
+        key: 'objects',
+        title: t('dashboard.objects'),
+        count: status.pending.objects,
+        to: 'crm/objects',
+      },
       { key: 'forms', title: t('dashboard.forms'), count: status.pending.forms, to: 'crm/forms' },
     ],
     [t, status],
@@ -106,10 +121,16 @@ export function DashboardScreen(): JSX.Element | null {
               {t('dashboard.onboardingIntro')}
             </Typography>
             <Stack spacing={1} alignItems="flex-start">
-              <Button startIcon={<ArrowForwardIcon />} onClick={() => navigate('config/connectors/hubspot')}>
+              <Button
+                startIcon={<ArrowForwardIcon />}
+                onClick={() => navigate('config/connectors/hubspot')}
+              >
                 {t('dashboard.stepHubspot')}
               </Button>
-              <Button startIcon={<ArrowForwardIcon />} onClick={() => navigate('config/connectors/google-drive')}>
+              <Button
+                startIcon={<ArrowForwardIcon />}
+                onClick={() => navigate('config/connectors/google-drive')}
+              >
                 {t('dashboard.stepDrive')}
               </Button>
               <Button startIcon={<ArrowForwardIcon />} onClick={() => navigate('config/api-mcp')}>
@@ -127,7 +148,12 @@ export function DashboardScreen(): JSX.Element | null {
             {connectorCards.map((card) => (
               <Card key={card.key} variant="outlined">
                 <CardContent>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    sx={{ mb: 1 }}
+                  >
                     <Typography variant="subtitle1" component="h3">
                       {card.title}
                     </Typography>
@@ -144,7 +170,12 @@ export function DashboardScreen(): JSX.Element | null {
                   <Typography variant="body2" color="text.primary" sx={{ minHeight: 20 }}>
                     {card.detail ?? ''}
                   </Typography>
-                  <Button size="small" startIcon={<SettingsIcon />} sx={{ mt: 1 }} onClick={() => navigate(card.to)}>
+                  <Button
+                    size="small"
+                    startIcon={<SettingsIcon />}
+                    sx={{ mt: 1 }}
+                    onClick={() => navigate(card.to)}
+                  >
                     {t('dashboard.configure')}
                   </Button>
                 </CardContent>
@@ -166,7 +197,11 @@ export function DashboardScreen(): JSX.Element | null {
                     {card.count}
                   </Typography>
                   {card.count > 0 ? (
-                    <Button size="small" startIcon={<ArrowForwardIcon />} onClick={() => navigate(card.to)}>
+                    <Button
+                      size="small"
+                      startIcon={<ArrowForwardIcon />}
+                      onClick={() => navigate(card.to)}
+                    >
                       {t('dashboard.review')}
                     </Button>
                   ) : (

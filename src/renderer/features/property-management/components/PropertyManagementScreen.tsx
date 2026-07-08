@@ -108,10 +108,13 @@ export function PropertyManagementScreen(): JSX.Element | null {
 
   useEffect(() => {
     if (!projectId) return;
+    // SPEC-0002 §17: render inmediato con el estado local; SPEC-0006 §37.9: al entrar se reconcilia
+    // con HubSpot (el estado exists/missing/divergent depende del entorno activo, §37).
     void load(projectId);
     void loadObjects(projectId);
     void loadOrigins(projectId);
-  }, [projectId, load, loadObjects, loadOrigins]);
+    void sync(projectId);
+  }, [projectId, load, loadObjects, loadOrigins, sync]);
 
   // SPEC-0006 §37.8: al cambiar el entorno activo se RECONCILIA con HubSpot (no solo recarga el estado
   // local), porque el estado exists/missing/divergent depende del entorno activo (§37).
