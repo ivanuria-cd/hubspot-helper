@@ -45,7 +45,7 @@ import { hubspotErrorMessage as sharedHubspotErrorMessage } from '../connectors/
 import type { PropertyStore } from './store';
 import type { HubSpotPropertyRef } from '@shared/types/properties';
 import type { DriveDocMeta } from '@shared/types/gdrive';
-import { reconcileEntries } from './reconcile';
+import { reconcileEntries, type ReconcileResult } from './reconcile';
 import { markApplied, cleanOptions, diffDefinition } from './pending-changes';
 import { EntryValidationError, validateEntryInput } from './entry-validation';
 import { isSystemProperty } from './system-properties';
@@ -240,31 +240,34 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     return { success: true };
   }
 
-  async function syncHubspot(input: ProjectScopedInput): Promise<PropertiesSyncResult> {
-    const state = deps.store.get(input.projectId);
-    const api = deps.propertiesApiFor(input.projectId);
+  /**
+   * Reconcilia (efímero, sin persistir) las entradas del proyecto contra un entorno. `environment`
+   * undefined ⇒ entorno activo del conector. Los listados por objeto van en paralelo (§49); un objeto
+   * inaccesible se salta (`failedObjects`) y sus entradas no se reconcilian.
+   */
+  async function reconcileAgainst(
+    projectId: string,
+    environment?: ApplyChangeInput['environment'],
+  ): Promise<ReconcileResult> {
+    const state = deps.store.get(projectId);
+    const api = deps.propertiesApiFor(projectId);
     const objectTypes = Array.from(new Set(state.entries.map((e) => e.objectType)));
-
-    // SPEC-0006 §49: los listados por objeto se lanzan en paralelo (el rate limiter del conector
-    // ya throttlea). El estado se reconcilia SIEMPRE contra producción (SPEC-0006 §37), con
-    // independencia del entorno activo; aplicar cambios sigue usando el entorno elegido.
     const remotes: RemoteProperty[] = [];
     const failedObjects = new Set<string>();
     const results = await Promise.allSettled(
-      objectTypes.map((objectType) => api.listProperties(objectType, 'production')),
+      objectTypes.map((objectType) => api.listProperties(objectType, environment)),
     );
     results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        remotes.push(...result.value);
-      } else {
-        // Un objeto inaccesible (p. ej. custom archivado/inexistente) no debe abortar el sync;
-        // se salta y sus entradas quedan intactas (no se reconcilian contra remotos vacíos).
-        failedObjects.add(objectTypes[index]);
-      }
+      if (result.status === 'fulfilled') remotes.push(...result.value);
+      else failedObjects.add(objectTypes[index]);
     });
-
     const reconcilable = state.entries.filter((e) => !failedObjects.has(e.objectType));
-    const result = reconcileEntries(reconcilable, remotes, changeFactory());
+    return reconcileEntries(reconcilable, remotes, changeFactory());
+  }
+
+  async function syncHubspot(input: ProjectScopedInput): Promise<PropertiesSyncResult> {
+    // SPEC-0006 §37 (corregido): la UI reconcilia contra el ENTORNO ACTIVO (env undefined ⇒ activo).
+    const result = await reconcileAgainst(input.projectId);
     // SPEC-0006 §47: se relee el store tras los await de red (como forms §applyChange) para no
     // pisar ediciones concurrentes (UI + MCP); solo se sustituyen las entradas reconciliadas
     // que sigan existiendo, y las creadas/borradas durante el sync se respetan.
@@ -276,6 +279,17 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     });
     markChanged(input.projectId);
     return { ...result.summary, blockers: result.blockers };
+  }
+
+  /**
+   * Vista de solo lectura reconciliada contra PRODUCCIÓN para el documento de Drive (SPEC-0006 §37.6-A).
+   * No persiste: la fuente persistida sigue siendo el entorno activo. Las entradas de objetos no accesibles
+   * en producción conservan su estado persistido.
+   */
+  async function productionView(input: ProjectScopedInput): Promise<PropertyEntry[]> {
+    const result = await reconcileAgainst(input.projectId, 'production');
+    const byId = new Map(result.entries.map((e) => [e.id, e]));
+    return deps.store.get(input.projectId).entries.map((e) => byId.get(e.id) ?? e);
   }
 
   /**
@@ -628,6 +642,7 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     upsertEntry,
     deleteEntry,
     syncHubspot,
+    productionView,
     convertEntryToNew,
     convertMissingToNew,
     applyChange,

@@ -677,7 +677,7 @@ describe('PropertyService (entradas)', () => {
     expect(applied?.appliedToSandbox).toBe(true);
   });
 
-  it("§37: syncHubspot reconcilia contra producción (listProperties con 'production')", async () => {
+  it('§37 (corregido): syncHubspot reconcilia contra el entorno activo (sin forzar production)', async () => {
     const store = createMemoryPropertyStore();
     const props = fakeProperties([]);
     const service = createPropertyService(deps(store, props, fakeObjects()));
@@ -691,7 +691,49 @@ describe('PropertyService (entradas)', () => {
       },
     });
     await service.syncHubspot({ projectId: 'p1' });
+    expect(props.listProperties).toHaveBeenCalledWith('contacts', undefined);
+  });
+
+  it('§37.6: productionView reconcilia contra producción sin persistir el estado', async () => {
+    const store = createMemoryPropertyStore();
+    const props = fakeProperties([]);
+    (props.listProperties as ReturnType<typeof vi.fn>).mockImplementation(
+      (objectType: string, environment?: string) =>
+        Promise.resolve(
+          environment === 'production'
+            ? [
+                {
+                  name: 'custom_tier',
+                  objectType,
+                  label: 'Tier',
+                  type: 'string',
+                  fieldType: 'text',
+                  groupName: 'g',
+                  options: [],
+                },
+              ]
+            : [],
+        ),
+    );
+    const service = createPropertyService(deps(store, props, fakeObjects()));
+    service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'contacts',
+        name: 'Tier',
+        hubspotProperty: { mode: 'existing', hubspotName: 'custom_tier' },
+        sources: [],
+      },
+    });
+    // Entorno activo (undefined ⇒ sin remotos): estado persistido = missing.
+    await service.syncHubspot({ projectId: 'p1' });
+    expect(service.listEntries({ projectId: 'p1' })[0].hubspotStatus).toBe('missing');
+    // Vista de producción: la propiedad existe en producción ⇒ exists.
+    const prod = await service.productionView({ projectId: 'p1' });
+    expect(prod[0].hubspotStatus).toBe('exists');
     expect(props.listProperties).toHaveBeenCalledWith('contacts', 'production');
+    // No persiste: el estado persistido sigue en missing.
+    expect(service.listEntries({ projectId: 'p1' })[0].hubspotStatus).toBe('missing');
   });
 
   it('sync expone blockers para entradas existing sin remoto (SPEC-0006 §35)', async () => {

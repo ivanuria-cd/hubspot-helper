@@ -1644,45 +1644,84 @@ sandbox trunca los ficheros editados; originales verificados sanos vía lectura 
 
 ---
 
-## 37. El estado (exists/missing/divergent) se reconcilia siempre contra Producción (BORRADOR, 2026-06-25)
+## 37. Estado de la UI vs entorno activo; documento de Drive solo Producción (CORREGIDO, 2026-07-08)
 
-### 37.1 Diagnóstico
+> Corrección de la versión previa (IMPLEMENTADO 2026-06-25), que forzaba el estado SIEMPRE contra Producción. Se
+> corrige el spec en sitio (no se crea sección aparte) por directriz del usuario: era un requisito funcional desde el
+> inicio que la conciliación siguiera el entorno activo.
 
-El estado de cada entrada (`exists`/`missing`/`divergent`), que se muestra en la lista, en el panel y en la columna
-«Estado» del Sheets, lo calcula `syncHubspot` (`service.ts`) reconciliando contra las propiedades remotas obtenidas con
-`api.listProperties(objectType)` **sin entorno** → usa el **entorno activo** (sandbox o production según el conector).
+### 37.1 Requisito corregido
 
-Requisito: el «existe o no» debe reflejar **siempre Producción**, con independencia del entorno activo. La existencia de
-una propiedad es una verdad de negocio que se evalúa contra producción; el entorno activo solo gobierna a qué entorno se
-**aplican** los cambios (`properties_apply_change`, sin cambios).
+La conciliación de la **UI** (estado `exists`/`missing`/`divergent` en lista, panel y resumen, y los cambios
+pendientes) debe **alinearse con el ENTORNO ACTIVO** (sandbox o production según el selector del conector). Estando en
+SANDBOX, una propiedad creada en sandbox debe verse `existe`, y el resumen/cambios pendientes reflejar ese entorno.
 
-### 37.2 Corrección
+Son **elementos diferentes**:
 
-- `syncHubspot`: obtener las remotas con `api.listProperties(objectType, 'production')` (forzar producción). El resto de
-  la reconciliación no cambia. `listProperties` ya acepta el parámetro de entorno.
-- `applyChange`/`applyGroupChange` mantienen el entorno explícito elegido por el usuario (sandbox/production): el estado se
-  lee de producción, pero los cambios se aplican donde el usuario decida.
-- Si el token de producción no está configurado o un objeto no es accesible en producción, el objeto se salta (mecanismo
-  `failedObjects` existente) y sus entradas quedan intactas, sin abortar el sync.
+- **Estado de la UI** — reconcilia con el **entorno activo**.
+- **Documento de Drive (Sheets/estado)** — representa **solo Producción**, con independencia del entorno activo. Es el
+  contrato/estado de producción, no una foto del sandbox.
 
-Fuera de alcance: el selector de propiedades existentes del wizard (`listHubSpotProperties`) y el catálogo de objetos
-(`listObjects`) siguen usando el entorno activo; solo se fuerza producción en el cálculo del estado.
+La versión previa confundía ambos: forzar producción daba el estado correcto para el Drive pero incorrecto para la UI.
 
-### 37.3 Tests
+### 37.2 Corrección de implementación
 
-- `service.spec.ts`: `syncHubspot` invoca `listProperties` con `'production'` (aunque el conector mock no distinga
-  entorno, se verifica el argumento).
+- `syncHubspot`: reconciliar con el entorno activo → `api.listProperties(objectType)` **sin** forzar `'production'`
+  (el conector resuelve el entorno activo cuando se omite). Revierte la línea de la versión previa.
+- `applyChange`/`applyGroupChange`: sin cambios (aplican al entorno explícito elegido por el usuario).
+- **Documento de Drive**: el builder del Sheets deja de tomar el `hubspotStatus` persistido (ahora del entorno activo)
+  y usa un estado reconciliado contra **producción** al generar/actualizar el documento. Enfoque a validar en §37.6.
+- `failedObjects`: si el entorno activo (o producción, para el Drive) no es accesible para un objeto, se salta sin
+  abortar el sync.
 
-### 37.4 Impacto / ficheros
+Fuera de alcance: el selector de propiedades del wizard (`listHubSpotProperties`) y el catálogo de objetos
+(`listObjects`) ya usan el entorno activo (sin cambios).
+
+### 37.3 Impacto en §54
+
+Con la conciliación alineada al entorno activo, el síntoma de §54.3 (una propiedad aplicada en sandbox se veía
+«falta») se resuelve en la propia vista. La preservación de identidad de cambios (§54.1/§54.3, `preserveIdentity`)
+sigue siendo necesaria para conservar `id`/`createdAt`/`appliedTo*` al cambiar de entorno y re-sincronizar. Las notas
+de §54.3/§54.7.3/§54.8 que decían «no se altera §37 / estado vs producción» quedan supeditadas a esta corrección.
+
+### 37.4 Tests
+
+- `service.spec.ts`: sustituir el caso que verificaba `listProperties(..., 'production')` por uno que verifique la
+  reconciliación contra el entorno activo (llamada sin `'production'`). Cambio de test acordado (SPEC-0000 §8) por
+  corregir comportamiento previo.
+- Nuevo caso del builder de Drive: el estado del Sheets se calcula contra producción aunque el entorno activo sea
+  sandbox.
+
+### 37.5 Impacto / ficheros
 
 - `src/main/property-management/service.ts` (`syncHubspot`) + `service.spec.ts`.
+- Builder del Sheets de Drive (`sheets-model.ts` y su orquestación de escritura/refresh).
 - Requiere **rebuild de la app/MCP**.
 
-### 37.5 Estado
+### 37.6 Decisión abierta — cómo obtiene el Drive el estado de producción (pendiente de validación)
 
-IMPLEMENTADO (2026-06-25). `service.ts` `syncHubspot`: `api.listProperties(objectType, 'production')`. `service.spec.ts`:
-caso §37 que verifica el argumento `'production'`. Requiere **rebuild de la app/MCP**. test:unit/typecheck en la máquina
-del usuario — el espejo del sandbox trunca los ficheros editados; originales verificados sanos.
+- **A (recomendado):** reconciliar producción **bajo demanda** al generar/actualizar el Sheets
+  (`listProperties(objectType, 'production')` + reconcile efímero solo para la columna «Estado»), sin persistir. La UI
+  queda como única fuente persistida (entorno activo). Menos estado; una lectura extra a producción al escribir Drive.
+- **B:** persistir **dos** estados por entrada (`hubspotStatus` activo + `productionStatus`), ambos calculados en cada
+  sync. Drive usa `productionStatus`, UI usa `hubspotStatus`. Más estado y dos lecturas por sync.
+
+### 37.7 Estado
+
+IMPLEMENTADO (2026-07-08) con el **enfoque A** de §37.6 (validado por el usuario). Cambios:
+
+- `service.ts`: helper `reconcileAgainst(projectId, environment?)` (reconcile efímero por entorno, listados en
+  paralelo §49); `syncHubspot` lo llama con `environment` undefined (entorno activo) y persiste con relectura §47;
+  nueva `productionView(projectId)` reconcilia contra `'production'` y devuelve las entradas con estado de producción
+  **sin** persistir (objetos no accesibles conservan su estado persistido).
+- `drive-docs.ts`: `writePropertiesSheets` construye las pestañas desde `productionView` (Sheets visible = Producción);
+  el documento de estado companion sigue serializando el estado persistido (entorno activo) para un round-trip fiel.
+- Tests: `service.spec.ts` §37 (verifica `listProperties('contacts', undefined)` = activo) y §37.6 (`productionView`
+  reconcilia contra producción sin persistir).
+
+Requiere **rebuild de la app/MCP**. `typecheck`/`test:unit`/`e2e` en la máquina del usuario (el espejo del sandbox
+trunca los `.spec` al transformarlos; originales verificados sanos). El binario en uso mostrará el cambio tras el
+rebuild — por eso «seguía viéndose así».
 
 ---
 

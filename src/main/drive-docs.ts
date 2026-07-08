@@ -68,7 +68,11 @@ export function createDriveDocs(deps: DriveDocsDeps) {
   async function writePropertiesSheets(projectId: string) {
     const entries = properties.listEntries({ projectId });
     const origins = properties.listOrigins({ projectId });
-    const tabs = buildPropertyMapTabs(entries, origins, new Date().toISOString());
+    // SPEC-0006 §37.6-A: el Sheets visible representa SOLO Producción (estado reconciliado bajo demanda),
+    // mientras que el documento de estado companion conserva el estado persistido (entorno activo) para
+    // que el round-trip de carga sea fiel.
+    const productionEntries = await properties.productionView({ projectId });
+    const tabs = buildPropertyMapTabs(productionEntries, origins, new Date().toISOString());
     const result = await gdrive.writeSpreadsheet({
       projectId,
       name: 'Mapa de propiedades CRM',
