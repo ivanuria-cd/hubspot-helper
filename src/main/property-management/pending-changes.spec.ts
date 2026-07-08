@@ -5,6 +5,7 @@ import {
   cleanOptions,
   isCompleted,
   markApplied,
+  preserveIdentity,
   type ChangeFactoryDeps,
 } from './pending-changes';
 import type { HubSpotPropertyDef } from '@shared/types/properties';
@@ -92,9 +93,7 @@ describe('pending-changes', () => {
   });
 
   it('§36: cleanOptions normaliza hidden a false cuando falta', () => {
-    const opts = cleanOptions([
-      { label: 'España', value: 'España', displayOrder: 0 } as never,
-    ]);
+    const opts = cleanOptions([{ label: 'España', value: 'España', displayOrder: 0 } as never]);
     expect(opts[0]?.hidden).toBe(false);
   });
 
@@ -268,5 +267,33 @@ describe('pending-changes', () => {
       calculationFormula: 'gym_monthly_fee*12.0',
     };
     expect(diffDefinition('e1', local, remote, deps)).toEqual([]);
+  });
+
+  it('§54.1: preserveIdentity conserva id/createdAt/flags del previo por operación', () => {
+    const prevDeps: ChangeFactoryDeps = {
+      newId: () => 'prev-id',
+      now: () => '2026-06-01T00:00:00.000Z',
+    };
+    const freshDeps: ChangeFactoryDeps = {
+      newId: () => 'fresh-id',
+      now: () => '2026-07-08T00:00:00.000Z',
+    };
+    const prev = markApplied(buildCreateChange('e1', 'contacts', def, prevDeps), 'sandbox');
+    const fresh = buildCreateChange('e1', 'contacts', { ...def, label: 'Tier v2' }, freshDeps);
+    const [merged] = preserveIdentity([fresh], [prev]);
+    expect(merged.id).toBe('prev-id');
+    expect(merged.createdAt).toBe('2026-06-01T00:00:00.000Z');
+    expect(merged.appliedToSandbox).toBe(true);
+    expect(merged.payload).toMatchObject({ label: 'Tier v2' });
+  });
+
+  it('§54.1: preserveIdentity conserva el id nuevo si no hay previo de esa operación', () => {
+    const freshDeps: ChangeFactoryDeps = {
+      newId: () => 'fresh-id',
+      now: () => '2026-07-08T00:00:00.000Z',
+    };
+    const [merged] = preserveIdentity([buildCreateChange('e1', 'contacts', def, freshDeps)], []);
+    expect(merged.id).toBe('fresh-id');
+    expect(merged.appliedToSandbox).toBe(false);
   });
 });

@@ -24,6 +24,7 @@ import type {
   GroupDeleteRequestInput,
   GroupDiscardChangeInput,
   GroupsListInput,
+  HsPropertyChange,
   HubSpotGroup,
   HubSpotObject,
   HubSpotPropertiesInput,
@@ -351,10 +352,12 @@ export function createPropertyService(deps: PropertyServiceDeps) {
 
   async function applyChange(input: ApplyChangeInput): Promise<ApplyChangeResult> {
     const state = deps.store.get(input.projectId);
-    const entry = state.entries.find((e) =>
-      e.pendingChanges?.some((change) => change.id === input.changeId),
-    );
-    const change = entry?.pendingChanges?.find((c) => c.id === input.changeId);
+    // Referencia por changeId o, estable frente a la regeneración de ids, por entryId+operation (§54.2).
+    const matches: (e: PropertyEntry, c: HsPropertyChange) => boolean = input.changeId
+      ? (_e, c) => c.id === input.changeId
+      : (e, c) => e.id === input.entryId && c.operation === input.operation;
+    const entry = state.entries.find((e) => e.pendingChanges?.some((c) => matches(e, c)));
+    const change = entry?.pendingChanges?.find((c) => matches(entry, c));
     if (!entry || !change) return { success: false, error: 'Cambio no encontrado' };
 
     const api = deps.propertiesApiFor(input.projectId);
@@ -409,9 +412,7 @@ export function createPropertyService(deps: PropertyServiceDeps) {
         ? {
             ...e,
             ...(clearDelete ? { pendingDelete: false } : {}),
-            pendingChanges: e.pendingChanges?.map((c) =>
-              c.id === input.changeId ? updatedChange : c,
-            ),
+            pendingChanges: e.pendingChanges?.map((c) => (c.id === change.id ? updatedChange : c)),
           }
         : e,
     );

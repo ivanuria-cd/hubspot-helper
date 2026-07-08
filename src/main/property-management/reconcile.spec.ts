@@ -35,7 +35,10 @@ function existingEntry(over: Partial<PropertyEntry> = {}): PropertyEntry {
   };
 }
 
-function newEntry(definition: HubSpotPropertyDef, over: Partial<PropertyEntry> = {}): PropertyEntry {
+function newEntry(
+  definition: HubSpotPropertyDef,
+  over: Partial<PropertyEntry> = {},
+): PropertyEntry {
   return {
     id: 'e2',
     objectType: 'contacts',
@@ -124,8 +127,20 @@ describe('reconcileEntries', () => {
       hubspotProperty: { mode: 'existing', hubspotName: 'annualrevenue' },
     });
     const remotes: RemoteProperty[] = [
-      remote({ name: 'annualrevenue', objectType: 'contacts', type: 'string', fieldType: 'text', options: [] }),
-      remote({ name: 'annualrevenue', objectType: 'companies', type: 'number', fieldType: 'number', options: [] }),
+      remote({
+        name: 'annualrevenue',
+        objectType: 'contacts',
+        type: 'string',
+        fieldType: 'text',
+        options: [],
+      }),
+      remote({
+        name: 'annualrevenue',
+        objectType: 'companies',
+        type: 'number',
+        fieldType: 'number',
+        options: [],
+      }),
     ];
     const result = reconcileEntries([contacts, companies], remotes, deps);
     expect(result.entries.every((e) => e.hubspotStatus === 'exists')).toBe(true);
@@ -162,5 +177,18 @@ describe('reconcileEntries', () => {
     const result = reconcileEntries([edited], [remote()], deps);
     expect(result.entries[0]?.hubspotStatus).toBe('divergent');
     expect(result.entries[0]?.pendingChanges?.map((c) => c.operation)).toContain('update_label');
+  });
+
+  it('§54.1/§54.3: un segundo reconcile conserva id y appliedToSandbox del create', () => {
+    const first = reconcileEntries([newEntry(newDef)], [], deps);
+    const firstChange = first.entries[0]!.pendingChanges![0];
+    const carried: PropertyEntry = {
+      ...first.entries[0]!,
+      pendingChanges: [{ ...firstChange, appliedToSandbox: true }],
+    };
+    const second = reconcileEntries([carried], [], deps);
+    const secondChange = second.entries[0]!.pendingChanges![0];
+    expect(secondChange.id).toBe(firstChange.id);
+    expect(secondChange.appliedToSandbox).toBe(true);
   });
 });

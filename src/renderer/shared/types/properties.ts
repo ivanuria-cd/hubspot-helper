@@ -260,10 +260,17 @@ export interface ConvertMissingResult {
   seeded: number;
 }
 
+/**
+ * Aplica un cambio pendiente. Se referencia por `changeId` o, de forma estable frente a la
+ * regeneración de ids (§54.1/§54.2), por `entryId + operation`. Debe llegar exactamente una de las
+ * dos formas.
+ */
 export interface ApplyChangeInput {
   projectId: string;
-  changeId: string;
   environment: HubSpotEnvironment;
+  changeId?: string;
+  entryId?: string;
+  operation?: ChangeOperation;
 }
 
 export interface ApplyChangeResult {

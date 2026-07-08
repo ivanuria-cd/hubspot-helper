@@ -9,6 +9,7 @@ import {
   buildCreateChange,
   buildDeleteChange,
   diffDefinition,
+  preserveIdentity,
   type ChangeFactoryDeps,
 } from './pending-changes';
 import { isSystemProperty } from './system-properties';
@@ -47,6 +48,8 @@ export function reconcileEntries(
   const result = entries.map((entry) => {
     const remote = remoteByKey.get(key(entry.objectType, destName(entry)));
     const ref = entry.hubspotProperty;
+    // Cambios previos de la entrada: su identidad (id/createdAt/flags) se preserva (§54.1/§54.3).
+    const prev = entry.pendingChanges ?? [];
 
     // Solicitud de archivado: si la propiedad existe en HubSpot, el único cambio es `delete`.
     if (entry.pendingDelete && remote) {
@@ -54,7 +57,10 @@ export function reconcileEntries(
       return {
         ...entry,
         hubspotStatus: 'divergent' as const,
-        pendingChanges: [buildDeleteChange(entry.id, entry.objectType, destName(entry), deps)],
+        pendingChanges: preserveIdentity(
+          [buildDeleteChange(entry.id, entry.objectType, destName(entry), deps)],
+          prev,
+        ),
       };
     }
 
@@ -65,7 +71,10 @@ export function reconcileEntries(
         return {
           ...entry,
           hubspotStatus: 'missing' as const,
-          pendingChanges: [buildCreateChange(entry.id, entry.objectType, ref.definition, deps)],
+          pendingChanges: preserveIdentity(
+            [buildCreateChange(entry.id, entry.objectType, ref.definition, deps)],
+            prev,
+          ),
         };
       }
       const changes = diffDefinition(entry.id, ref.definition, remote, deps);
@@ -74,7 +83,11 @@ export function reconcileEntries(
         return { ...entry, hubspotStatus: 'exists' as const, pendingChanges: [] };
       }
       divergent += 1;
-      return { ...entry, hubspotStatus: 'divergent' as const, pendingChanges: changes };
+      return {
+        ...entry,
+        hubspotStatus: 'divergent' as const,
+        pendingChanges: preserveIdentity(changes, prev),
+      };
     }
 
     // Propiedad existente referenciada.
@@ -100,7 +113,11 @@ export function reconcileEntries(
       const changes = diffDefinition(entry.id, ref.definition, remote, deps);
       if (changes.length > 0) {
         divergent += 1;
-        return { ...entry, hubspotStatus: 'divergent' as const, pendingChanges: changes };
+        return {
+          ...entry,
+          hubspotStatus: 'divergent' as const,
+          pendingChanges: preserveIdentity(changes, prev),
+        };
       }
     }
     updated += 1;

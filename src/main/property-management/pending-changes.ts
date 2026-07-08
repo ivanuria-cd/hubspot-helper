@@ -215,3 +215,28 @@ export function markApplied(
 export function isCompleted(change: HsPropertyChange): boolean {
   return change.appliedToProduction;
 }
+
+/**
+ * Conserva la identidad de los cambios entre reconciliaciones (SPEC-0006 §54.1/§54.3).
+ * `(entryId, operation)` es única por entrada, así que cada cambio recién construido se casa con el
+ * previo por `operation` y hereda su `id`, `createdAt` y flags aplicados; solo `payload`/`summary` se
+ * refrescan. Sin previo equivalente, el cambio nuevo conserva su `id`/`createdAt` recién generados.
+ */
+export function preserveIdentity(
+  fresh: HsPropertyChange[],
+  previous: HsPropertyChange[],
+): HsPropertyChange[] {
+  const prevByOperation = new Map(previous.map((change) => [change.operation, change]));
+  return fresh.map((change) => {
+    const prior = prevByOperation.get(change.operation);
+    return prior
+      ? {
+          ...change,
+          id: prior.id,
+          createdAt: prior.createdAt,
+          appliedToSandbox: prior.appliedToSandbox,
+          appliedToProduction: prior.appliedToProduction,
+        }
+      : change;
+  });
+}

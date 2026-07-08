@@ -16,32 +16,37 @@ Centralizar la gestión del mapa de propiedades de un proyecto RevOps: qué prop
 ## 2. Contexto y Decisiones de Diseño
 
 ### Fuente de verdad
+
 - El estado operativo del mapa de propiedades vive en el **estado local del proyecto** (`electron-store`).
 - El **Google Sheets** gestionado por SPEC-0004 es un artefacto **exportable y reimportable**, no la fuente de verdad. La escritura y la carga son acciones explícitas del usuario (ver §21 y SPEC-0004 §15). ~~La app lee de Drive al abrirse y ante sincronización manual; escribe en Drive ante cualquier cambio del usuario.~~ **Revocado por §21 (BORRADOR, 2026-06-17).**
 - HubSpot es la fuente de verdad del estado actual de las propiedades en el portal; la app reconcilia la definición del proyecto con ese estado para detectar divergencias.
 
 ### Estructura del Google Sheets (schema_version: 1)
+
 Cuatro hojas, diseño cerrado por versión (solo el usuario puede editar las columnas marcadas como editables):
 
-| Hoja | Contenido |
-|------|-----------|
-| `00_Portada` | Identidad CD, descripción del archivo, guía de uso, columnas editables vs. gestionadas, `schema_version` |
-| `01_Origenes` | Catálogo de orígenes de datos del proyecto |
-| `02_Propiedades` | Listado maestro de propiedades con su definición en HubSpot |
-| `03_Mapeo_Origenes` | Relación propiedad ↔ origen con reglas de transformación |
+| Hoja                | Contenido                                                                                                |
+| ------------------- | -------------------------------------------------------------------------------------------------------- |
+| `00_Portada`        | Identidad CD, descripción del archivo, guía de uso, columnas editables vs. gestionadas, `schema_version` |
+| `01_Origenes`       | Catálogo de orígenes de datos del proyecto                                                               |
+| `02_Propiedades`    | Listado maestro de propiedades con su definición en HubSpot                                              |
+| `03_Mapeo_Origenes` | Relación propiedad ↔ origen con reglas de transformación                                                 |
 
 ### Versión de API HubSpot utilizada
+
 - **CRM Properties API, versión por fecha `2026-03`** (la más moderna; ver §28). Base `/crm/properties/2026-03/{objectType}`.
   - Lectura: `GET /crm/properties/2026-03/{objectType}` (y `/groups`).
   - Creación/edición: `POST/PATCH /crm/properties/2026-03/{objectType}` (`/{name}` para PATCH).
 - Histórico: hasta §28 se usaba `v3` (`/crm/v3/properties/...`). Migrado a `2026-03` (ver §28).
 
 ### Cambios en HubSpot
+
 - La app **nunca aplica cambios en HubSpot de forma automática**. Todos los cambios propuestos se presentan como una lista de operaciones pendientes que el usuario debe revisar y aceptar explícitamente.
 - El usuario puede aplicar un cambio al entorno **sandbox** primero para validarlo antes de aplicarlo a **producción**.
 - Un cambio aceptado en sandbox no se marca como completado hasta que también se aplica en producción (o el usuario lo descarta para producción).
 
 ### Exportación JSON
+
 - El JSON exportado por origen es un contrato de integración para desarrolladores.
 - Se genera bajo demanda (no se guarda en Drive automáticamente).
 - El schema del JSON es versionado (`schema_version` en la raíz).
@@ -51,12 +56,13 @@ Cuatro hojas, diseño cerrado por versión (solo el usuario puede editar las col
 ## 3. Modelo de Datos
 
 ### Tipo `DataOrigin`
+
 ```typescript
 type OriginType = 'integration' | 'migration' | 'user' | 'workflow';
 
 interface DataOrigin {
-  id: string;           // uuid
-  name: string;         // ej: 'Salesforce Migration Q1'
+  id: string; // uuid
+  name: string; // ej: 'Salesforce Migration Q1'
   type: OriginType;
   description?: string;
   createdAt: string;
@@ -64,10 +70,16 @@ interface DataOrigin {
 ```
 
 ### Tipo `HubSpotProperty`
+
 ```typescript
 type HsPropertyType =
-  | 'string' | 'number' | 'date' | 'datetime'
-  | 'enumeration' | 'bool' | 'phone_number';
+  | 'string'
+  | 'number'
+  | 'date'
+  | 'datetime'
+  | 'enumeration'
+  | 'bool'
+  | 'phone_number';
 
 interface HsPropertyOption {
   label: string;
@@ -77,22 +89,23 @@ interface HsPropertyOption {
 }
 
 interface HubSpotProperty {
-  id: string;                      // uuid interno
-  hubspotName: string;             // nombre técnico en HubSpot
-  label: string;                   // etiqueta legible
-  objectType: string;              // 'contacts' | 'deals' | 'companies' | ...
+  id: string; // uuid interno
+  hubspotName: string; // nombre técnico en HubSpot
+  label: string; // etiqueta legible
+  objectType: string; // 'contacts' | 'deals' | 'companies' | ...
   type: HsPropertyType;
-  fieldType: string;               // 'text' | 'select' | 'checkbox' | ...
+  fieldType: string; // 'text' | 'select' | 'checkbox' | ...
   groupName: string;
-  isCustom: boolean;               // true = propiedad creada por el cliente
+  isCustom: boolean; // true = propiedad creada por el cliente
   description?: string;
-  options?: HsPropertyOption[];    // para enumeration
+  options?: HsPropertyOption[]; // para enumeration
   hubspotStatus: 'exists' | 'missing' | 'divergent'; // estado vs. HubSpot real
   pendingChanges?: HsPropertyChange[];
 }
 ```
 
 ### Tipo `TransformationRule`
+
 ```typescript
 interface TransformationRule {
   sourceValue: string;
@@ -101,18 +114,20 @@ interface TransformationRule {
 ```
 
 ### Tipo `PropertyOriginMapping`
+
 ```typescript
 interface PropertyOriginMapping {
   id: string;
-  propertyId: string;       // ref a HubSpotProperty.id
-  originId: string;         // ref a DataOrigin.id
-  sourceField: string;      // nombre del campo en el origen
+  propertyId: string; // ref a HubSpotProperty.id
+  originId: string; // ref a DataOrigin.id
+  sourceField: string; // nombre del campo en el origen
   transformations: TransformationRule[]; // solo si el tipo lo requiere
   notes?: string;
 }
 ```
 
 ### Tipo `HsPropertyChange` (cambio pendiente en HubSpot)
+
 ```typescript
 type ChangeOperation = 'create' | 'update_label' | 'update_options' | 'update_field_type';
 
@@ -120,7 +135,7 @@ interface HsPropertyChange {
   id: string;
   propertyId: string;
   operation: ChangeOperation;
-  payload: unknown;               // body de la llamada a la API
+  payload: unknown; // body de la llamada a la API
   appliedToSandbox: boolean;
   appliedToProduction: boolean;
   createdAt: string;
@@ -128,11 +143,12 @@ interface HsPropertyChange {
 ```
 
 ### Contrato JSON de exportación por origen
+
 ```typescript
 interface OriginExport {
   schema_version: 1;
   origin: Pick<DataOrigin, 'id' | 'name' | 'type'>;
-  exported_at: string;           // ISO 8601
+  exported_at: string; // ISO 8601
   properties: Array<{
     hubspot_name: string;
     label: string;
@@ -140,8 +156,8 @@ interface OriginExport {
     type: HsPropertyType;
     source_field: string;
     transformations: Array<{
-      sourceValue: string;  // valor tal como llega del origen
-      targetValue: string;  // valor válido en HubSpot
+      sourceValue: string; // valor tal como llega del origen
+      targetValue: string; // valor válido en HubSpot
     }>;
     notes?: string;
   }>;
@@ -153,45 +169,49 @@ interface OriginExport {
 ## 4. Estructura del Google Sheets (schema_version: 1)
 
 ### Hoja `01_Origenes`
-| Columna | Editable | Descripción |
-|---------|----------|-------------|
-| ID | No | UUID generado por la app |
-| Nombre | Sí | Nombre descriptivo del origen |
-| Tipo | Sí | `integration` / `migration` / `user` / `workflow` |
-| Descripción | Sí | Texto libre |
-| Fecha de creación | No | Gestionada por la app |
+
+| Columna           | Editable | Descripción                                       |
+| ----------------- | -------- | ------------------------------------------------- |
+| ID                | No       | UUID generado por la app                          |
+| Nombre            | Sí       | Nombre descriptivo del origen                     |
+| Tipo              | Sí       | `integration` / `migration` / `user` / `workflow` |
+| Descripción       | Sí       | Texto libre                                       |
+| Fecha de creación | No       | Gestionada por la app                             |
 
 ### Hoja `02_Propiedades`
-| Columna | Editable | Descripción |
-|---------|----------|-------------|
-| ID | No | UUID interno |
-| Nombre HubSpot | No | Nombre técnico |
-| Etiqueta | Sí | Etiqueta legible |
-| Objeto | No | contacts / deals / ... |
-| Tipo | No | Tipo de campo HubSpot |
-| Personalizada | No | Sí / No |
-| Grupo | No | Grupo en HubSpot |
-| Opciones | No | Valores permitidos (para enumeraciones) |
-| Descripción | Sí | Texto libre |
-| Estado HubSpot | No | exists / missing / divergent |
-| Cambios pendientes | No | Resumen textual de cambios propuestos |
-| Orígenes | No | Lista de nombres de orígenes mapeados a esta propiedad, cada uno con hipervínculo a su fila en `03_Mapeo_Origenes` |
+
+| Columna            | Editable | Descripción                                                                                                        |
+| ------------------ | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| ID                 | No       | UUID interno                                                                                                       |
+| Nombre HubSpot     | No       | Nombre técnico                                                                                                     |
+| Etiqueta           | Sí       | Etiqueta legible                                                                                                   |
+| Objeto             | No       | contacts / deals / ...                                                                                             |
+| Tipo               | No       | Tipo de campo HubSpot                                                                                              |
+| Personalizada      | No       | Sí / No                                                                                                            |
+| Grupo              | No       | Grupo en HubSpot                                                                                                   |
+| Opciones           | No       | Valores permitidos (para enumeraciones)                                                                            |
+| Descripción        | Sí       | Texto libre                                                                                                        |
+| Estado HubSpot     | No       | exists / missing / divergent                                                                                       |
+| Cambios pendientes | No       | Resumen textual de cambios propuestos                                                                              |
+| Orígenes           | No       | Lista de nombres de orígenes mapeados a esta propiedad, cada uno con hipervínculo a su fila en `03_Mapeo_Origenes` |
 
 ### Hoja `03_Mapeo_Origenes`
-| Columna | Editable | Descripción |
-|---------|----------|-------------|
-| ID | No | UUID |
-| Propiedad (nombre HubSpot) | No | Referencia |
-| Origen | No | Nombre del origen |
-| Campo origen | Sí | Nombre del campo en el sistema de origen |
-| Transformaciones | Sí | JSON inline de reglas (valor_origen → valor_hs) |
-| Notas | Sí | Texto libre |
+
+| Columna                    | Editable | Descripción                                     |
+| -------------------------- | -------- | ----------------------------------------------- |
+| ID                         | No       | UUID                                            |
+| Propiedad (nombre HubSpot) | No       | Referencia                                      |
+| Origen                     | No       | Nombre del origen                               |
+| Campo origen               | Sí       | Nombre del campo en el sistema de origen        |
+| Transformaciones           | Sí       | JSON inline de reglas (valor_origen → valor_hs) |
+| Notas                      | Sí       | Texto libre                                     |
 
 ---
 
 ## 5. Interfaz de Usuario
 
 ### Menú lateral — nueva entrada
+
 ```
 CRM
   — Propiedades     ← nueva entrada
@@ -218,6 +238,7 @@ CRM
 ```
 
 Indicadores de estado:
+
 - `● exists` — badge lima (propiedad existe y coincide con la definición)
 - `⚠ divergent` — badge gris con icono (existe pero difiere)
 - `✕ missing` — badge gris oscuro (no existe en HubSpot)
@@ -258,46 +279,46 @@ Dropdown con un ítem por origen. Al seleccionar, descarga `{nombre-origen}_{fec
 
 ## 6. IPC Channels
 
-| Canal | Dirección | Input | Output |
-|-------|-----------|-------|--------|
-| `properties:list` | renderer → main | `{ projectId }` | `HubSpotProperty[]` |
-| `properties:upsert` | renderer → main | `{ projectId, property }` | `HubSpotProperty` |
-| `properties:sync-hubspot` | renderer → main | `{ projectId }` | `{ updated: number, divergent: number, missing: number }` |
-| `properties:apply-change` | renderer → main | `{ projectId, changeId, environment }` | `{ success, error? }` |
-| `properties:discard-change` | renderer → main | `{ projectId, changeId }` | `{ success }` |
-| `origins:list` | renderer → main | `{ projectId }` | `DataOrigin[]` |
-| `origins:create` | renderer → main | `{ projectId, origin }` | `DataOrigin` |
-| `origins:update` | renderer → main | `{ projectId, origin }` | `DataOrigin` |
-| `origins:delete` | renderer → main | `{ projectId, originId }` | `{ success }` |
-| `mappings:list` | renderer → main | `{ projectId, propertyId? }` | `PropertyOriginMapping[]` |
-| `mappings:upsert` | renderer → main | `{ projectId, mapping }` | `PropertyOriginMapping` |
-| `mappings:delete` | renderer → main | `{ projectId, mappingId }` | `{ success }` |
-| `properties:export-json` | renderer → main | `{ projectId, originId }` | `OriginExport` |
+| Canal                       | Dirección       | Input                                  | Output                                                    |
+| --------------------------- | --------------- | -------------------------------------- | --------------------------------------------------------- |
+| `properties:list`           | renderer → main | `{ projectId }`                        | `HubSpotProperty[]`                                       |
+| `properties:upsert`         | renderer → main | `{ projectId, property }`              | `HubSpotProperty`                                         |
+| `properties:sync-hubspot`   | renderer → main | `{ projectId }`                        | `{ updated: number, divergent: number, missing: number }` |
+| `properties:apply-change`   | renderer → main | `{ projectId, changeId, environment }` | `{ success, error? }`                                     |
+| `properties:discard-change` | renderer → main | `{ projectId, changeId }`              | `{ success }`                                             |
+| `origins:list`              | renderer → main | `{ projectId }`                        | `DataOrigin[]`                                            |
+| `origins:create`            | renderer → main | `{ projectId, origin }`                | `DataOrigin`                                              |
+| `origins:update`            | renderer → main | `{ projectId, origin }`                | `DataOrigin`                                              |
+| `origins:delete`            | renderer → main | `{ projectId, originId }`              | `{ success }`                                             |
+| `mappings:list`             | renderer → main | `{ projectId, propertyId? }`           | `PropertyOriginMapping[]`                                 |
+| `mappings:upsert`           | renderer → main | `{ projectId, mapping }`               | `PropertyOriginMapping`                                   |
+| `mappings:delete`           | renderer → main | `{ projectId, mappingId }`             | `{ success }`                                             |
+| `properties:export-json`    | renderer → main | `{ projectId, originId }`              | `OriginExport`                                            |
 
 ---
 
 ## 7. Scopes HubSpot Necesarios
 
-| Scope | Motivo |
-|-------|--------|
-| `crm.schemas.contacts.read` | Leer propiedades de contactos |
-| `crm.schemas.deals.read` | Leer propiedades de deals |
-| `crm.schemas.companies.read` | Leer propiedades de companies |
-| `crm.schemas.contacts.write` | Crear/editar propiedades de contactos |
-| `crm.schemas.deals.write` | Crear/editar propiedades de deals |
+| Scope                         | Motivo                                |
+| ----------------------------- | ------------------------------------- |
+| `crm.schemas.contacts.read`   | Leer propiedades de contactos         |
+| `crm.schemas.deals.read`      | Leer propiedades de deals             |
+| `crm.schemas.companies.read`  | Leer propiedades de companies         |
+| `crm.schemas.contacts.write`  | Crear/editar propiedades de contactos |
+| `crm.schemas.deals.write`     | Crear/editar propiedades de deals     |
 | `crm.schemas.companies.write` | Crear/editar propiedades de companies |
 
 ---
 
 ## 8. Herramientas MCP expuestas
 
-| Tool | Descripción |
-|------|-------------|
-| `properties_list` | Lista las propiedades del proyecto con su estado vs. HubSpot |
-| `properties_get` | Detalle de una propiedad por nombre o ID |
-| `properties_export_origin` | Genera el JSON de exportación para un origen |
-| `origins_list` | Lista los orígenes de datos del proyecto |
-| `properties_pending_changes` | Lista los cambios pendientes de aplicar en HubSpot |
+| Tool                         | Descripción                                                  |
+| ---------------------------- | ------------------------------------------------------------ |
+| `properties_list`            | Lista las propiedades del proyecto con su estado vs. HubSpot |
+| `properties_get`             | Detalle de una propiedad por nombre o ID                     |
+| `properties_export_origin`   | Genera el JSON de exportación para un origen                 |
+| `origins_list`               | Lista los orígenes de datos del proyecto                     |
+| `properties_pending_changes` | Lista los cambios pendientes de aplicar en HubSpot           |
 
 ---
 
@@ -322,12 +343,14 @@ Dropdown con un ítem por origen. Al seleccionar, descarga `{nombre-origen}_{fec
 ## 10. Tests Requeridos
 
 ### Unitarios
+
 - `properties-reconcile.spec.ts` — detecta correctamente `exists`, `divergent` y `missing` al comparar definición local vs. respuesta mock de HubSpot
 - `origin-export.spec.ts` — el JSON exportado cumple el schema `OriginExport` y contiene las transformaciones correctas
 - `pending-changes.spec.ts` — una propiedad `divergent` genera las operaciones de cambio correctas; los cambios se marcan como aplicados al recibir respuesta OK
 - `sheets-writer.spec.ts` — las cuatro hojas se escriben con el contenido correcto (mock del cliente Drive)
 
 ### Funcionales
+
 - `properties-flow.spec.ts` — flujo completo: sincronizar con HS (mock) → ver propiedad divergente → aplicar cambio en sandbox → estado actualizado
 - `origin-crud.spec.ts` — crear, editar y eliminar un origen; verificar que el cambio se refleja en el Sheets (mock Drive)
 
@@ -337,14 +360,14 @@ Dropdown con un ítem por origen. Al seleccionar, descarga `{nombre-origen}_{fec
 
 Tutoriales a crear en `doc/tutoriales/propiedades/`:
 
-| Fichero | Tarea que describe |
-|---------|-------------------|
-| `gestionar-origenes.md` | Cómo crear, editar y eliminar orígenes de datos (integraciones, migraciones, usuario, workflows) y cuándo usar cada tipo |
-| `anadir-propiedad.md` | Cómo añadir una propiedad al mapa, qué campos rellenar y cómo asociarle orígenes |
-| `mapear-transformaciones.md` | Cómo definir el campo origen y las reglas de transformación de valores para cada origen de una propiedad |
-| `sincronizar-hubspot.md` | Cómo sincronizar el mapa con HubSpot, entender los estados (exists / divergent / missing) y qué implica cada uno |
-| `aplicar-cambios-hubspot.md` | Cómo revisar los cambios pendientes, aplicarlos primero en sandbox, validar y luego aplicar en producción |
-| `exportar-json.md` | Cómo exportar las definiciones de propiedades por origen en JSON y para qué sirve ese fichero en desarrollo |
+| Fichero                      | Tarea que describe                                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `gestionar-origenes.md`      | Cómo crear, editar y eliminar orígenes de datos (integraciones, migraciones, usuario, workflows) y cuándo usar cada tipo |
+| `anadir-propiedad.md`        | Cómo añadir una propiedad al mapa, qué campos rellenar y cómo asociarle orígenes                                         |
+| `mapear-transformaciones.md` | Cómo definir el campo origen y las reglas de transformación de valores para cada origen de una propiedad                 |
+| `sincronizar-hubspot.md`     | Cómo sincronizar el mapa con HubSpot, entender los estados (exists / divergent / missing) y qué implica cada uno         |
+| `aplicar-cambios-hubspot.md` | Cómo revisar los cambios pendientes, aplicarlos primero en sandbox, validar y luego aplicar en producción                |
+| `exportar-json.md`           | Cómo exportar las definiciones de propiedades por origen en JSON y para qué sirve ese fichero en desarrollo              |
 
 ---
 
@@ -421,10 +444,11 @@ Tras la primera sincronización real (portal «Testing») se observan propiedade
 
 - `reconcile.spec.ts`: `annualrevenue` (string@contacts / number@companies) no produce divergencia cruzada; ambas quedan `exists`.
 - `properties.spec.ts`: un `type` no estándar se preserva verbatim (no se colapsa a `string`); se verific
+
 ### 16.11 Objetos de origen (iteración UI, 2026-06-11)
 
 Cada `DataOrigin` puede tener sus propios **objetos** (`OriginObject { id, name }`, p. ej. «contactos», «empresas» del sistema origen), dados de alta con la misma mecánica que los orígenes, dentro del modal de Orígenes. En el asistente «Añadir propiedad», cada fuente añade un selector **Objeto del origen** (origen → objeto → campo); el objeto elegido se guarda en `EntrySource.originObjectId` y se refleja en la exportación JSON (`source_object`). Gestión vía `origins:update` (sin canal nuevo).
-ctor** de propiedades por objeto y el **estado** (exists/divergent/missing). La creación de **objetos custom** se especifica aparte en **SPEC-0007** (referenciado desde aquí); esta iteración solo permite **seleccionar** objetos existentes (estándar y custom ya creados en el portal).
+ctor** de propiedades por objeto y el **estado** (exists/divergent/missing). La creación de **objetos custom** se especifica aparte en **SPEC-0007** (referenciado desde aquí); esta iteración solo permite **seleccionar\*\* objetos existentes (estándar y custom ya creados en el portal).
 
 ### 16.1 Concepto
 
@@ -437,27 +461,27 @@ type SourceFieldKind = 'number' | 'text' | 'boolean' | 'enum' | 'memo';
 
 // Cómo llega un booleano desde el origen (formato de recepción).
 interface BooleanReception {
-  truthy: string;   // p.ej. 'true' | '1' | 'Yes'
-  falsy: string;    // p.ej. 'false' | '0' | 'No'
+  truthy: string; // p.ej. 'true' | '1' | 'Yes'
+  falsy: string; // p.ej. 'false' | '0' | 'No'
 }
 
 // Opción de un campo de origen limitado y su mapeo a la opción de HubSpot.
 interface SourceEnumOption {
   sourceValue: string;
   sourceLabel?: string;
-  hubspotValue?: string;   // opción HubSpot mapeada (si el destino es enumeration)
+  hubspotValue?: string; // opción HubSpot mapeada (si el destino es enumeration)
 }
 
 interface SourceFieldDefinition {
   kind: SourceFieldKind;
-  boolean?: BooleanReception;     // solo si kind === 'boolean'
-  options?: SourceEnumOption[];   // solo si kind === 'enum'
+  boolean?: BooleanReception; // solo si kind === 'boolean'
+  options?: SourceEnumOption[]; // solo si kind === 'enum'
 }
 
 interface EntrySource {
   id: string;
-  originId: string;               // ref a DataOrigin
-  sourceField: string;            // nombre del campo en el sistema de origen
+  originId: string; // ref a DataOrigin
+  sourceField: string; // nombre del campo en el sistema de origen
   definition: SourceFieldDefinition;
   notes?: string;
 }
@@ -479,17 +503,17 @@ interface HubSpotPropertyDef {
 // Nuevo elemento maestro de la lista (sustituye a HubSpotProperty + PropertyOriginMapping).
 interface PropertyEntry {
   id: string;
-  objectType: string;                  // objeto HubSpot (estándar o custom)
-  name: string;                        // nombre lógico de la entrada
+  objectType: string; // objeto HubSpot (estándar o custom)
+  name: string; // nombre lógico de la entrada
   hubspotProperty: HubSpotPropertyRef; // destino (puede repetirse entre entradas)
-  sources: EntrySource[];              // uno o varios orígenes
+  sources: EntrySource[]; // uno o varios orígenes
   hubspotStatus: 'exists' | 'missing' | 'divergent';
   pendingChanges?: HsPropertyChange[];
 }
 
 // Catálogo de objetos disponibles (estándar + custom existentes).
 interface HubSpotObject {
-  objectType: string;   // 'contacts' | 'companies' | ... | id del custom
+  objectType: string; // 'contacts' | 'companies' | ... | id del custom
   label: string;
   custom: boolean;
 }
@@ -516,13 +540,13 @@ interface HubSpotObject {
 
 El documento de Drive sube a `schema_version: 2` y refleja el nuevo modelo:
 
-| Hoja | Contenido |
-|------|-----------|
-| `00_Portada` | Identidad CD + `schema_version: 2` + guía actualizada |
-| `01_Origenes` | Igual que v1 (catálogo de orígenes) |
+| Hoja          | Contenido                                                                                             |
+| ------------- | ----------------------------------------------------------------------------------------------------- |
+| `00_Portada`  | Identidad CD + `schema_version: 2` + guía actualizada                                                 |
+| `01_Origenes` | Igual que v1 (catálogo de orígenes)                                                                   |
 | `02_Entradas` | ID, Objeto, Nombre, Propiedad HubSpot, ¿Nueva?, Tipo HubSpot, Estado, Nº orígenes, Cambios pendientes |
-| `03_Fuentes` | ID, Entrada, Objeto, Origen, Campo origen, Tipo genérico, Formato booleano, Notas |
-| `04_Opciones` | Entrada, Origen, Valor origen, Etiqueta origen, Valor HubSpot (mapeo enum) |
+| `03_Fuentes`  | ID, Entrada, Objeto, Origen, Campo origen, Tipo genérico, Formato booleano, Notas                     |
+| `04_Opciones` | Entrada, Origen, Valor origen, Etiqueta origen, Valor HubSpot (mapeo enum)                            |
 
 ### 16.5 Interfaz de usuario
 
@@ -605,7 +629,7 @@ de §16.4 (esquema `schema_version: 2`):
 - **`00_Portada`** — identidad CD, `schema_version: 2`, fecha y guía (texto fijo + nº de entradas/orígenes).
 - **`01_Origenes`** — `ID, Nombre, Tipo, Descripción, Objetos`.
 - **`02_Entradas`** — `ID, Objeto, Nombre, Propiedad HubSpot, ¿Nueva?, Tipo HubSpot, Estado, Nº orígenes,
-  Cambios pendientes`.
+Cambios pendientes`.
 - **`03_Fuentes`** — `ID, Entrada, Objeto, Origen, Campo origen, Tipo genérico, Formato booleano, Notas`.
 - **`04_Opciones`** — `Entrada, Origen, Valor origen, Etiqueta origen, Valor HubSpot`.
 
@@ -626,8 +650,8 @@ construye los `SheetTab[]` a partir de `service.listEntries`/`listOrigins` (vía
 
 ### 18.3 IPC
 
-| Canal | Dirección | Input | Output |
-|-------|-----------|-------|--------|
+| Canal                     | Dirección       | Input           | Output                                |
+| ------------------------- | --------------- | --------------- | ------------------------------------- |
 | `properties:write-sheets` | renderer → main | `{ projectId }` | `{ success, spreadsheetId?, error? }` |
 
 ### 18.4 Interfaz de usuario
@@ -642,7 +666,7 @@ se configure el conector.
 - `sheets-model.spec.ts`: `buildPropertyMapTabs` produce las cinco hojas con sus encabezados y una fila por
   entrada/fuente/opción; refleja erratas sin corregirlas.
 - El handler se prueba de forma ligera (mock de `writeSpreadsheet`) o queda cubierto por el test del builder
-  + el `sheets-client.spec` ya existente del conector.
+  - el `sheets-client.spec` ya existente del conector.
 
 ### 18.6 Impacto
 
@@ -794,7 +818,7 @@ común y añade la carga desde Drive.
 ### 21.2 Carga desde Drive (documento de estado companion)
 
 **Implementado** según la decisión de SPEC-0004 §15.5: la carga **no** parsea el Sheets bonito (es
-*lossy*), sino un documento de estado companion (Google Doc JSON) escrito junto al Sheets.
+_lossy_), sino un documento de estado companion (Google Doc JSON) escrito junto al Sheets.
 
 - `main/property-management/drive-state.ts`: `PROPERTY_STATE_FEATURE_KEY = 'property-management-state'`,
   `serializePropertyState({ entries, origins })` y `parsePropertyState(content)` (valida `schema_version`;
@@ -806,10 +830,10 @@ común y añade la carga desde Drive.
 - El handler de escritura (`properties:write-sheets`) escribe además el Doc de estado y llama
   `service.markDriveWritten`.
 
-### 21.3 Estado *dirty* y modal
+### 21.3 Estado _dirty_ y modal
 
 - El store de propiedades expone `lastWrittenAt` y el timestamp del último cambio local (alta/edición de
-  entrada u origen, reconciliación). `useDriveDoc` calcula *dirty*; al salir de la pantalla con *dirty* se
+  entrada u origen, reconciliación). `useDriveDoc` calcula _dirty_; al salir de la pantalla con _dirty_ se
   muestra `DriveDirtyGuard`. La preferencia «no volver a preguntar» se persiste por proyecto.
 
 ### 21.4 Tests
@@ -882,10 +906,12 @@ de corrección.
 Origen: Informe UX 2026-06-19, hallazgos #2 y #1. Borrar propiedad (`EntryPanel.tsx`) y borrar origen (`OriginsModal.tsx` L127-129) se ejecutan a un clic; la aplicación de cambios a sandbox/producción no confirma resultado con un toast.
 
 Adopción de SPEC-0002 §11 (ConfirmDialog):
+
 - Borrar entrada de propiedad → `confirm({ tone:'danger', ... })`.
 - Borrar origen de datos → `confirm({ tone:'danger', ... })`.
 
 Adopción de SPEC-0002 §10 (Snackbar):
+
 - Tras `properties_apply_change` / aplicar a sandbox/producción: `notify` con resumen (éxito) o error.
 
 Claves i18n nuevas: `properties.deleteEntryTitle/Body`, `properties.deleteOriginTitle/Body`, `properties.applied`, `properties.applyError` (cuatro locales).
@@ -1061,7 +1087,7 @@ campos de §25 en los payloads `create`. Hallazgos pendientes de corrección:
   inaccesible se salta (`failedObjects`) y sus entradas quedan **intactas** (no se reconcilian contra remotos
   vacíos, evitando `missing` falsos). Test en `service.spec.ts`.
 - **H2 — RESUELTO.** `service.applyChange`, en operaciones `create`, llama a `ensureGroup(api, objectType,
-  groupName, environment)`: lista los grupos del **entorno destino** y crea el grupo allí si falta (label =
+groupName, environment)`: lista los grupos del **entorno destino** y crea el grupo allí si falta (label =
   name). Así crear una propiedad en producción ya no falla por grupo ausente aunque se creara en otro entorno.
   Test en `service.spec.ts`. (Añadir `environment` explícito a `groups_create`/`groups_list` por MCP queda
   diferido; la garantía al aplicar cubre el caso real.)
@@ -1100,7 +1126,7 @@ oficial recomienda usar siempre la última versión por fecha para integraciones
 `listGroups`, `createGroup`. El resto (request genérico, normalización, tipos) no cambia: la respuesta y el
 cuerpo son los mismos, y los atributos de §25 (`numberDisplayHint`, `textDisplayHint`, `calculationFormula`,
 `hasUniqueValue`, `dataSensitivity`, `externalOptions`/`referencedObjectType`, etc.) son **nativos** de
-`2026-03` (es donde se verificaron). Verificado contra *Create a property* (2026-03):
+`2026-03` (es donde se verificaron). Verificado contra _Create a property_ (2026-03):
 `POST https://api.hubapi.com/crm/properties/2026-03/{objectType}`.
 
 ### 28.2 Efecto sobre `phone_number`
@@ -1211,28 +1237,28 @@ La recuperación íntegra del estado **no depende del Sheets**: se carga desde e
 
 Una fila por entrada del objeto. Mapeo columna → campo de `HubSpotPropertyDef`:
 
-| Columna | Campo |
-|---------|-------|
-| `ID` | `entry.id` |
-| `Nombre` | `entry.name` |
-| `Propiedad HubSpot` | `hubspotName` |
-| `Etiqueta` | `label` |
-| `Tipo` | `type` |
-| `Field type` | `fieldType` |
-| `Grupo` | `groupName` |
-| `Descripción` | `description` |
-| `Formato número` | `numberDisplayHint` |
-| `Símbolo moneda` | `showCurrencySymbol` |
-| `Propiedad moneda` | `currencyPropertyName` |
-| `Formato texto` | `textDisplayHint` |
-| `Fórmula cálculo` | `calculationFormula` |
-| `Valor único` | `hasUniqueValue` |
-| `Sensibilidad` | `dataSensitivity` |
-| `Opciones externas` | `externalOptions` |
+| Columna               | Campo                  |
+| --------------------- | ---------------------- |
+| `ID`                  | `entry.id`             |
+| `Nombre`              | `entry.name`           |
+| `Propiedad HubSpot`   | `hubspotName`          |
+| `Etiqueta`            | `label`                |
+| `Tipo`                | `type`                 |
+| `Field type`          | `fieldType`            |
+| `Grupo`               | `groupName`            |
+| `Descripción`         | `description`          |
+| `Formato número`      | `numberDisplayHint`    |
+| `Símbolo moneda`      | `showCurrencySymbol`   |
+| `Propiedad moneda`    | `currencyPropertyName` |
+| `Formato texto`       | `textDisplayHint`      |
+| `Fórmula cálculo`     | `calculationFormula`   |
+| `Valor único`         | `hasUniqueValue`       |
+| `Sensibilidad`        | `dataSensitivity`      |
+| `Opciones externas`   | `externalOptions`      |
 | `Objeto referenciado` | `referencedObjectType` |
-| `Orden` | `displayOrder` |
-| `Oculta` | `hidden` |
-| `Campo de formulario` | `formField` |
+| `Orden`               | `displayOrder`         |
+| `Oculta`              | `hidden`               |
+| `Campo de formulario` | `formField`            |
 
 Para entradas `mode: 'existing'` sin `definition` cacheada, las columnas de definición van vacías (refleja el
 estado de sincronización, no es errata — coherente con la norma de no corregir erratas, solo reflejarlas).
@@ -1420,10 +1446,10 @@ sano, 50 líneas) — typecheck/test:unit/e2e en la máquina del usuario.
 La reconciliación (`reconcile.ts`) clasifica como `missing` dos casos que **no son equivalentes**:
 
 1. **`missing` con remedio** — entrada en modo `new` sin remoto en HubSpot: genera un cambio pendiente `create`
-   (`reconcile.ts` :52-59). Aparece en *Cambios pendientes*, se aplica y se crea la propiedad. Flujo normal.
+   (`reconcile.ts` :52-59). Aparece en _Cambios pendientes_, se aplica y se crea la propiedad. Flujo normal.
 2. **`missing` sin remedio (bloqueo)** — entrada en modo `existing` que apunta a una propiedad **inexistente** en
    HubSpot (`reconcile.ts` :71-73): estado `missing`/`falta` pero `pendingChanges: []`. **No genera ningún cambio**,
-   por eso *Cambios pendientes (0)* y no hay nada que sincronizar. Es un callejón sin salida: la entrada asume que la
+   por eso _Cambios pendientes (0)_ y no hay nada que sincronizar. Es un callejón sin salida: la entrada asume que la
    propiedad ya existe, pero no existe.
 
 El caso 2 es invisible en el resumen actual `{ updated, divergent, missing }`: el usuario (y un consumidor LLM) ve
@@ -1445,9 +1471,9 @@ siendo `missing` para no romper la UI ni los tests existentes de estado):
   ```ts
   export interface Blocker {
     entryId: string;
-    entry: string;        // nombre legible de la entrada
+    entry: string; // nombre legible de la entrada
     objectType: string;
-    hubspotName: string;  // propiedad destino inexistente
+    hubspotName: string; // propiedad destino inexistente
     reason: 'existing-missing-remote';
     remediation: 'convert-to-new';
   }
@@ -1527,7 +1553,7 @@ order:10, title:'Propiedades: estados y sincronización' }` con cuerpo (texto li
 ### 35.8 Tests
 
 - `reconcile.spec.ts`: entrada `existing` sin remoto → `summary.blocked === 1`, `blockers[0].reason ===
-  'existing-missing-remote'`; entrada `new` sin remoto → `blocked === 0` y genera `create` (regresión).
+'existing-missing-remote'`; entrada `new` sin remoto → `blocked === 0` y genera `create` (regresión).
 - `service.spec.ts`: `convertEntryToNew` con definición cacheada (no `seeded`) y sin ella (`seeded:true`, definición
   mínima válida); idempotencia sobre entrada ya `new`; `convertMissingToNew` cuenta `converted`/`seeded` y respeta el
   filtro por `objectType`; tras convertir + sync se genera el `create`.
@@ -2151,9 +2177,10 @@ literal (`origin-export.ts` 48) frente a constantes nombradas en el resto; intro
 
 Ambos (235 y 239 líneas) comparten estado (`query`/`bulkOpen`/`bulkText`/`ready`/`rowIds`), efecto de reset
 (idéntico comentario §51 y `setTimeout(setReady, 0)`), gestión de `rowIds` y JSX (search + count + `LoadingState`
-+ lista con `key={rowIds[i] ?? …}` + pegado masivo). Divergen solo en el tipo editado (`HsPropertyOption` vs
-`SourceEnumOption`). Fix: extraer un componente/hook genérico de edición de lista parametrizado por
-render-de-fila y parser de pegado; los dos diálogos quedan como configuraciones finas.
+
+- lista con `key={rowIds[i] ?? …}` + pegado masivo). Divergen solo en el tipo editado (`HsPropertyOption` vs
+  `SourceEnumOption`). Fix: extraer un componente/hook genérico de edición de lista parametrizado por
+  render-de-fila y parser de pegado; los dos diálogos quedan como configuraciones finas.
 
 #### 53.11 Manejo de errores homogéneo en stores y pantalla (ALTA)
 
@@ -2174,8 +2201,7 @@ alineado con entries/origins/objects.
 #### 53.13 Predicado `isBlocked` único (MEDIA)
 
 La regla `hubspotStatus === 'missing' && hubspotProperty.mode === 'existing'` está tres veces:
-`PropertyManagementScreen.tsx` 142–143 (`isBlocked`) y de nuevo inline en `blockedCount` 146–148; `EntryPanel.tsx`
-99. Fix: un único helper (p. ej. en `utils/`) reutilizado por los tres puntos.
+`PropertyManagementScreen.tsx` 142–143 (`isBlocked`) y de nuevo inline en `blockedCount` 146–148; `EntryPanel.tsx` 99. Fix: un único helper (p. ej. en `utils/`) reutilizado por los tres puntos.
 
 #### 53.14 `FieldTooltip` con claves `fieldHelp` propias por campo (MEDIA)
 
@@ -2199,8 +2225,7 @@ descartar→`Delete`, guardar→`Save`/`Add` según semántica).
 
 #### 53.17 Id temporal UUID en `OriginsModal` (MEDIA)
 
-`OriginsModal.tsx` 117 usa `id: \`o-${Date.now()}\`` (colisionable en el mismo ms) frente a `crypto.randomUUID()`
-en el resto (§51). Fix: `crypto.randomUUID()`.
+`OriginsModal.tsx` 117 usa `id: \`o-${Date.now()}\``(colisionable en el mismo ms) frente a`crypto.randomUUID()`en el resto (§51). Fix:`crypto.randomUUID()`.
 
 #### 53.18 Limpieza (BAJA)
 
@@ -2336,11 +2361,13 @@ el cambio en `entry.pendingChanges` por esa pareja. El resto de `applyChange` (e
 de las dos formas de referencia; error `invalid-input` si faltan/sobran (SPEC-0005 §18).
 
 **54.7.3 Reflejo del estado por entorno (completa 54.3 en la UI).**
-Con los flags ya preservados, `properties_pending_changes` los expone sin cambios (devuelve `...change`). La UI de
-cambios pendientes (`PendingChangesView`/`PropertyManagementScreen`) muestra por cambio el estado por entorno
-(«aplicado en sandbox» / «aplicado en producción») en vez de un binario. No se altera §37 (el estado
-exists/missing/divergent de la entrada se sigue reconciliando contra producción); solo se distingue el progreso de
-aplicación por entorno a nivel de cambio. Claves i18n nuevas para las etiquetas de entorno en los 7 locales.
+Verificado durante la implementación: la UI **ya** distingue el estado por entorno. `PendingChangesView` deshabilita
+cada botón según `appliedToSandbox`/`appliedToProduction` y muestra la etiqueta de estado con las claves ya
+existentes (`properties.changes.sandboxDone`/`sandboxPending`/`productionDone`/`productionPending`/`state`), y
+`properties_pending_changes` devuelve `...change` (los flags incluidos). Por tanto **no** hace falta cambio de UI ni
+claves i18n nuevas: bastaba con dejar de resetear los flags en reconcile (54.7.1). No se altera §37 (el estado
+exists/missing/divergent de la entrada se sigue reconciliando contra producción); solo se preserva el progreso de
+aplicación por entorno a nivel de cambio.
 
 **54.7.4 Tests.**
 Nuevos casos: `pending-changes.spec.ts` para `preserveIdentity` (casa por operación, conserva id/flags, crea id
@@ -2355,3 +2382,26 @@ BORRADOR — pendiente de validación para pasar a código. Requiere rebuild de 
 `properties_apply_change` y el modelo de cambios). Sin migración de datos: los `changeId` persistidos siguen siendo
 válidos (se preservan, no se recalculan). `typecheck`/`test:unit`/`e2e` en la máquina del usuario. Al implementar,
 54.1 y 54.3 pasan a IMPLEMENTADO y se actualiza la fila de SPEC-0006 en `CLAUDE.md`.
+
+### 54.8 Estado de implementación del bloque (IMPLEMENTADO, 2026-07-08)
+
+**54.1** y **54.3** IMPLEMENTADOS junto con la referencia lógica de apply de **54.7.2**. Cambios:
+
+- `pending-changes.ts`: nueva `preserveIdentity(fresh, previous)` (casa por `operation`, hereda `id`/`createdAt`/
+  `appliedToSandbox`/`appliedToProduction`, refresca `payload`/`summary`).
+- `reconcile.ts`: aplica `preserveIdentity(changes, entry.pendingChanges ?? [])` en las tres ramas que emiten
+  cambios (delete por archivado, create nuevo, update\_\* divergentes).
+- `@shared/types/properties.ts`: `ApplyChangeInput` — `changeId` pasa a opcional y se añaden `entryId`/`operation`
+  (referencia lógica; exactamente una forma).
+- `service.ts`: `applyChange` resuelve el cambio por `changeId` **o** por `entryId+operation`; la escritura final
+  mapea por `change.id` resuelto (no por `input.changeId`).
+- `mcp-tools.ts`: `properties_apply_change` con `inputSchema` `required:['environment']`, acepta ambas formas y
+  devuelve `{error:{code:'invalid-input'}}` si llegan las dos o ninguna.
+- Tests: `pending-changes.spec.ts` (preserveIdentity), `reconcile.spec.ts` (2º reconcile conserva id+flag),
+  `service.spec.ts` (apply por `entryId+operation`; re-sync no revierte `appliedToSandbox` ni cambia el id),
+  `mcp-tools.spec.ts` (apply por referencia + `invalid-input`).
+
+No requiere migración de datos ni cambio de UI/i18n (54.7.3). Requiere rebuild de la app/MCP por el cambio de
+`inputSchema` de `properties_apply_change`. `typecheck`/`test:unit`/`e2e` pendientes en la máquina del usuario
+(el espejo del sandbox no ejecuta fiable sobre los ficheros editados). **Pendientes del §54**: 54.2 (apply por
+lote/apply-all), 54.4 (acuse de guía, coordinar con SPEC-0005) y 54.5 (filtro/paginación en pending_changes).

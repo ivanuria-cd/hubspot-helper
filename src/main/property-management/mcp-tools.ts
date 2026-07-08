@@ -7,7 +7,7 @@ import { guidanceRegistry } from '../mcp/guidance';
 import type { PropertyService } from './service';
 import { EntryValidationError } from './entry-validation';
 import { isSystemProperty } from './system-properties';
-import type { EntryUpsertInput } from '@shared/types/properties';
+import type { ChangeOperation, EntryUpsertInput } from '@shared/types/properties';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
 import { USER_FRIENDLY_FIELD_TYPES } from '@shared/constants/planningFieldTypes';
 
@@ -552,23 +552,55 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
     name: 'properties_apply_change',
     requiresGuidance: true,
     description:
-      'Aplica un cambio pendiente en HubSpot en el entorno indicado (sandbox o production).',
+      'Aplica un cambio pendiente en HubSpot en el entorno indicado (sandbox o production). El cambio ' +
+      'se referencia por `changeId` O por `entryId` + `operation` (referencia lógica estable frente a la ' +
+      'regeneración de ids entre lecturas/sincronizaciones; recomendada para lotes). Indica exactamente una forma.',
     inputSchema: {
       type: 'object',
       properties: {
         changeId: { type: 'string' },
+        entryId: { type: 'string' },
+        operation: {
+          type: 'string',
+          enum: [
+            'create',
+            'update_label',
+            'update_options',
+            'update_field_type',
+            'update_attributes',
+            'delete',
+          ],
+        },
         environment: { type: 'string', enum: ['sandbox', 'production'] },
       },
-      required: ['changeId', 'environment'],
+      required: ['environment'],
     },
     featureKey: feature,
     requiredScopes: WRITE_SCOPES,
     handler: (input, ctx) => {
-      const { changeId, environment } = (input ?? {}) as {
-        changeId: string;
+      const { changeId, entryId, operation, environment } = (input ?? {}) as {
+        changeId?: string;
+        entryId?: string;
+        operation?: ChangeOperation;
         environment: HubSpotEnvironment;
       };
-      return service.applyChange({ projectId: ctx.projectId, changeId, environment });
+      const byId = Boolean(changeId);
+      const byRef = Boolean(entryId && operation);
+      if (byId === byRef) {
+        return Promise.resolve({
+          error: {
+            code: 'invalid-input',
+            message: 'Indica changeId O (entryId + operation), exactamente una forma.',
+          },
+        });
+      }
+      return service.applyChange({
+        projectId: ctx.projectId,
+        changeId,
+        entryId,
+        operation,
+        environment,
+      });
     },
   });
 

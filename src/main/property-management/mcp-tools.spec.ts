@@ -199,4 +199,48 @@ describe('registerPropertyTools (tools MCP de propiedades)', () => {
       expect(registry.get(name)?.requiresGuidance, `${name} no debe llevar gate`).toBeFalsy();
     }
   });
+
+  it('§54.2: properties_apply_change acepta entryId+operation y rechaza referencia ambigua', async () => {
+    const { registry, props } = setup();
+    await call(registry, 'entries_upsert', {
+      entry: {
+        objectType: 'contacts',
+        name: 'Nueva',
+        hubspotProperty: {
+          mode: 'new',
+          definition: {
+            hubspotName: 'new_prop',
+            label: 'Nueva',
+            type: 'string',
+            fieldType: 'text',
+            groupName: 'custom',
+          },
+        },
+        sources: [],
+      },
+    });
+    await call(registry, 'properties_sync', {});
+    const entries = (await call(registry, 'entries_list', {})) as Array<{ id: string }>;
+
+    const ok = (await call(registry, 'properties_apply_change', {
+      entryId: entries[0].id,
+      operation: 'create',
+      environment: 'sandbox',
+    })) as { success: boolean };
+    expect(ok.success).toBe(true);
+    expect(props.createProperty).toHaveBeenCalledWith('contacts', expect.anything(), 'sandbox');
+
+    const ambiguous = (await call(registry, 'properties_apply_change', {
+      changeId: 'x',
+      entryId: entries[0].id,
+      operation: 'create',
+      environment: 'sandbox',
+    })) as { error?: { code: string } };
+    expect(ambiguous.error?.code).toBe('invalid-input');
+
+    const none = (await call(registry, 'properties_apply_change', {
+      environment: 'sandbox',
+    })) as { error?: { code: string } };
+    expect(none.error?.code).toBe('invalid-input');
+  });
 });
