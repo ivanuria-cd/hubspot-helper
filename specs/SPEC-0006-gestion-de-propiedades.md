@@ -1723,6 +1723,21 @@ Requiere **rebuild de la app/MCP**. `typecheck`/`test:unit`/`e2e` en la máquina
 trunca los `.spec` al transformarlos; originales verificados sanos). El binario en uso mostrará el cambio tras el
 rebuild — por eso «seguía viéndose así».
 
+### 37.8 El cambio de entorno reconcilia con HubSpot (IMPLEMENTADO, 2026-07-08)
+
+Como el estado depende ahora del entorno activo (§37), cambiar el selector SANDBOX/Producción debe **reconciliar**
+con HubSpot, no solo recargar el estado local. Antes, la adopción del hook `useHubspotEnvironmentChange` en
+`PropertyManagementScreen` llamaba a `load` (relee entradas locales) + `loadObjects`; ahora llama a `sync`
+(`syncHubspot` contra el nuevo entorno activo) + `loadObjects`. El estado (`exists`/`missing`/`divergent`), el
+resumen y los cambios pendientes se recalculan al vuelo al cambiar de entorno, sin pulsar «Sincronizar HubSpot».
+
+- `src/renderer/features/property-management/components/PropertyManagementScreen.tsx`: el callback de
+  `useHubspotEnvironmentChange` pasa de `load` a `sync`.
+- El manejo de error/estado de carga del `sync` ya existe (`syncing` + §50). Alcance: solo Propiedades (Objetos y
+  Formularios conservan su comportamiento; se extenderá si se solicita).
+- Verificación: e2e/manual (no hay `PropertyManagementScreen.spec`); el hook `useHubspotEnvironmentChange` ya tiene
+  su unit test. Requiere **rebuild de la app**.
+
 ---
 
 ## 38. `create` ya existente en el entorno → reconciliar y aplicar update (BORRADOR, 2026-06-25)

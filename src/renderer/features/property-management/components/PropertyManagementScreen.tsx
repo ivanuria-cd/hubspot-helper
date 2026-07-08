@@ -113,10 +113,11 @@ export function PropertyManagementScreen(): JSX.Element | null {
     void loadOrigins(projectId);
   }, [projectId, load, loadObjects, loadOrigins]);
 
-  // Al cambiar el entorno activo, refresca los datos dependientes del entorno (SPEC-0003 §16).
+  // SPEC-0006 §37.8: al cambiar el entorno activo se RECONCILIA con HubSpot (no solo recarga el estado
+  // local), porque el estado exists/missing/divergent depende del entorno activo (§37).
   useHubspotEnvironmentChange(() => {
     if (!projectId) return;
-    void load(projectId);
+    void sync(projectId);
     void loadObjects(projectId);
   });
 
