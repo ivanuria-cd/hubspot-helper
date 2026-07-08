@@ -2064,3 +2064,246 @@ duplicada byte a byte en `PropertyManagementScreen` y `EntryPanel`, ambas con do
 `as unknown as {...}`. Nueva `utils/dest-name.ts` de la feature: type guard `isLooseRef` en vez del cast y una
 única implementación importada por ambos componentes. Sin cambio de comportamiento. Requiere rebuild de la
 app; typecheck/test en la máquina del usuario.
+
+## 53. Revisión de código 2026-07-08 — inconsistencias y duplicidades (BORRADOR)
+
+Origen: revisión de código de la feature `property-management` (main + renderer) a petición, 2026-07-08. Recoge
+**todos** los hallazgos (alta/media/baja). Estado global **BORRADOR**: pendiente de validación humana; ninguna
+corrección aplicada aún al código. Al implementar, cada subsección pasa a IMPLEMENTADO con fecha y se actualiza
+la fila de SPEC-0006 en `CLAUDE.md`.
+
+### MAIN — `src/main/property-management/`
+
+#### 53.1 `applyGroupChange` relee el store tras los await de red (ALTA)
+
+`applyGroupChange` (`service.ts` 480–510) captura `state` antes de `listProperties`/`deleteGroup` y al final
+escribe derivando `groupChanges` de ese snapshot obsoleto (`deps.store.set(input.projectId, { ...state, groupChanges })`),
+pisando `entries`/`origins` editados concurrentemente (last-write-wins). `applyChange` (406) y `syncHubspot`
+(271) ya adoptaron la relectura `fresh = deps.store.get(...)` en §47. Fix: aplicar el mismo patrón — releer el
+store tras los await y mapear solo `groupChanges`.
+
+#### 53.2 Error «Origen no encontrado» estructurado y coherente single/batch (ALTA)
+
+`service.upsertEntry` lanza un `Error` plano `Origen no encontrado: ${originId}` (`service.ts` 177). `entries_upsert`
+solo captura `EntryValidationError` y relanza el resto como excepción opaca del MCP (`mcp-tools.ts` 297–307),
+mientras `entries_upsert_batch` sí lo devuelve estructurado (354–362). Además ese caso escapa del canal
+`EntryValidationError`/`{error:{issues}}` prometido en §39.9. Fix: la validación de existencia de origen emite un
+`EntryValidationError` (code `ORIGIN_NOT_FOUND`, field `sources[].originId`), de modo que single y batch devuelven
+la misma respuesta accionable.
+
+#### 53.3 `blockers`: fuente única en `reconcile`, reutilizada por `properties_pending_changes` (ALTA)
+
+El mapeo `reason`/`remediation` (system→`relink` / else→`convert-to-new`) está escrito dos veces: `reconcile.ts`
+88–95 y `mcp-tools.ts` 169–183. Dos fuentes de verdad para el mismo shape `Blocker`. Fix: `properties_pending_changes`
+reutiliza el cálculo de bloqueos de la reconciliación (helper compartido `buildBlocker(entry)` en `reconcile.ts`)
+en vez de recalcularlo.
+
+#### 53.4 `destName` compartida en el main (una sola versión defensiva) (MEDIA)
+
+`destName`/`entryDestName` está reimplementado 6 veces, en dos variantes: defensiva en `service.ts` 79–88 y
+`reconcile.ts` 22–32; **no** defensiva en `sheets-model.ts`, `origin-export.ts`, `planning-model.ts`,
+`planning-import.ts`. Con un `hubspotProperty` malformado (el que reconcile protege por §39) el volcado a Sheets y
+el export se tumbarían. Fix: helper único defensivo en el main (equivalente a `renderer/.../utils/dest-name.ts`
+de §52, p. ej. `property-management/dest-name.ts` o en `shared/`), importado por los seis puntos.
+
+#### 53.5 Contrato homogéneo de «recurso no encontrado» (MEDIA)
+
+Tres contratos para el mismo concepto: `deleteEntry`/`deleteOrigin` devuelven `success:true` siempre;
+`discardChange`/`discardGroupChange`/`requestDelete`/`convertEntryToNew` devuelven `OperationResult` con `error`;
+`updateOrigin`/`setObjectFields` lanzan `throw`. Consecuencia: `entries_delete_batch` reporta `ok:true` al borrar
+un id inexistente (`mcp-tools.ts` 380–388). Fix: unificar en `OperationResult` con comprobación de existencia
+(las de borrado devuelven `success:false` si el id no existe); ajustar los reportes batch.
+
+#### 53.6 Round-trip de `objectType` en el mapa editable (MEDIA)
+
+El builder deriva el título de pestaña saneando el `objectType` (`planning-model.ts` 219: `sanitizeSheetPart` +
+truncado a 100 + sufijo de colisión), pero el importador reconstruye `objectType: tab.title` tal cual
+(`planning-import.ts` 106). Para cualquier `objectType` que requiera saneado/truncado/desambiguación, el valor
+reimportado no coincide con el real → `entry-added`/`entry-removed` espurios o borradores con `objectType`
+incorrecto. Fix: persistir el `objectType` real en la hoja (celda/rango no editable o metadato) y leerlo de ahí,
+no del título.
+
+#### 53.7 `planning_field_types`: featureKey de planning + `isAmbiguous` compartido (MEDIA)
+
+La tool `planning_field_types` se registra con `featureKey: 'property-management'` (`mcp-tools.ts` 141) pese a
+pertenecer a la planificación (SPEC-0016; gate de guía de `property-planning`), y recomputa `ambiguous:
+t.configs.length > 1` (147) en vez del helper compartido `isAmbiguous`. Fix: registrarla bajo el featureKey de
+planning y usar `isAmbiguous(key)`.
+
+#### 53.8 Deduplicación de helpers/tipos y constantes (BAJA)
+
+Duplicados idénticos: `defOf`/`typeDisplay` (`planning-model.ts` 101–113 y `planning-import.ts` 118–130);
+`sanitizeSheetPart`+`SHEET_NAME_MAX`+`INVALID_SHEET_CHARS` (`sheets-model.ts` y `planning-model.ts`); `CellValue`/
+`SheetTab` (definidos en `sheets-model.ts`, `planning-model.ts` y `CellValue` de nuevo en `planning-import.ts`);
+`SCOPES`/`WRITE_SCOPES` (`mcp-tools.ts` 56–66 y `planning-mcp-tools.ts` 30–39). Fix: extraer a un módulo común de
+sheets/planning y a las constantes de scopes compartidas.
+
+#### 53.9 `isoNow`, `isCompleted`, `schema_version` (BAJA)
+
+`isoNow = deps.now ?? (() => …)` (`service.ts` 130) tiene fallback muerto (`now` es obligatorio en
+`PropertyServiceDeps`) y coexiste con usos directos de `deps.now()`; unificar la fuente de tiempo. `isCompleted`
+(`pending-changes.ts` 215) está exportada sin llamador en la feature; eliminar o justificar. `schema_version: 2`
+literal (`origin-export.ts` 48) frente a constantes nombradas en el resto; introducir constante.
+
+### RENDERER — `src/renderer/features/property-management/`
+
+#### 53.10 Editor de lista genérico: `OptionsDialog` / `SourceOptionsDialog` (ALTA)
+
+Ambos (235 y 239 líneas) comparten estado (`query`/`bulkOpen`/`bulkText`/`ready`/`rowIds`), efecto de reset
+(idéntico comentario §51 y `setTimeout(setReady, 0)`), gestión de `rowIds` y JSX (search + count + `LoadingState`
++ lista con `key={rowIds[i] ?? …}` + pegado masivo). Divergen solo en el tipo editado (`HsPropertyOption` vs
+`SourceEnumOption`). Fix: extraer un componente/hook genérico de edición de lista parametrizado por
+render-de-fila y parser de pegado; los dos diálogos quedan como configuraciones finas.
+
+#### 53.11 Manejo de errores homogéneo en stores y pantalla (ALTA)
+
+`entries-store`: `load`/`sync`/`applyChange` capturan y fijan `error`; `convertToNew`/`convertMissing`/`upsert`/
+`remove`/`discardChange` (61–91) relanzan sin captura. `origins-store` igual (solo `load`). La pantalla lo
+compensa desigual: `handleConvertAll` con try/catch, pero `onConvert`/`onDelete` individuales sin captura → toast
+verde falso + unhandled rejection ante fallo IPC. Contradice §50. Fix: todas las mutaciones de los stores capturan
+y fijan `error` (patrón de `load`), o la pantalla envuelve cada invocación en try/catch + Snackbar de forma
+uniforme.
+
+#### 53.12 `GroupsModal` sobre store (MEDIA)
+
+`GroupsModal.tsx` no usa store: gestiona `groups`/`usedGroups`/`changes`/`loading`/`busy` en estado local y llama
+a `window.api.*` directamente, reimplementando loading/error/reload; además lee `result.success` en el componente
+(95–108) en vez de centralizarlo como `entries-store.applyChange`. Fix: `groups-store` que encapsule el patrón,
+alineado con entries/origins/objects.
+
+#### 53.13 Predicado `isBlocked` único (MEDIA)
+
+La regla `hubspotStatus === 'missing' && hubspotProperty.mode === 'existing'` está tres veces:
+`PropertyManagementScreen.tsx` 142–143 (`isBlocked`) y de nuevo inline en `blockedCount` 146–148; `EntryPanel.tsx`
+99. Fix: un único helper (p. ej. en `utils/`) reutilizado por los tres puntos.
+
+#### 53.14 `FieldTooltip` con claves `fieldHelp` propias por campo (MEDIA)
+
+En `PropertyDefinitionEditor.tsx`, `hubspotName` (67) y `label` (74) usan ambos `properties.wizard.fieldHelp.selectProperty`;
+`type` (84) y `fieldType` (98) usan ambos `properties.wizard.fieldHelp.kind`. No existen claves `fieldHelp`
+propias para esos campos → ayuda contextual semánticamente errónea (incumple SPEC-0002 §18, patrón
+`<superficie>.fieldHelp.<campo>`). Fix: añadir claves `fieldHelp` dedicadas (`hubspotName`, `label`, `type`,
+`fieldType`) en los 7 locales (`es` canónico) y apuntar cada campo a la suya.
+
+#### 53.15 `startIcon` en botones con texto (MEDIA)
+
+Botones sin `startIcon` frente a sus vecinos con icono (norma SPEC-0002 §19): `PlanningMapActions.tsx` 246
+(cancelar), `GroupsModal.tsx` 158 (descartar), `OriginsModal.tsx` 92 (guardar campos). Componentes de SPEC-0016
+que no pasaron por el barrido de §19. Fix: `startIcon` según el mapeo verbo→icono (cancelar→`Close`,
+descartar→`Delete`, guardar→`Save`/`Add` según semántica).
+
+#### 53.16 `LoadingState` compartido en `EntryWizard` (MEDIA)
+
+`EntryWizard.tsx` 268 usa `<LinearProgress>` mientras el resto de superficies usa el `LoadingState` compartido
+(SPEC-0002 §17). Fix: sustituir por `LoadingState`.
+
+#### 53.17 Id temporal UUID en `OriginsModal` (MEDIA)
+
+`OriginsModal.tsx` 117 usa `id: \`o-${Date.now()}\`` (colisionable en el mismo ms) frente a `crypto.randomUUID()`
+en el resto (§51). Fix: `crypto.randomUUID()`.
+
+#### 53.18 Limpieza (BAJA)
+
+Ficheros muertos (stubs `export {}`): `store/mappings-store.ts`, `store/properties-store.ts`,
+`components/AddPropertyDialog.tsx`, `components/MappingDialog.tsx`, `components/PropertyPanel.tsx` → eliminar.
+`entries-store.load(projectId, objectType?)` ignora `objectType` (firma engañosa) → quitar el parámetro.
+`OriginsModal` no resetea el formulario al abrir → añadir `useEffect` de reset como en los demás diálogos.
+Fallback de error heterogéneo (`'Error desconocido'` literal en `entries-store.ts` 82 vs `t('common.loadError')`
+vs `''`) → unificar en `common.loadError`. `text.secondary` vs `text.primary` en captions de `OptionsDialog`/
+`SourceOptionsDialog` → alinear con los hermanos (`text.primary`). Keys por índice en `PlanningMapActions.tsx`
+196/212/231 → keys estables.
+
+### 53.19 Estado y plan
+
+BORRADOR (2026-07-08). Al validar: implementar por severidad (alta → media → baja), un commit por bloque
+coherente, sin modificar tests ya aprobados sin acuerdo previo (SPEC-0000 §8). Cambios con impacto en contrato
+MCP (53.2, 53.3, 53.5, 53.7) requieren rebuild del MCP; los de i18n (53.14) tocan los 7 locales. `typecheck`/
+`test:unit`/`e2e` en la máquina del usuario tras cada bloque. Sin cambios funcionales visibles salvo la corrección
+de tooltips (53.14) y de errores en la UI (53.11).
+
+## 54. Limitaciones en ejecución — alta masiva LNN (BORRADOR, 2026-07-08)
+
+Origen: informe `revopshelper_limitaciones.md` (2026-07-08), detectado durante un alta masiva de 59 propiedades en
+sandbox (migración Pipedrive → HubSpot, proyecto LNN, sobre products/companies/deals/contacts). Se excluye lo
+relativo a scopes/permisos (H6 diferido, SPEC-0005 §18). Estado global **BORRADOR**: pendiente de validación e
+implementación. Complementa §37/§38 (reconciliación contra producción) y §42 (batch).
+
+### 54.1 `changeId` efímeros: reconcile regenera ids y flags en cada sync (ALTA) — puntos 1 y 2 del informe
+
+**Síntoma.** `properties_apply_change` responde `{"success":false,"error":"Cambio no encontrado"}` con un
+`changeId` leído momentos antes; un lote entero de `apply` falla si hay cualquier lectura/escritura intermedia.
+
+**Causa raíz (verificada).** `reconcileEntries` (`reconcile.ts` 47–108) reconstruye `pendingChanges` **desde cero**
+en cada `syncHubspot`: `buildCreateChange`/`diffDefinition`/`buildDeleteChange` (`pending-changes.ts`) generan un
+`id` nuevo con `deps.newId()` y `createdAt` nuevo cada vez, y `syncHubspot` los sustituye por completo. No se
+preservan ni el `id` ni los flags del cambio equivalente anterior. Cualquier `properties_sync` (y cualquier flujo
+que resincronice al leer) invalida todos los `changeId` previos, incluidos los de otros objetos.
+
+**Fix.** Preservar la identidad del cambio entre reconciliaciones: derivar un `changeId` **estable** de
+`entryId + operation` (determinista, no `newId()`), o casar el cambio recién reconciliado con el existente
+(mismo `entryId`+`operation`) y conservar su `id`/`createdAt`/flags. Alternativa aditiva: aceptar
+`entryId + operation + environment` en `properties_apply_change`. Unificar el generador entre `entries_list` y
+`properties_pending_changes` para que devuelvan el mismo `id` (el informe observó divergencia entre ambos
+endpoints; reproducir y confirmar durante la implementación, dado que ambas rutas leen del store).
+
+### 54.2 `apply` por lote / apply-all (MEDIA-ALTA) — punto 3 del informe
+
+**Síntoma.** Aplicar 59 propiedades exige 59 llamadas a `properties_apply_change`, cada una con un `changeId`
+efímero; combinado con 54.1 obliga al patrón «leer el objeto y aplicar todo en el mismo bloque, sin llamadas
+intermedias».
+
+**Causa.** Solo existe aplicación unitaria por `changeId`. §42 añadió batch para upsert/delete/discard, pero **no**
+para apply.
+
+**Fix.** `properties_apply_batch` (lista de `changeId` o de `entryId`+`operation`) y/o un apply-all por
+`objectType`/entorno que resuelva los ids internamente en el mismo paso que aplica (evita la carrera con la
+regeneración de 54.1). Devuelve `{ results: [{ ref, ok, error? }] }`, un fallo por ítem no aborta el lote (patrón
+§42).
+
+### 54.3 `appliedToSandbox` no se persiste ni se refleja (ALTA) — punto 4 del informe
+
+**Síntoma.** Tras 59 `apply` en sandbox con `{"success":true}`, `properties_pending_changes` sigue devolviendo
+`appliedToSandbox:false` y la UI los muestra como no aplicados. `hubspot_properties_list` (entorno activo)
+confirma que las propiedades sí existen en sandbox.
+
+**Causa raíz (verificada).** Dos efectos combinados: (a) `applyChange` marca el flag con `markApplied` sobre el
+cambio persistido (`pending-changes.ts` 203–212, conserva el `id`), **pero** (b) el siguiente `syncHubspot`
+reconcilia contra **producción** (§37) donde la propiedad no existe, así que `reconcileEntries` regenera un
+`create` fresco con `appliedToSandbox:false` y descarta el flag. El estado «existe en sandbox» y «existe en
+producción» no están separados.
+
+**Fix.** Al reconciliar, casar el cambio con el existente y **preservar** `appliedToSandbox`/`appliedToProduction`
+(depende de 54.1). Separar en el modelo y en la vista el estado por entorno: «existe en sandbox» vs «existe en
+producción». Reflejar los flags en la UI de cambios pendientes y en `properties_pending_changes`. Respeta la
+intención de §37 (el estado canónico sigue siendo producción) pero no pierde el progreso en sandbox.
+
+### 54.4 Acuse de `revops_guidance` por sesión (MEDIA) — punto 5 del informe
+
+**Síntoma.** Escrituras bloqueadas con `{"blocked":true,"reason":"guidance-required"}` a mitad de flujo tras un
+reinicio/reconexión del servidor MCP, sin aviso previo.
+
+**Causa.** El acuse de la guía es por sesión MCP (SPEC-0005 §15/§18); al reconectar se rearma el bloqueo.
+
+**Fix (coordinar con SPEC-0005).** Mantener el acuse mientras el proyecto esté activo, o degradar a advertencia
+no bloqueante tras el primer acuse; el `message` del error debe indicar explícitamente que la causa es un
+reinicio de sesión (amplía la transparencia de SPEC-0005 §15.11). Al ser transversal al gate, la decisión de
+modelo vive en SPEC-0005; esta subsección registra el impacto en propiedades.
+
+### 54.5 `properties_pending_changes` sin filtro ni paginación (MEDIA) — punto 6 del informe
+
+**Síntoma.** Cada llamada devuelve el proyecto completo (decenas de cambios con `payload`/`options` extensos).
+
+**Causa (verificada).** El `inputSchema` de `properties_pending_changes` es `{}` (`mcp-tools.ts` 157): sin
+`objectType` ni paginación.
+
+**Fix.** Añadir `objectType` (filtro) y paginación (`limit`/`offset` o cursor), en línea con `entries_list`.
+Reduce el volumen y mitiga 54.1 (menos payload por consulta).
+
+### 54.6 Estado y relación con §53
+
+BORRADOR (2026-07-08). Prioridad del informe: 54.1 y 54.3 (Alta) primero — comparten la misma raíz (reconcile
+regenera en vez de preservar), por lo que se abordan juntas; luego 54.2 (Media-Alta), y 54.4/54.5 (Media). 54.1
+y 54.3 tienen impacto directo en el contrato del store de cambios pendientes y en §37/§38: al implementarlas hay
+que revisar que los tests de `reconcile`/`service`/`pending-changes` reflejen la preservación de ids/flags (no
+modificar tests aprobados sin acuerdo, SPEC-0000 §8). Cambios en tools (54.2, 54.5) requieren rebuild del MCP.
+Sin solape con §53 salvo que 54.5 refuerza la ergonomía que también toca 53.5/53.7.
