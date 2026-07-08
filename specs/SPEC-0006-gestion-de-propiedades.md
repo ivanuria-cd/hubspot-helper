@@ -2307,3 +2307,51 @@ y 54.3 tienen impacto directo en el contrato del store de cambios pendientes y e
 que revisar que los tests de `reconcile`/`service`/`pending-changes` reflejen la preservación de ids/flags (no
 modificar tests aprobados sin acuerdo, SPEC-0000 §8). Cambios en tools (54.2, 54.5) requieren rebuild del MCP.
 Sin solape con §53 salvo que 54.5 refuerza la ergonomía que también toca 53.5/53.7.
+
+### 54.7 Diseño de implementación del bloque 54.1 + 54.3 (opción 3, aprobado 2026-07-08)
+
+Enfoque elegido: **casar y preservar** en la reconciliación **+** aceptar referencia lógica (`entryId + operation`)
+en `properties_apply_change`. Núcleo del cambio en `reconcile.ts` y `service.ts`; extensión aditiva en la tool de
+apply.
+
+**Clave de identidad de un cambio.** `(entryId, operation)` es única dentro de los `pendingChanges` de una
+entrada: `diffDefinition` emite como máximo un cambio por cada `operation` (`update_label`, `update_field_type`,
+`update_options`, `update_attributes`), y `create`/`delete` aparecen solos. Por tanto la pareja identifica el
+cambio de forma estable entre reconciliaciones.
+
+**54.7.1 Preservación en reconcile (resuelve 54.1 y 54.3).**
+`reconcileEntries` ya recibe las entradas con sus `pendingChanges` previos (los ignora hoy). Nuevo paso: tras
+construir la lista fresca de cambios de una entrada, casar cada cambio con el previo por `(entryId, operation)` y,
+si existe, conservar `id`, `createdAt`, `appliedToSandbox` y `appliedToProduction`, refrescando solo `payload` y
+`summary`. Si no existe previo, se crea con `newId()`/`now()` (comportamiento actual). Helper puro
+`preserveIdentity(fresh: HsPropertyChange[], previous: HsPropertyChange[]): HsPropertyChange[]` en
+`pending-changes.ts` (testeable de forma aislada); `reconcile.ts` lo aplica por entrada. Las funciones `build*` no
+cambian su firma.
+
+**54.7.2 `properties_apply_change` por referencia lógica (blinda el apply masivo).**
+El `inputSchema` acepta **o** `changeId` (actual) **o** `{ entryId, operation }`; `environment` sigue igual.
+`service.applyChange` resuelve el cambio: si llega `changeId`, como ahora; si llega `entryId + operation`, localiza
+el cambio en `entry.pendingChanges` por esa pareja. El resto de `applyChange` (ensureGroup, create/patch/delete,
+`markApplied`, relectura del store §47, absorción de «already exists» §38) no cambia. Validación: exactamente una
+de las dos formas de referencia; error `invalid-input` si faltan/sobran (SPEC-0005 §18).
+
+**54.7.3 Reflejo del estado por entorno (completa 54.3 en la UI).**
+Con los flags ya preservados, `properties_pending_changes` los expone sin cambios (devuelve `...change`). La UI de
+cambios pendientes (`PendingChangesView`/`PropertyManagementScreen`) muestra por cambio el estado por entorno
+(«aplicado en sandbox» / «aplicado en producción») en vez de un binario. No se altera §37 (el estado
+exists/missing/divergent de la entrada se sigue reconciliando contra producción); solo se distingue el progreso de
+aplicación por entorno a nivel de cambio. Claves i18n nuevas para las etiquetas de entorno en los 7 locales.
+
+**54.7.4 Tests.**
+Nuevos casos: `pending-changes.spec.ts` para `preserveIdentity` (casa por operación, conserva id/flags, crea id
+nuevo si no hay previo); `reconcile.spec.ts` (un segundo sync conserva ids y `appliedToSandbox`); `service.spec.ts`
+(`applyChange` por `entryId+operation`; un create aplicado a sandbox no revierte a `appliedToSandbox:false` tras
+re-sync); `mcp-tools.spec.ts` (schema con las dos formas de referencia + `invalid-input`). Los tests existentes que
+asuman regeneración de id en cada sync (si los hay) se revisan con acuerdo previo (SPEC-0000 §8) por reflejar el
+comportamiento antiguo/defectuoso.
+
+**54.7.5 Alcance y estado.**
+BORRADOR — pendiente de validación para pasar a código. Requiere rebuild de la app/MCP (cambia el `inputSchema` de
+`properties_apply_change` y el modelo de cambios). Sin migración de datos: los `changeId` persistidos siguen siendo
+válidos (se preservan, no se recalculan). `typecheck`/`test:unit`/`e2e` en la máquina del usuario. Al implementar,
+54.1 y 54.3 pasan a IMPLEMENTADO y se actualiza la fila de SPEC-0006 en `CLAUDE.md`.
