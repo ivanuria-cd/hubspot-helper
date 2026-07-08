@@ -58,10 +58,10 @@ type HubSpotFormType = 'hubspot' | 'captured' | 'flow' | 'blog_comment';
 
 // Campo de un formulario, tal como llega de HubSpot (subconjunto relevante).
 interface FormField {
-  objectTypeId: string;     // p.ej. '0-1' (contacts)
-  name: string;             // nombre técnico de la propiedad HubSpot
+  objectTypeId: string; // p.ej. '0-1' (contacts)
+  name: string; // nombre técnico de la propiedad HubSpot
   label: string;
-  fieldType: string;        // tipo de campo de formulario (single_line_text, dropdown, ...)
+  fieldType: string; // tipo de campo de formulario (single_line_text, dropdown, ...)
   required: boolean;
   hidden: boolean;
 }
@@ -80,16 +80,16 @@ interface HubSpotForm {
   fieldGroups: FormFieldGroup[];
   updatedAt: string;
   // Derivados por la app:
-  objectTypes: string[];    // objetos (SPEC-0006) presentes en los campos
-  fieldNames: string[];     // nombres de propiedad presentes (por objeto)
+  objectTypes: string[]; // objetos (SPEC-0006) presentes en los campos
+  fieldNames: string[]; // nombres de propiedad presentes (por objeto)
 }
 
 // Asociación formulario ↔ orígenes (estado local del proyecto).
 interface FormOriginLink {
-  id: string;               // uuid
-  formId: string;           // ref a HubSpotForm.id
-  originIds: string[];      // refs a DataOrigin.id (SPEC-0006); uno o varios
-  objectType: string;       // objeto HubSpot contra el que se evalúa la cobertura
+  id: string; // uuid
+  formId: string; // ref a HubSpotForm.id
+  originIds: string[]; // refs a DataOrigin.id (SPEC-0006); uno o varios
+  objectType: string; // objeto HubSpot contra el que se evalúa la cobertura
   createdAt: string;
 }
 
@@ -97,10 +97,10 @@ interface FormOriginLink {
 type FieldCoverageStatus = 'present' | 'missing';
 
 interface FieldCoverageItem {
-  hubspotName: string;      // propiedad destino esperada por el origen
+  hubspotName: string; // propiedad destino esperada por el origen
   label: string;
   objectType: string;
-  fieldType: string;        // tipo de campo de formulario propuesto (mapeado)
+  fieldType: string; // tipo de campo de formulario propuesto (mapeado)
   status: FieldCoverageStatus;
 }
 
@@ -119,9 +119,9 @@ type FormChangeOperation = 'create_form' | 'add_fields' | 'update_field';
 
 interface FormChange {
   id: string;
-  formId?: string;          // ausente en create_form hasta aplicarse
+  formId?: string; // ausente en create_form hasta aplicarse
   operation: FormChangeOperation;
-  payload: unknown;         // body para POST/PATCH /marketing/v3/forms
+  payload: unknown; // body para POST/PATCH /marketing/v3/forms
   appliedToSandbox: boolean;
   appliedToProduction: boolean;
   createdAt: string;
@@ -135,7 +135,7 @@ interface NewFormDefinition {
   fields: Array<{
     hubspotName: string;
     label: string;
-    fieldType: string;      // mapeado desde el fieldType de la propiedad
+    fieldType: string; // mapeado desde el fieldType de la propiedad
     required: boolean;
     hidden: boolean;
   }>;
@@ -147,7 +147,7 @@ interface NewFormDefinition {
 ### Mapeo de tipo de campo (propiedad HubSpot → campo de formulario)
 
 | `fieldType` de propiedad (SPEC-0006) | `fieldType` de formulario |
-|--------------------------------------|---------------------------|
+| ------------------------------------ | ------------------------- |
 | `text`                               | `single_line_text`        |
 | `textarea`                           | `multi_line_text`         |
 | `number`                             | `number`                  |
@@ -194,6 +194,7 @@ CRM
 ```
 
 Indicadores de cobertura:
+
 - `● completo` — badge lima (todos los campos del/los origen(es) están en el formulario).
 - `⚠ faltan N` — badge gris con icono (faltan N campos definidos por el origen).
 - `— sin origen` — badge gris oscuro (formulario sin asociar a ningún origen).
@@ -222,20 +223,20 @@ Análoga a SPEC-0006 §5: lista de operaciones (`create_form`, `add_fields`, `up
 
 ## 5. IPC Channels
 
-| Canal | Dirección | Input | Output |
-|-------|-----------|-------|--------|
-| `forms:list` | renderer → main | `{ projectId }` | `HubSpotForm[]` |
-| `forms:sync-hubspot` | renderer → main | `{ projectId, includeLegacyV2? }` | `{ imported: number, updated: number }` |
-| `forms:get` | renderer → main | `{ projectId, formId }` | `HubSpotForm` |
-| `forms:create-definition` | renderer → main | `{ projectId, definition }` | `FormChange` (op `create_form`) |
-| `forms:coverage` | renderer → main | `{ projectId, formId, originId? }` | `FormCoverageReport[]` |
-| `forms:add-missing-fields` | renderer → main | `{ projectId, formId, originId }` | `FormChange` (op `add_fields`) |
-| `forms:apply-change` | renderer → main | `{ projectId, changeId, environment }` | `{ success, formId?, error? }` |
-| `forms:discard-change` | renderer → main | `{ projectId, changeId }` | `{ success }` |
-| `form-links:list` | renderer → main | `{ projectId }` | `FormOriginLink[]` |
-| `form-links:upsert` | renderer → main | `{ projectId, link }` | `FormOriginLink` |
-| `form-links:delete` | renderer → main | `{ projectId, linkId }` | `{ success }` |
-| `forms:write-sheets` | renderer → main | `{ projectId }` | `{ success, spreadsheetId?, error? }` |
+| Canal                      | Dirección       | Input                                  | Output                                  |
+| -------------------------- | --------------- | -------------------------------------- | --------------------------------------- |
+| `forms:list`               | renderer → main | `{ projectId }`                        | `HubSpotForm[]`                         |
+| `forms:sync-hubspot`       | renderer → main | `{ projectId, includeLegacyV2? }`      | `{ imported: number, updated: number }` |
+| `forms:get`                | renderer → main | `{ projectId, formId }`                | `HubSpotForm`                           |
+| `forms:create-definition`  | renderer → main | `{ projectId, definition }`            | `FormChange` (op `create_form`)         |
+| `forms:coverage`           | renderer → main | `{ projectId, formId, originId? }`     | `FormCoverageReport[]`                  |
+| `forms:add-missing-fields` | renderer → main | `{ projectId, formId, originId }`      | `FormChange` (op `add_fields`)          |
+| `forms:apply-change`       | renderer → main | `{ projectId, changeId, environment }` | `{ success, formId?, error? }`          |
+| `forms:discard-change`     | renderer → main | `{ projectId, changeId }`              | `{ success }`                           |
+| `form-links:list`          | renderer → main | `{ projectId }`                        | `FormOriginLink[]`                      |
+| `form-links:upsert`        | renderer → main | `{ projectId, link }`                  | `FormOriginLink`                        |
+| `form-links:delete`        | renderer → main | `{ projectId, linkId }`                | `{ success }`                           |
+| `forms:write-sheets`       | renderer → main | `{ projectId }`                        | `{ success, spreadsheetId?, error? }`   |
 
 `forms:list` devuelve el inventario local; `forms:sync-hubspot` lo refresca desde HubSpot. La aplicación de cambios pasa por `forms:apply-change` (nunca por MCP).
 
@@ -245,25 +246,25 @@ Análoga a SPEC-0006 §5: lista de operaciones (`create_form`, `add_fields`, `up
 
 Todas las capacidades del SPEC se exponen como tools MCP (SPEC-0005). Las de escritura solo **preparan** cambios pendientes; la aplicación en HubSpot sigue requiriendo confirmación humana en la UI (`forms:apply-change` no se expone como tool).
 
-| Tool | Descripción | requiredScopes |
-|------|-------------|----------------|
-| `forms_list` | Lista los formularios del proyecto (tipo, objeto, nº de campos, cobertura) | `forms` |
-| `forms_get` | Detalle de un formulario por id (campos y orígenes asociados) | `forms` |
-| `forms_sync` | Importa/actualiza los formularios desde HubSpot (legacy y nueva) | `forms` |
-| `forms_coverage` | Informe de cobertura de un formulario frente a su(s) origen(es) | `forms` |
-| `forms_link_origin` | Asocia un formulario a uno o varios orígenes (estado local) | — |
-| `forms_create_definition` | Prepara un cambio pendiente para crear un formulario (solo campos) | `forms` |
-| `forms_add_missing_fields` | Prepara un cambio pendiente que añade los campos que faltan de un origen | `forms` |
-| `forms_pending_changes` | Lista los cambios pendientes de aplicar en HubSpot | — |
+| Tool                       | Descripción                                                                | requiredScopes |
+| -------------------------- | -------------------------------------------------------------------------- | -------------- |
+| `forms_list`               | Lista los formularios del proyecto (tipo, objeto, nº de campos, cobertura) | `forms`        |
+| `forms_get`                | Detalle de un formulario por id (campos y orígenes asociados)              | `forms`        |
+| `forms_sync`               | Importa/actualiza los formularios desde HubSpot (legacy y nueva)           | `forms`        |
+| `forms_coverage`           | Informe de cobertura de un formulario frente a su(s) origen(es)            | `forms`        |
+| `forms_link_origin`        | Asocia un formulario a uno o varios orígenes (estado local)                | —              |
+| `forms_create_definition`  | Prepara un cambio pendiente para crear un formulario (solo campos)         | `forms`        |
+| `forms_add_missing_fields` | Prepara un cambio pendiente que añade los campos que faltan de un origen   | `forms`        |
+| `forms_pending_changes`    | Lista los cambios pendientes de aplicar en HubSpot                         | —              |
 
 ---
 
 ## 7. Scopes HubSpot Necesarios
 
-| Scope | Motivo |
-|-------|--------|
-| `forms` | Leer, crear y actualizar formularios (Marketing Forms API v3) |
-| `crm.schemas.contacts.read` | Resolver propiedades destino y objetos para la cobertura (ya activo por SPEC-0006) |
+| Scope                            | Motivo                                                                                                                                                                                                                                                         |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `forms`                          | Leer, crear y actualizar formularios (Marketing Forms API v3)                                                                                                                                                                                                  |
+| `crm.schemas.contacts.read`      | Resolver propiedades destino y objetos para la cobertura (ya activo por SPEC-0006)                                                                                                                                                                             |
 | `communication_preferences.read` | Listar los tipos de suscripción del portal para el consentimiento legal (Subscription Preferences API, §24; `forms_subscription_types`). Sin él, HubSpot devuelve `403`. Documentado a nivel usuario en `doc/tutoriales/hubspot/<locale>/crear-private-app.md` |
 
 > Los scopes se activan en la Private App de HubSpot. Como recoge SPEC-0003, los scopes de un PAT no se pueden leer vía API; si falta `forms`, HubSpot devolverá `403` en la operación concreta y la app lo propagará al usuario.
@@ -291,6 +292,7 @@ Todas las capacidades del SPEC se exponen como tools MCP (SPEC-0005). Las de esc
 ## 9. Tests Requeridos
 
 ### Unitarios (Vitest)
+
 - `coverage.spec.ts` — un formulario al que le faltan propiedades del origen reporta `missing` correctamente; uno completo reporta todo `present`; la comparación es por `objectType + name`.
 - `field-map.spec.ts` — cada `fieldType` de propiedad mapea al `fieldType` de formulario esperado; los no contemplados caen a `single_line_text`.
 - `pending-changes.spec.ts` — `add_fields` genera un PATCH con solo los campos que faltan; `create_form` genera un POST con `formType: hubspot` y los campos definidos; los cambios se marcan aplicados al recibir OK.
@@ -307,14 +309,14 @@ Todas las capacidades del SPEC se exponen como tools MCP (SPEC-0005). Las de esc
 
 Tutoriales a crear en `doc/tutoriales/formularios/`:
 
-| Fichero | Tarea que describe |
-|---------|-------------------|
-| `importar-formularios.md` | Cómo sincronizar e importar los formularios existentes (legacy y nueva herramienta) y qué significa cada tipo (`hubspot`/`captured`/`flow`/`blog_comment`) |
-| `asociar-formulario-a-origen.md` | Cómo asociar un formulario a uno o varios orígenes y para qué sirve la asociación |
-| `revisar-cobertura.md` | Cómo leer el informe de cobertura y entender los estados (`completo`/`faltan N`/`sin origen`) |
-| `anadir-campos-en-bloque.md` | Cómo añadir de una vez los campos que el origen exige y que faltan en el formulario |
-| `crear-formulario.md` | Cómo crear un formulario nuevo definiendo solo sus campos a partir de un origen |
-| `sincronizar-formularios-hubspot.md` | Cómo revisar los cambios pendientes y aplicarlos primero en sandbox y luego en producción |
+| Fichero                              | Tarea que describe                                                                                                                                         |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `importar-formularios.md`            | Cómo sincronizar e importar los formularios existentes (legacy y nueva herramienta) y qué significa cada tipo (`hubspot`/`captured`/`flow`/`blog_comment`) |
+| `asociar-formulario-a-origen.md`     | Cómo asociar un formulario a uno o varios orígenes y para qué sirve la asociación                                                                          |
+| `revisar-cobertura.md`               | Cómo leer el informe de cobertura y entender los estados (`completo`/`faltan N`/`sin origen`)                                                              |
+| `anadir-campos-en-bloque.md`         | Cómo añadir de una vez los campos que el origen exige y que faltan en el formulario                                                                        |
+| `crear-formulario.md`                | Cómo crear un formulario nuevo definiendo solo sus campos a partir de un origen                                                                            |
+| `sincronizar-formularios-hubspot.md` | Cómo revisar los cambios pendientes y aplicarlos primero en sandbox y luego en producción                                                                  |
 
 Se muestran automáticamente en la sección **Ayuda** (SPEC-0002), clave i18n `help.features.forms`.
 
@@ -331,28 +333,28 @@ Se muestran automáticamente en la sección **Ayuda** (SPEC-0002), clave i18n `h
 
 ## 12. Alcance — qué hace y qué NO toca
 
-| Hace | No toca |
-|------|---------|
-| Importar formularios (v3; v2 legacy opcional, solo lectura) | No edita estilos, pasos, lógica condicional, consentimiento legal ni acciones post-envío |
-| Crear formularios `hubspot` definiendo solo campos | No crea propiedades ni objetos (eso es SPEC-0006 / SPEC-0007) |
-| Asociar formularios a orígenes (SPEC-0006) y revisar cobertura | No define ni edita orígenes ni entradas de propiedades (SPEC-0006) |
-| Añadir en bloque los campos que faltan; sincronizar vía cambios pendientes | No borra formularios; no gestiona envíos/submissions |
+| Hace                                                                       | No toca                                                                                  |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Importar formularios (v3; v2 legacy opcional, solo lectura)                | No edita estilos, pasos, lógica condicional, consentimiento legal ni acciones post-envío |
+| Crear formularios `hubspot` definiendo solo campos                         | No crea propiedades ni objetos (eso es SPEC-0006 / SPEC-0007)                            |
+| Asociar formularios a orígenes (SPEC-0006) y revisar cobertura             | No define ni edita orígenes ni entradas de propiedades (SPEC-0006)                       |
+| Añadir en bloque los campos que faltan; sincronizar vía cambios pendientes | No borra formularios; no gestiona envíos/submissions                                     |
 
 ---
 
 ## 13. Criterios de Aceptación
 
-- [x] Se importan los formularios existentes (legacy y nueva herramienta) y se clasifican por tipo. *(conector v3 + legacy v2; tipo derivado)*
-- [x] Un formulario se puede asociar a uno o varios orígenes (estado local). *(`FormOriginLink` + `form-links:*`)*
-- [x] El informe de cobertura detecta correctamente los campos presentes y los que faltan respecto al origen, por objeto. *(`coverage.ts` + tests)*
-- [x] «Añadir campos que faltan» genera un cambio pendiente que solo añade los campos ausentes. *(`buildAddFieldsChange` + test)*
-- [x] El asistente «+ Formulario» crea un formulario definiendo únicamente campos, generando un cambio pendiente. *(`NewFormWizard` + `create_form`)*
-- [x] Ningún cambio se aplica en HubSpot sin confirmación; se puede aplicar en sandbox antes que en producción. *(`applyChange` por entorno; tool apply no expuesta)*
-- [x] Las ocho herramientas MCP están disponibles y devuelven datos correctos; las de escritura solo preparan cambios pendientes. *(`mcp-tools.ts`)*
-- [x] El volcado a Google Sheets funciona best-effort (con Drive conectado) y no rompe el flujo si falta. *(`forms:write-sheets` vía `gdrive.writeSpreadsheet`)*
-- [~] Todos los tests del SPEC en verde. *(31 unitarios en verde; e2e Playwright pendiente de ejecutar en máquina con build/portal)*
+- [x] Se importan los formularios existentes (legacy y nueva herramienta) y se clasifican por tipo. _(conector v3 + legacy v2; tipo derivado)_
+- [x] Un formulario se puede asociar a uno o varios orígenes (estado local). _(`FormOriginLink` + `form-links:_`)\*
+- [x] El informe de cobertura detecta correctamente los campos presentes y los que faltan respecto al origen, por objeto. _(`coverage.ts` + tests)_
+- [x] «Añadir campos que faltan» genera un cambio pendiente que solo añade los campos ausentes. _(`buildAddFieldsChange` + test)_
+- [x] El asistente «+ Formulario» crea un formulario definiendo únicamente campos, generando un cambio pendiente. _(`NewFormWizard` + `create_form`)_
+- [x] Ningún cambio se aplica en HubSpot sin confirmación; se puede aplicar en sandbox antes que en producción. _(`applyChange` por entorno; tool apply no expuesta)_
+- [x] Las ocho herramientas MCP están disponibles y devuelven datos correctos; las de escritura solo preparan cambios pendientes. _(`mcp-tools.ts`)_
+- [x] El volcado a Google Sheets funciona best-effort (con Drive conectado) y no rompe el flujo si falta. _(`forms:write-sheets` vía `gdrive.writeSpreadsheet`)_
+- [~] Todos los tests del SPEC en verde. _(31 unitarios en verde; e2e Playwright pendiente de ejecutar en máquina con build/portal)_
 - [x] Los seis tutoriales de usuario están creados en `doc/tutoriales/formularios/`.
-- [ ] PR creada, revisada y mergeada en `main`. *(pendiente: comandos entregados al usuario)*
+- [ ] PR creada, revisada y mergeada en `main`. _(pendiente: comandos entregados al usuario)_
 
 ---
 
@@ -400,7 +402,7 @@ Bitácora de cambios durante la implementación (SPEC-0000: cada iteración sobr
 - **2026-06-16 — Causa raíz e2e (resuelta):** NO era un crash. Un test de diagnóstico temporal (capturando `pageerror`/console) mostró cero errores de renderer; el botón «Propiedades» simplemente no existía. Captura de pantalla del usuario: la sidebar del build en ejecución mostraba solo Dashboard/CRM/Mapas/Reporting (sin Propiedades/Objetos/Formularios) → **`out/` estaba obsoleto**. `npm run build` (`typecheck && electron-vite build`) abortaba en el error de tipo de `NewFormWizard` (ya corregido), por lo que el bundle nunca se actualizó y los e2e corrían contra una build vieja. Acción: **reconstruir** (`npm run build`) y re-ejecutar `npm run test:e2e`. `nav-items.ts` actual ya incluye Propiedades/Objetos/Formularios/Mapas/Reporting. Test de diagnóstico borrado. (`new-form`/`forms-flow`/`link-origin` siguen en `test.fixme`: requieren setup de propiedades con grupo —que necesita portal— y/o formularios reales del portal.)
 - **2026-06-16 — e2e tras reconstruir:** con `out/` actualizado, los e2e de SPEC-0006 fallaban por dos erratas de test latentes (afloran ahora que la sidebar trae «Propiedades»): (1) `getByRole('button', { name: 'Propiedad' })` casaba por subcadena con «Propiedad**es**» (sidebar) → se añade `exact: true` en `export-json` y `properties-flow` (y, preventivamente, en `new-form` para `Propiedad`/`Formulario`); (2) `export-json` esperaba `schema_version` 1 pero el contrato es **2** (`origin-export.ts`) → aserción actualizada a 2. Son cambios de tests funcionales (no de los unitarios protegidos por §0000.8), no de comportamiento. `origin-crud` no pulsa el botón singular, así que pasa sin cambios.
 - **2026-06-16 — e2e SPEC-0006 vs rediseño §16 (autorizado por el usuario «toca los tests/UI»):** tras el fix de selector, `export-json`/`properties-flow` se colgaban porque buscaban el diálogo antiguo de «Añadir propiedad» (campos «Nombre técnico (HubSpot)»/«Etiqueta», botón «Crear»), pero el rediseño §16 lo sustituyó por el `EntryWizard` (modo Existente/Nueva, botón «Guardar»). Además, el wizard no permitía guardar sin portal porque exigía **grupo** (de `groupsList`).
-  - **UI (SPEC-0006):** `EntryWizard.canSubmit` ya **no exige `groupName`** en modo «Nueva» (la entrada local se guarda con nombre técnico + etiqueta; el grupo se resuelve antes de aplicar en HubSpot). Cambio mínimo para permitir creación sin portal. *(Debería reflejarse en SPEC-0006; queda anotado aquí por haberse hecho desde SPEC-0008.)*
+  - **UI (SPEC-0006):** `EntryWizard.canSubmit` ya **no exige `groupName`** en modo «Nueva» (la entrada local se guarda con nombre técnico + etiqueta; el grupo se resuelve antes de aplicar en HubSpot). Cambio mínimo para permitir creación sin portal. _(Debería reflejarse en SPEC-0006; queda anotado aquí por haberse hecho desde SPEC-0008.)_
   - **Tests (SPEC-0006):** `properties-flow` y `export-json` reescritos al flujo del wizard (rellenar «Nombre de la propiedad», toggle «Nueva», nombre técnico + etiqueta, y en export añadir fuente —con un único origen el asistente lo autoselecciona—, «Guardar»). Aserciones actualizadas: badge «✕ falta» (i18n `status.missing`=«falta») y región `role=region`/`aria-label="Definición"` del panel.
   - **Requiere reconstruir** (`npm run build`) por el cambio de UI antes de re-ejecutar e2e.
 - **2026-06-16 — Descargas (export JSON):** tras crear la propiedad, `export-json` se bloqueaba en el **diálogo nativo de guardar** (Playwright no puede cerrar diálogos del SO) porque `main` no gestionaba descargas. Añadido en `main/index.ts` un `configureDownloads()` (`session.defaultSession.on('will-download', …)` con `item.setSavePath(join(app.getPath('downloads'), filename))`) que guarda en Descargas sin preguntar — quita fricción al export y desbloquea el test. `properties-flow`: el assert de cambios pendientes se apunta al encabezado del panel (`getByRole('heading', { name: 'Cambios pendientes' })`) para evitar el match múltiple (botón toolbar + encabezado + «Sin cambios pendientes»). **Requiere reconstruir.**
@@ -435,11 +437,11 @@ unifican la UI y se añade la carga desde Drive.
   HubSpot. El handler de escritura escribe además el Doc de estado y llama `service.markDriveWritten`.
 - Las erratas de claves/etiquetas se conservan verbatim (SPEC-0000).
 
-### 15.3 Estado *dirty* y modal
+### 15.3 Estado _dirty_ y modal
 
 - El store de formularios expone `lastWrittenAt` y el timestamp del último cambio local (alta de
-  formulario, asociación a origen, añadir campos). `useDriveDoc` calcula *dirty*; al salir de la pantalla
-  con *dirty* se muestra `DriveDirtyGuard`. La preferencia «no volver a preguntar» se persiste por proyecto.
+  formulario, asociación a origen, añadir campos). `useDriveDoc` calcula _dirty_; al salir de la pantalla
+  con _dirty_ se muestra `DriveDirtyGuard`. La preferencia «no volver a preguntar» se persiste por proyecto.
 
 ### 15.4 Tests
 
@@ -506,7 +508,6 @@ Hallazgos de la batería de pruebas del MCP `revops` sobre el proyecto «Testing
 - **Pendiente en máquina:** `npm run typecheck` y `npm run test:unit` (el clon al sandbox estaba corrupto;
   los originales se verificaron sanos).
 
-
 ---
 
 ## 17. Confirmación de descarte y feedback (IMPLEMENTADO, 2026-06-19)
@@ -514,9 +515,11 @@ Hallazgos de la batería de pruebas del MCP `revops` sobre el proyecto «Testing
 Origen: Informe UX 2026-06-19, hallazgos #2 y #1. En `FormPendingChangesView.tsx` se pueden descartar cambios pendientes sin confirmación; la sincronización no confirma resultado con toast.
 
 Adopción de SPEC-0002 §11 (ConfirmDialog):
+
 - Descartar cambio pendiente (`forms_discard_change`) → `confirm({ tone:'danger', ... })`.
 
 Adopción de SPEC-0002 §10 (Snackbar):
+
 - Tras sincronizar formularios: `notify` con resumen (éxito/error).
 
 Claves i18n nuevas: `forms.discardTitle/Body`, `forms.synced`, `forms.syncError` (cuatro locales).
@@ -539,11 +542,11 @@ Origen: al aplicar el cambio pendiente «Crear formulario "Aficiones"» HubSpot 
 
 Correcciones:
 
-| Propiedad HubSpot | Antes (inválido) | Ahora |
-|-------------------|------------------|-------|
-| `checkbox`        | `checkbox`       | `multiple_checkboxes` |
-| `booleancheckbox` | `booleancheckbox`| `single_checkbox` |
-| `date`            | `date`           | `datepicker` |
+| Propiedad HubSpot | Antes (inválido)  | Ahora                 |
+| ----------------- | ----------------- | --------------------- |
+| `checkbox`        | `checkbox`        | `multiple_checkboxes` |
+| `booleancheckbox` | `booleancheckbox` | `single_checkbox`     |
+| `date`            | `date`            | `datepicker`          |
 
 Ficheros tocados: tabla §3; `src/main/forms-management/field-map.ts`; su espejo `src/renderer/features/forms-management/components/NewFormWizard.tsx`; y el test `src/main/forms-management/field-map.spec.ts` (expectativas actualizadas). Pendiente en máquina: `npm run typecheck` y `npm run test:unit`.
 
@@ -551,7 +554,7 @@ Ficheros tocados: tabla §3; `src/main/forms-management/field-map.ts`; su espejo
 
 ## 20. Fix `validation` requerido en campos email (2026-06-19)
 
-Origen: tras corregir §19, al aplicar «Crear formulario "Aficiones"» HubSpot devolvía `Some required fields were not set: [validation]`, apuntando al campo `email`. La Marketing Forms API v3 exige un objeto `validation` en los campos `fieldType: "email"` (confirmado en la doc oficial *Create a form*, `POST /marketing/v3/forms`):
+Origen: tras corregir §19, al aplicar «Crear formulario "Aficiones"» HubSpot devolvía `Some required fields were not set: [validation]`, apuntando al campo `email`. La Marketing Forms API v3 exige un objeto `validation` en los campos `fieldType: "email"` (confirmado en la doc oficial _Create a form_, `POST /marketing/v3/forms`):
 
 ```json
 "validation": { "blockedEmailDomains": [], "useDefaultBlockList": false }
@@ -678,7 +681,7 @@ Pendiente en máquina: `npm run typecheck`, `npm run test:unit`, PR. **Requiere 
 
 ## 24. Consentimiento legal: privacyText y checkboxes (IMPLEMENTADO, 2026-06-19)
 
-Problema: al aplicar un formulario con `legalConsentOptions.type != none` HubSpot devuelve `Some required fields were not set: [privacyText]`. Confirmado en la doc (*Create a form*): para `explicit_consent_to_process` son **requeridos** `privacyText` (string) y `communicationsCheckboxes` (array; cada checkbox necesita un **id de tipo de suscripción válido** del portal); opcionales `consentToProcessText`, `communicationConsentText`, `consentToProcessCheckboxLabel`, `consentToProcessFooterText`. Los tipos `legitimate_interest`/`implicit_consent_to_process` tienen requisitos análogos. La Marketing Forms API **no expone** un endpoint con el texto de privacidad por defecto de la cuenta (la UI de HubSpot lo prerellena desde ajustes RGPD, pero no vía API).
+Problema: al aplicar un formulario con `legalConsentOptions.type != none` HubSpot devuelve `Some required fields were not set: [privacyText]`. Confirmado en la doc (_Create a form_): para `explicit_consent_to_process` son **requeridos** `privacyText` (string) y `communicationsCheckboxes` (array; cada checkbox necesita un **id de tipo de suscripción válido** del portal); opcionales `consentToProcessText`, `communicationConsentText`, `consentToProcessCheckboxLabel`, `consentToProcessFooterText`. Los tipos `legitimate_interest`/`implicit_consent_to_process` tienen requisitos análogos. La Marketing Forms API **no expone** un endpoint con el texto de privacidad por defecto de la cuenta (la UI de HubSpot lo prerellena desde ajustes RGPD, pero no vía API).
 
 Decisión (usuario): **ambas fuentes** — copiar de un formulario existente + editable en el wizard.
 
@@ -733,9 +736,10 @@ Pendiente en máquina: `npm run typecheck`, `npm run test:unit`, PR. **Requiere 
 
 ## 25. Campos requeridos en el cuerpo: archived/createdAt/updatedAt (IMPLEMENTADO, 2026-06-19)
 
-Origen: tras resolver §24, al aplicar «Aficiones» HubSpot devolvía `Some required fields were not set: [createdAt]`. La doc de *Create a form* marca `archived`, `createdAt` y `updatedAt` como **requeridos en el cuerpo** (POST/PATCH), y el builder no los enviaba (se trataban como solo-lectura). Los errores afloran de uno en uno: al limpiar tipos/validation/privacyText, surgió `createdAt`.
+Origen: tras resolver §24, al aplicar «Aficiones» HubSpot devolvía `Some required fields were not set: [createdAt]`. La doc de _Create a form_ marca `archived`, `createdAt` y `updatedAt` como **requeridos en el cuerpo** (POST/PATCH), y el builder no los enviaba (se trataban como solo-lectura). Los errores afloran de uno en uno: al limpiar tipos/validation/privacyText, surgió `createdAt`.
 
 Corrección:
+
 - `READONLY_FORM_KEYS` se reduce a `['id', 'archivedAt']` (gestionados por HubSpot); `createdAt`/`updatedAt`/`archived` ya **no** se eliminan.
 - Nueva función pura `ensureRequiredFormFields(payload, now)` que rellena `archived:false`/`createdAt`/`updatedAt` si faltan (sin pisar). La usa `buildCreateFormChange` y, en `service.applyChange`, se aplica al payload **antes** de `createForm`/`patchForm` — así también funcionan los cambios pendientes creados antes de este fix (p. ej. el «Aficiones» actual) sin re-editarlos.
 
@@ -748,6 +752,7 @@ Ficheros: `pending-changes.ts` (`ensureRequiredFormFields`, READONLY reducido, b
 Origen: al aplicar «Aficiones» (15 campos) HubSpot devolvía `There are too many fields in this group. A group should be no more than 3 fields.`. Construíamos los `fieldGroups` con **un único grupo** que contenía todos los campos; HubSpot limita cada grupo a **3**.
 
 Corrección:
+
 - `fieldGroupsFrom(fields)` reparte los campos en grupos de ≤3 (`MAX_FIELDS_PER_GROUP = 3`). Lo usan `buildCreateFormChange`, `applyEditsToFormPayload` (rutas `fields` y `fieldGroups`, que se aplanan y reparticionan), `buildUpdateFormChange` (fallback sin raw) y `buildAddFieldsChange` (campos nuevos).
 - `enforceGroupSize(payload)` reparticiona al vuelo en `service.applyChange` (create y update) si algún grupo supera 3, cubriendo también los cambios pendientes guardados antes de este fix (p. ej. el «Aficiones» actual) sin re-editarlos. Nota: aplanar puede fusionar grupos preexistentes de la UI de HubSpot; aceptable dado el límite y que la app no modela layout por grupos.
 
@@ -854,3 +859,11 @@ Del informe de revisión de código 2026-07-02, hallazgos 9.2 y 9.3.
   `forms.fieldTypes.*` como en propiedades.
 
 Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 33. Reconciliar al cambiar de entorno (PENDIENTE, prioridad BAJA)
+
+Análogo a **SPEC-0006 §37.8**: al cambiar el selector SANDBOX/Producción, `FormsManagementScreen` debería
+**reconciliar** (`sync`) contra el nuevo entorno activo, no solo recargar el estado local. Hoy el callback de
+`useHubspotEnvironmentChange` (`FormsManagementScreen.tsx:98`) llama a `load(projectId)` + `loadRefs(projectId)` +
+`loadSubscriptionTypes(projectId)`; tendría que llamar a `sync`. **No implementado**: prioridad BAJA, se abordará
+junto con el resto del tema de entornos.

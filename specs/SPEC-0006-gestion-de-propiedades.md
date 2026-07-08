@@ -1733,8 +1733,9 @@ resumen y los cambios pendientes se recalculan al vuelo al cambiar de entorno, s
 
 - `src/renderer/features/property-management/components/PropertyManagementScreen.tsx`: el callback de
   `useHubspotEnvironmentChange` pasa de `load` a `sync`.
-- El manejo de error/estado de carga del `sync` ya existe (`syncing` + §50). Alcance: solo Propiedades (Objetos y
-  Formularios conservan su comportamiento; se extenderá si se solicita).
+- El manejo de error/estado de carga del `sync` ya existe (`syncing` + §50). Alcance: solo Propiedades. El mismo
+  comportamiento para Objetos y Formularios queda documentado como **pendiente, prioridad BAJA** en SPEC-0007 §22 y
+  SPEC-0008 §33 (hoy sus pantallas solo hacen `load` al cambiar de entorno).
 - Verificación: e2e/manual (no hay `PropertyManagementScreen.spec`); el hook `useHubspotEnvironmentChange` ya tiene
   su unit test. Requiere **rebuild de la app**.
 

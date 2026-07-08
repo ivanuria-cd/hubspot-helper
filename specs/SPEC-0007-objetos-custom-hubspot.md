@@ -21,14 +21,14 @@ Como en SPEC-0006, la app **nunca crea ni modifica nada en HubSpot sin confirmac
 
 Verificado en la documentación oficial (`https://developers.hubspot.com/docs/api-reference/legacy/crm/objects/schemas/guide`, consultada 2026-06-16). El path base es **`/crm-object-schemas/v3/schemas`**:
 
-| Operación | Método y path |
-|-----------|---------------|
-| Crear schema | `POST /crm-object-schemas/v3/schemas` |
-| Listar todos | `GET /crm-object-schemas/v3/schemas` |
-| Leer uno | `GET /crm-object-schemas/v3/schemas/{objectTypeId\|fullyQualifiedName}` |
-| Editar schema | `PATCH /crm-object-schemas/v3/schemas/{objectTypeId}` |
-| Archivar schema | `DELETE /crm-object-schemas/v3/schemas/{objectType}` |
-| Hard delete | `DELETE /crm-object-schemas/v3/schemas/{objectType}?archived=true` |
+| Operación       | Método y path                                                           |
+| --------------- | ----------------------------------------------------------------------- |
+| Crear schema    | `POST /crm-object-schemas/v3/schemas`                                   |
+| Listar todos    | `GET /crm-object-schemas/v3/schemas`                                    |
+| Leer uno        | `GET /crm-object-schemas/v3/schemas/{objectTypeId\|fullyQualifiedName}` |
+| Editar schema   | `PATCH /crm-object-schemas/v3/schemas/{objectTypeId}`                   |
+| Archivar schema | `DELETE /crm-object-schemas/v3/schemas/{objectType}`                    |
+| Hard delete     | `DELETE /crm-object-schemas/v3/schemas/{objectType}?archived=true`      |
 
 > **Nota de coherencia con SPEC-0006.** El catálogo de objetos de SPEC-0006 (`connectors/hubspot/objects.ts → listObjects`) usa hoy el alias `GET /crm/v3/schemas`, que sigue funcionando. El nuevo cliente de SPEC-0007 usará el path canónico `/crm-object-schemas/v3/schemas` de la doc actual. Se evaluará unificar ambos en `objects.ts` (anotado en §11).
 
@@ -67,13 +67,13 @@ import type { HsPropertyOption, HsPropertyType } from '@shared/types/properties'
 
 /** Definición de una propiedad inicial del objeto (superset de HubSpotPropertyDef de SPEC-0006). */
 interface CustomObjectPropertyDef {
-  name: string;                 // nombre interno de la propiedad
+  name: string; // nombre interno de la propiedad
   label: string;
-  type: HsPropertyType;         // default 'string'
-  fieldType: string;            // default 'text'
-  groupName?: string;           // si se omite, HubSpot usa el grupo por defecto del objeto
+  type: HsPropertyType; // default 'string'
+  fieldType: string; // default 'text'
+  groupName?: string; // si se omite, HubSpot usa el grupo por defecto del objeto
   options?: HsPropertyOption[]; // solo enumeration
-  hasUniqueValue?: boolean;     // propiedad identificadora única
+  hasUniqueValue?: boolean; // propiedad identificadora única
 }
 
 /** Etiquetas del objeto. */
@@ -92,28 +92,28 @@ type SchemaChangeOperation = 'create' | 'update_schema' | 'archive';
 
 interface SchemaChange {
   id: string;
-  objectId: string;             // ref a CustomObjectDefinition.id
+  objectId: string; // ref a CustomObjectDefinition.id
   operation: SchemaChangeOperation;
-  summary: string;              // resumen legible del cambio
-  payload: unknown;             // body de la llamada a la API
+  summary: string; // resumen legible del cambio
+  payload: unknown; // body de la llamada a la API
   appliedToSandbox: boolean;
   appliedToProduction: boolean;
   createdAt: string;
 }
 
 interface CustomObjectDefinition {
-  id: string;                          // uuid interno
-  name: string;                        // nombre interno inmutable (p.ej. 'machine')
+  id: string; // uuid interno
+  name: string; // nombre interno inmutable (p.ej. 'machine')
   description?: string;
   labels: ObjectLabels;
-  primaryDisplayProperty: string;      // nombre de una propiedad de `properties`
+  primaryDisplayProperty: string; // nombre de una propiedad de `properties`
   secondaryDisplayProperties?: string[];
   searchableProperties?: string[];
   requiredProperties: string[];
-  associatedObjects?: string[];        // objectTypeId estándar/custom: '0-1' contactos, '0-2' empresas…
+  associatedObjects?: string[]; // objectTypeId estándar/custom: '0-1' contactos, '0-2' empresas…
   properties: CustomObjectPropertyDef[];
-  objectTypeId?: EnvScopedId;          // asignado por HubSpot tras crear, por entorno
-  fullyQualifiedName?: EnvScopedId;    // p{HubID}_{name}, por entorno
+  objectTypeId?: EnvScopedId; // asignado por HubSpot tras crear, por entorno
+  fullyQualifiedName?: EnvScopedId; // p{HubID}_{name}, por entorno
   allowSensitiveProperties?: boolean;
   status: 'draft' | 'created' | 'divergent' | 'archived';
   pendingChanges?: SchemaChange[];
@@ -174,6 +174,7 @@ Pasos:
 2. **Propiedades iniciales** — alta de una o varias `CustomObjectPropertyDef` (nombre, etiqueta, tipo, fieldType, opciones si enumeration, `hasUniqueValue`). Reutiliza el editor de opciones de SPEC-0006.
 
    > **Sincronización con SPEC-0006.** El selector `type` → `fieldType` de este asistente debe ser **idéntico** al del `EntryWizard` de **[SPEC-0006](SPEC-0006-gestion-de-propiedades.md)** (§16.3): mismo mapeo `FIELD_TYPES_BY_TYPE`, mismo reseteo al cambiar el tipo y las mismas claves i18n `properties.fieldTypes.*`. `fieldType` **nunca** es texto libre. Todo cambio en los tipos/fieldTypes admitidos o en sus etiquetas se aplica en ambas interfaces a la vez y se anota en los dos SPECs.
+
 3. **Propiedad principal y visualización** — `primaryDisplayProperty` (obligatoria, selector entre las propiedades definidas), `secondaryDisplayProperties[]`, `searchableProperties[]`, `requiredProperties[]`.
 4. **Asociaciones** — `associatedObjects[]` (multiselección sobre el catálogo `objects:list` de SPEC-0006: estándar + custom existentes).
 5. **Resumen** — vista previa del payload `create`; al confirmar se añade como **cambio pendiente** (no se llama a HubSpot todavía).
@@ -194,16 +195,16 @@ Todo el texto vía claves i18n (`customObjects.*`) en es/ca/eu/en (base es; el r
 
 Nuevos canales (`renderer → main`). El prefijo `objects:` ya lo inicia SPEC-0006 con `objects:list` (catálogo); aquí se añaden los de gestión de schemas:
 
-| Canal | Input | Output |
-|-------|-------|--------|
-| `objects:list-schemas` | `{ projectId }` | `CustomObjectDefinition[]` |
-| `objects:get-schema` | `{ projectId, objectId }` | `CustomObjectDefinition` |
-| `objects:upsert-draft` | `{ projectId, definition }` | `CustomObjectDefinition` |
-| `objects:request-archive` | `{ projectId, objectId }` | `{ success }` |
-| `objects:delete-draft` | `{ projectId, objectId }` | `{ success }` |
-| `objects:sync-hubspot` | `{ projectId }` | `{ created: number, divergent: number, draft: number }` |
-| `objects:apply-change` | `{ projectId, changeId, environment }` | `{ success, error? }` |
-| `objects:discard-change` | `{ projectId, changeId }` | `{ success }` |
+| Canal                     | Input                                  | Output                                                  |
+| ------------------------- | -------------------------------------- | ------------------------------------------------------- |
+| `objects:list-schemas`    | `{ projectId }`                        | `CustomObjectDefinition[]`                              |
+| `objects:get-schema`      | `{ projectId, objectId }`              | `CustomObjectDefinition`                                |
+| `objects:upsert-draft`    | `{ projectId, definition }`            | `CustomObjectDefinition`                                |
+| `objects:request-archive` | `{ projectId, objectId }`              | `{ success }`                                           |
+| `objects:delete-draft`    | `{ projectId, objectId }`              | `{ success }`                                           |
+| `objects:sync-hubspot`    | `{ projectId }`                        | `{ created: number, divergent: number, draft: number }` |
+| `objects:apply-change`    | `{ projectId, changeId, environment }` | `{ success, error? }`                                   |
+| `objects:discard-change`  | `{ projectId, changeId }`              | `{ success }`                                           |
 
 `objects:list` (catálogo de SPEC-0006) se mantiene sin cambios; tras aplicar un `create`, el objeto creado aparece automáticamente en él porque `listObjects` lo lee del portal.
 
@@ -211,9 +212,9 @@ Nuevos canales (`renderer → main`). El prefijo `objects:` ya lo inicia SPEC-00
 
 ## 6. Scopes / permisos HubSpot
 
-| Scope | Motivo |
-|-------|--------|
-| `crm.schemas.custom.read` | Leer schemas de objetos custom |
+| Scope                      | Motivo                                              |
+| -------------------------- | --------------------------------------------------- |
+| `crm.schemas.custom.read`  | Leer schemas de objetos custom                      |
 | `crm.schemas.custom.write` | Crear / editar / archivar schemas de objetos custom |
 
 Para leer objetos estándar al elegir asociaciones se reutilizan los scopes ya presentes de SPEC-0006 (`crm.schemas.*.read`).
@@ -224,14 +225,14 @@ Para leer objetos estándar al elegir asociaciones se reutilizan los scopes ya p
 
 Lectura, gestión de borradores y **aplicación de cambios por entorno**, en coherencia con SPEC-0006 (que expone `properties_apply_change`).
 
-| Tool | Descripción | Scopes |
-|------|-------------|--------|
-| `custom_objects_list` | Lista las definiciones de objetos custom del proyecto con su estado | read |
-| `custom_objects_get` | Detalle de una definición por `name` o `id` | read |
-| `custom_objects_pending_changes` | Lista los cambios de schema pendientes de aplicar | read |
-| `custom_objects_upsert_draft` | Crea o actualiza un **borrador** de objeto custom (no escribe en HubSpot) | write |
-| `custom_objects_apply_change` | Aplica un cambio pendiente (`create` / `update_schema` / `archive`) en el entorno indicado (`sandbox` o `production`) | write |
-| `custom_objects_discard_change` | Descarta un cambio pendiente del proyecto | write |
+| Tool                             | Descripción                                                                                                           | Scopes |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------ |
+| `custom_objects_list`            | Lista las definiciones de objetos custom del proyecto con su estado                                                   | read   |
+| `custom_objects_get`             | Detalle de una definición por `name` o `id`                                                                           | read   |
+| `custom_objects_pending_changes` | Lista los cambios de schema pendientes de aplicar                                                                     | read   |
+| `custom_objects_upsert_draft`    | Crea o actualiza un **borrador** de objeto custom (no escribe en HubSpot)                                             | write  |
+| `custom_objects_apply_change`    | Aplica un cambio pendiente (`create` / `update_schema` / `archive`) en el entorno indicado (`sandbox` o `production`) | write  |
+| `custom_objects_discard_change`  | Descarta un cambio pendiente del proyecto                                                                             | write  |
 
 > Decisión registrada (2026-06-16, a petición del usuario): se expone `custom_objects_apply_change` por MCP, igual que SPEC-0006. El input exige `environment` explícito (`sandbox` | `production`); la herramienta no asume entorno por defecto. La **doble confirmación** para `archive` sigue siendo requisito de la UI; vía MCP la responsabilidad de confirmar recae en el cliente que invoca la tool con el entorno explícito.
 
@@ -260,12 +261,14 @@ Lectura, gestión de borradores y **aplicación de cambios por entorno**, en coh
 ## 9. Tests requeridos
 
 ### Unitarios (Vitest)
+
 - `schemas.spec.ts` — `createSchema/listSchemas/getSchema/updateSchema/deleteSchema` llaman al path y método correctos (`/crm-object-schemas/v3/schemas…`) con el `environment` adecuado (mock de `request`).
 - `reconcile.spec.ts` — un objeto presente en el portal coincidente → `created`; con labels distintas → `divergent` + `update_schema`; ausente → `draft` + `create`. Identificación por `name`, no por `objectTypeId`.
 - `changes.spec.ts` — el payload `create` incluye `properties[]` y `primaryDisplayProperty`; `update_schema` **no** incluye `name` ni tipos de propiedad; al aplicar `create` se guarda el `objectTypeId` del entorno; `markApplied` marca el entorno correcto.
 - `service.spec.ts` — alta de borrador → `draft`; aplicar en sandbox no marca producción; error 4xx propaga el mensaje real.
 
 ### Funcionales (Playwright, mocks)
+
 - `custom-objects-create-flow.spec.ts` — asistente completo → cambio pendiente → aplicar en sandbox → estado `created` (sandbox) → aplicar en producción.
 - `custom-objects-edit-archive.spec.ts` — editar labels genera `update_schema`; archivar pide doble confirmación y refleja el error si HubSpot lo rechaza.
 
@@ -277,12 +280,12 @@ Cobertura objetivo ≥80% por feature. Tests unitarios no se modifican una vez a
 
 Tutoriales en `doc/tutoriales/objetos-custom/`:
 
-| Fichero | Tarea |
-|---------|-------|
-| `crear-objeto-custom.md` | Crear un objeto custom: nombre interno, etiquetas, propiedades iniciales, propiedad principal y asociaciones |
-| `editar-objeto-custom.md` | Editar etiquetas, propiedades de visualización, requeridas y asociaciones; qué no se puede cambiar (el nombre interno) |
-| `archivar-objeto-custom.md` | Archivar un objeto: prerrequisitos (borrar registros/propiedades), diferencia archivar vs. hard delete |
-| `aplicar-cambios-objetos.md` | Revisar cambios pendientes, aplicar primero en sandbox y luego en producción |
+| Fichero                      | Tarea                                                                                                                  |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `crear-objeto-custom.md`     | Crear un objeto custom: nombre interno, etiquetas, propiedades iniciales, propiedad principal y asociaciones           |
+| `editar-objeto-custom.md`    | Editar etiquetas, propiedades de visualización, requeridas y asociaciones; qué no se puede cambiar (el nombre interno) |
+| `archivar-objeto-custom.md`  | Archivar un objeto: prerrequisitos (borrar registros/propiedades), diferencia archivar vs. hard delete                 |
+| `aplicar-cambios-objetos.md` | Revisar cambios pendientes, aplicar primero en sandbox y luego en producción                                           |
 
 Se exponen en la sección **Ayuda** (visor de SPEC-0002) automáticamente.
 
@@ -301,8 +304,8 @@ Se exponen en la sección **Ayuda** (visor de SPEC-0002) automáticamente.
 
 ## 12. Alcance
 
-| Hace | No hace |
-|------|---------|
+| Hace                                                                                                                                                                                                                                                                                                                     | No hace                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Crear, editar (labels, display/required/searchable props, asociaciones, descripción) y archivar objetos custom vía CRM Object Schemas API v3; catálogo para SPEC-0006; alta como cambio pendiente revisable (sandbox→producción); **documento Drive del catálogo de objetos custom con el patrón común (§15, BORRADOR)** | No gestiona **registros/instancias** de los objetos; no define las **entradas** de propiedades (SPEC-0006); no crea propiedades sueltas sobre objetos existentes (SPEC-0006); no ofrece **hard delete**; no gestiona **association labels** personalizadas (solo `associatedObjects`); no toca workflows ni formularios; el documento Drive **no** es fuente de verdad (SPEC-0004 §15) |
 
 ---
@@ -362,12 +365,12 @@ HubSpot.
 
 `featureKey: custom-objects`. Un Google Sheets con identidad CD y `schema_version: 1`:
 
-| Hoja | Contenido |
-|------|-----------|
-| `00_Portada` | Identidad CD, descripción, guía de uso, `schema_version` |
-| `01_Objetos` | Un objeto custom por fila: nombre interno, labels (singular/plural), descripción, `objectTypeId` por entorno, estado de reconciliación |
-| `02_Propiedades` | Propiedades de cada objeto: objeto, nombre interno, etiqueta, tipo, `fieldType`, flags (display/required/searchable/unique) |
-| `03_Asociaciones` | Asociaciones declaradas (`associatedObjects`) por objeto |
+| Hoja              | Contenido                                                                                                                              |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `00_Portada`      | Identidad CD, descripción, guía de uso, `schema_version`                                                                               |
+| `01_Objetos`      | Un objeto custom por fila: nombre interno, labels (singular/plural), descripción, `objectTypeId` por entorno, estado de reconciliación |
+| `02_Propiedades`  | Propiedades de cada objeto: objeto, nombre interno, etiqueta, tipo, `fieldType`, flags (display/required/searchable/unique)            |
+| `03_Asociaciones` | Asociaciones declaradas (`associatedObjects`) por objeto                                                                               |
 
 El builder es puro y testeable (`buildCustomObjectsTabs(objects)`), reutilizando el estilo/protección de
 SPEC-0006 §19. Las erratas de nombres/etiquetas se vuelcan verbatim (SPEC-0000).
@@ -416,7 +419,7 @@ Hallazgo de la batería de pruebas del MCP `revops` sobre el proyecto «Testing�
 - `custom_objects_apply_change` exige un `changeId` real en la cola: invocado con el `id` del draft devuelve
   `{"success":false,"error":"Cambio no encontrado"}`.
 - **Consecuencia:** **no se puede crear un objeto custom de extremo a extremo solo con el MCP.** El paso
-  draft → pending vive únicamente en la UI de la app. *Impacto alto* si se pretende crear objetos custom de
+  draft → pending vive únicamente en la UI de la app. _Impacto alto_ si se pretende crear objetos custom de
   forma programática (p. ej. desde un cliente MCP).
 - **Corrección requerida:** exponer una operación que genere el cambio `create` a partir de un draft
   (o que `apply_change` resuelva directamente un draft), de modo que el ciclo draft → apply sea completo
@@ -454,9 +457,11 @@ Hallazgo de la batería de pruebas del MCP `revops` sobre el proyecto «Testing�
 Origen: Informe UX 2026-06-19, hallazgos #2 y #1. En `ObjectPanel.tsx` el archivado usa un estado booleano local (la confirmación inline persiste visualmente tras aplicar) y el borrado de borrador se ejecuta sin diálogo; la sincronización no confirma con toast.
 
 Adopción de SPEC-0002 §11 (ConfirmDialog):
+
 - Archivar objeto y borrar borrador → `confirm({ tone:'danger', ... })`, sustituyendo el estado `confirmArchive` local.
 
 Adopción de SPEC-0002 §10 (Snackbar):
+
 - Tras `custom_objects_sync` / aplicar: `notify` con resultado (éxito/error).
 
 Claves i18n nuevas: `objects.archiveTitle/Body`, `objects.deleteDraftTitle/Body`, `objects.synced`, `objects.syncError` (cuatro locales).
@@ -509,3 +514,11 @@ Del informe de revisión de código 2026-07-02, hallazgo 8.6 (menor). La lista d
 `key={index}`; ahora cada fila lleva `uiId` (`crypto.randomUUID()`, en `emptyProperty()` y al mapear
 `definition.properties`) usado como `key`; en `handleSubmit` el `uiId` se elimina del payload por destructuring.
 Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 22. Reconciliar al cambiar de entorno (PENDIENTE, prioridad BAJA)
+
+Análogo a **SPEC-0006 §37.8**: al cambiar el selector SANDBOX/Producción, `CustomObjectsScreen` debería
+**reconciliar** (`sync`) contra el nuevo entorno activo, no solo recargar el estado local. Hoy el callback de
+`useHubspotEnvironmentChange` (`CustomObjectsScreen.tsx:69`) llama a `load(projectId)` + `loadObjects(projectId)`;
+tendría que llamar a `sync`. **No implementado**: prioridad BAJA, se abordará junto con el resto del tema de
+entornos (incluye decidir si los objetos custom deben tener estado por entorno como propiedades).
