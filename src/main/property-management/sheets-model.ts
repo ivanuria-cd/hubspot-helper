@@ -7,16 +7,14 @@
  */
 import type { DataOrigin, HubSpotPropertyDef, PropertyEntry } from '@shared/types/properties';
 import { entryDestName as destName } from './dest-name';
+import { sanitizeSheetPart, SHEET_NAME_MAX } from './sheet-name';
+import type { CellValue, SheetTab } from './sheet-name';
 
 export const SHEETS_SCHEMA_VERSION = 4;
 export const PROPERTY_MAP_FEATURE_KEY = 'property-management';
 
-export type CellValue = string | number | boolean;
-
-export interface SheetTab {
-  title: string;
-  rows: CellValue[][];
-}
+// SPEC-0006 §53.8: tipos comunes en `sheet-name.ts`; se re-exportan por compatibilidad.
+export type { CellValue, SheetTab };
 
 const ENTRADAS_HEADER = [
   'ID',
@@ -71,17 +69,9 @@ const DEFOPCIONES_HEADER = [
   'Orden',
   'Oculta',
 ];
-const SHEET_NAME_MAX = 100;
-const INVALID_SHEET_CHARS = /[:\\/?*[\]]/g;
-
 function destType(entry: PropertyEntry): string {
   const ref = entry.hubspotProperty;
   return ref.mode === 'new' ? ref.definition.type : (ref.definition?.type ?? '');
-}
-
-function sanitizeSheetPart(raw: string): string {
-  const cleaned = raw.replace(INVALID_SHEET_CHARS, ' ').replace(/\s+/g, ' ').trim();
-  return cleaned.length > 0 ? cleaned : 'objeto';
 }
 
 function blockTitle(prefix: string, objectPart: string, table: string): string {

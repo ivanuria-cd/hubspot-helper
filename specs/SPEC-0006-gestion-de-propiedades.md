@@ -2281,11 +2281,12 @@ Duplicados idénticos: `defOf`/`typeDisplay` (`planning-model.ts` 101–113 y `p
 `SCOPES`/`WRITE_SCOPES` (`mcp-tools.ts` 56–66 y `planning-mcp-tools.ts` 30–39). Fix: extraer a un módulo común de
 sheets/planning y a las constantes de scopes compartidas.
 
-**IMPLEMENTADO (2026-07-08, parcial)**: `mcp-scopes.ts` (SCOPES/WRITE_SCOPES, usado por mcp-tools y
-planning-mcp-tools) y `planning-defs.ts` (`defOf`/`typeDisplay`, usado por planning-model y planning-import sin
-acoplarlos). **Residual (aceptado, BAJA)**: `sanitizeSheetPart`+`SHEET_NAME_MAX`+`INVALID_SHEET_CHARS` y
-`CellValue`/`SheetTab` siguen duplicados — triviales y cruzan `sheets-model`↔`planning-model` (ficheros ASCII y con
-mirror inestable); consolidarlos no compensa el riesgo para BAJA.
+**IMPLEMENTADO (2026-07-08)**: `mcp-scopes.ts` (SCOPES/WRITE_SCOPES, usado por mcp-tools y planning-mcp-tools);
+`planning-defs.ts` (`defOf`/`typeDisplay`, usado por planning-model y planning-import sin acoplarlos); y `sheet-name.ts`
+(`CellValue`, `SheetTab`, `SHEET_NAME_MAX`, `INVALID_SHEET_CHARS`, `sanitizeSheetPart`) usado por `sheets-model` y
+`planning-model` (y `CellValue` por `planning-import`). `sheets-model`/`planning-model`/`planning-import` re-exportan
+los tipos por compatibilidad (los importan sus specs). Nota: la copia de `CellValue`/`SheetTab` del conector
+(`google-drive/sheets-client`) es una duplicación distinta, fuera del alcance de §53.8 (property-management).
 
 #### 53.9 `isoNow`, `isCompleted`, `schema_version` (BAJA)
 
@@ -2417,8 +2418,9 @@ modificar tests ya aprobados sin acuerdo previo (SPEC-0000 §8). Cambios con imp
   `CellValue`/`SheetTab` quedan como residual aceptado (BAJA).
 - **53.18 residuales — IMPLEMENTADO (2026-07-08)**: reset de `OriginsModal`, fallback unificado (`common.loadError`),
   keys por contenido en `PlanningMapActions`.
-- **§53 CERRADO** salvo el residual aceptado de 53.8 (dedup trivial `sanitizeSheetPart`/`CellValue`/`SheetTab`, BAJA).
-  Nada de severidad alta/media abierto en §53/§54.
+- **53.8 dedup — COMPLETO (2026-07-08)**: `sheet-name.ts` cierra el residual (`sanitizeSheetPart`/tipos comunes).
+- **§53 y §54 CERRADOS.** Único no-hecho deliberado: la deduplicación `CellValue`/`SheetTab` del conector
+  (`sheets-client`), que es otra capa y no forma parte de §53.8.
 
 ## 54. Limitaciones en ejecución — alta masiva LNN (BORRADOR, 2026-07-08)
 

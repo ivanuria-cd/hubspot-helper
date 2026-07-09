@@ -30,7 +30,9 @@ import { entryDestName as destName } from './dest-name';
 import { PLANNING_META_TITLE } from './planning-meta';
 import { defOf, typeDisplay } from './planning-defs';
 
-export type CellValue = string | number | boolean;
+// SPEC-0006 §53.8: tipo comun en `sheet-name.ts`; se re-exporta (lo usan ReadTab y el spec).
+import type { CellValue } from './sheet-name';
+export type { CellValue };
 
 export interface ReadTab {
   title: string;

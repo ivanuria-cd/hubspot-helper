@@ -12,17 +12,15 @@ import { USER_FRIENDLY_FIELD_TYPES } from '@shared/constants/planningFieldTypes'
 import { entryDestName as destName } from './dest-name';
 import { PLANNING_META_TITLE, PLANNING_META_HEADER } from './planning-meta';
 import { defOf, typeDisplay } from './planning-defs';
+import { sanitizeSheetPart, SHEET_NAME_MAX } from './sheet-name';
+import type { CellValue, SheetTab } from './sheet-name';
 
 export const PLANNING_MAP_FEATURE_KEY = 'property-planning-map';
 // SPEC-0006 §53.6: sube a 2 al anadir la hoja de metadatos (round-trip fiel del objectType).
 export const PLANNING_SCHEMA_VERSION = 2;
 
-export type CellValue = string | number | boolean;
-
-export interface SheetTab {
-  title: string;
-  rows: CellValue[][];
-}
+// SPEC-0006 §53.8: tipos comunes en `sheet-name.ts`; se re-exportan por compatibilidad.
+export type { CellValue, SheetTab };
 
 /** Validacion (desplegable) que la capa de estilo aplica sobre un rango de una hoja. */
 export interface PlanningValidation {
@@ -70,8 +68,6 @@ const UNIQUE_VALUES = ['Yes', 'No'];
 const UNIQUE_COL = 4; // 0-based: columna Unique del bloque HubSpot
 const ORIGEN_HEADER = ['Objeto', 'Campo', '-> Propiedad HubSpot destino', 'Notas'];
 const ASOCIACIONES_HEADER = ['Objeto A', 'Objeto B', 'Clave de enlace', 'Notas'];
-const SHEET_NAME_MAX = 100;
-const INVALID_SHEET_CHARS = /[:\\/?*[\]]/g;
 const INTERNAL_NAME_COL = 'C'; // 3a columna del bloque HubSpot
 
 function columnLetter(index1Based: number): string {
@@ -83,11 +79,6 @@ function columnLetter(index1Based: number): string {
     n = Math.floor((n - 1) / 26);
   }
   return out;
-}
-
-function sanitizeSheetPart(raw: string): string {
-  const cleaned = raw.replace(INVALID_SHEET_CHARS, ' ').replace(/\s+/g, ' ').trim();
-  return cleaned.length > 0 ? cleaned : 'objeto';
 }
 
 function uniqueTitle(base: string, used: Set<string>): string {
