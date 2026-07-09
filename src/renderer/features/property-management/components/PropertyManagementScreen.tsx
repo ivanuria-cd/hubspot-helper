@@ -267,7 +267,17 @@ export function PropertyManagementScreen(): JSX.Element | null {
           entries={entries ?? []}
           busy={busy}
           onApply={handleApply}
-          onDiscard={(changeId) => discardChange(projectId, changeId)}
+          onDiscard={async (changeId) => {
+            // SPEC-0006 §53.11: captura homogénea (§50) — sin unhandled rejection al descartar.
+            try {
+              await discardChange(projectId, changeId);
+            } catch (error) {
+              notify({
+                message: error instanceof Error ? error.message : t('common.loadError'),
+                severity: 'error',
+              });
+            }
+          }}
         />
       ) : (
         <>
@@ -466,16 +476,35 @@ export function PropertyManagementScreen(): JSX.Element | null {
           setWizardOpen(true);
         }}
         onDelete={async (entryId) => {
-          await remove(projectId, entryId);
-          setSelectedId(null);
+          // SPEC-0006 §53.11: captura homogénea (§50).
+          try {
+            await remove(projectId, entryId);
+            setSelectedId(null);
+          } catch (error) {
+            notify({
+              message: error instanceof Error ? error.message : t('common.loadError'),
+              severity: 'error',
+            });
+          }
         }}
         onConvert={async (entryId) => {
-          const result = await convertToNew(projectId, entryId);
-          notify({ message: t('properties.convert.done', { converted: 1 }), severity: 'success' });
-          if (result.seeded) {
+          // SPEC-0006 §53.11: el toast de éxito solo tras convertir; ante fallo, error (no falso «hecho»).
+          try {
+            const result = await convertToNew(projectId, entryId);
             notify({
-              message: t('properties.convert.seededWarning', { seeded: 1 }),
-              severity: 'warning',
+              message: t('properties.convert.done', { converted: 1 }),
+              severity: 'success',
+            });
+            if (result.seeded) {
+              notify({
+                message: t('properties.convert.seededWarning', { seeded: 1 }),
+                severity: 'warning',
+              });
+            }
+          } catch (error) {
+            notify({
+              message: error instanceof Error ? error.message : t('common.loadError'),
+              severity: 'error',
             });
           }
         }}

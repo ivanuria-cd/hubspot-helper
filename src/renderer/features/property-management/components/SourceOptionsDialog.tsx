@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useOptionListEditor } from './useOptionListEditor';
 import {
   Button,
   Dialog,
@@ -41,41 +41,32 @@ export function SourceOptionsDialog({
   onClose,
 }: SourceOptionsDialogProps): JSX.Element {
   const { t } = useTranslation('common');
-  const [query, setQuery] = useState('');
-  const [bulkOpen, setBulkOpen] = useState(false);
-  const [bulkText, setBulkText] = useState('');
-  // Abre el diálogo de inmediato y difiere el render de la lista (puede ser pesada: 100+ opciones).
-  const [ready, setReady] = useState(false);
-  // SPEC-0006 §51: ids estables por fila (solo UI, no se emiten en onChange) para que
-  // React no recicle inputs al borrar filas intermedias (antes key={index}).
-  const [rowIds, setRowIds] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (!open) {
-      setReady(false);
-      return;
-    }
-    setQuery('');
-    setBulkOpen(false);
-    setBulkText('');
-    setRowIds(options.map(() => crypto.randomUUID()));
-    setReady(false);
-    const id = window.setTimeout(() => setReady(true), 0);
-    return () => window.clearTimeout(id);
-    // Solo al abrir: regenerar los ids con cada edición de `options` rompería las keys estables.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  // SPEC-0006 §53.10: estado común (búsqueda, pegado, render diferido, ids de fila) en el hook compartido.
+  const {
+    query,
+    setQuery,
+    bulkOpen,
+    toggleBulk,
+    closeBulk,
+    bulkText,
+    setBulkText,
+    ready,
+    rowIds,
+    addRow,
+    removeRow,
+    addRows,
+  } = useOptionListEditor(open, options.length);
 
   const update = (idx: number, patch: Partial<SourceEnumOption>): void => {
     onChange(options.map((o, i) => (i === idx ? { ...o, ...patch } : o)));
   };
   const remove = (idx: number): void => {
     onChange(options.filter((_, i) => i !== idx));
-    setRowIds((ids) => ids.filter((_, i) => i !== idx));
+    removeRow(idx);
   };
   const add = (): void => {
     onChange([...options, { sourceValue: '', hubspotValue: '' }]);
-    setRowIds((ids) => [...ids, crypto.randomUUID()]);
+    addRow();
   };
   const applyBulk = (): void => {
     const values = bulkText
@@ -85,10 +76,10 @@ export function SourceOptionsDialog({
       .map((sourceValue) => ({ sourceValue, hubspotValue: '' }));
     if (values.length > 0) {
       onChange([...options, ...values]);
-      setRowIds((ids) => [...ids, ...values.map(() => crypto.randomUUID())]);
+      addRows(values.length);
     }
     setBulkText('');
-    setBulkOpen(false);
+    closeBulk();
   };
 
   const q = query.trim().toLowerCase();
@@ -197,7 +188,7 @@ export function SourceOptionsDialog({
               size="small"
               variant="text"
               startIcon={<ContentPasteIcon />}
-              onClick={() => setBulkOpen((o) => !o)}
+              onClick={toggleBulk}
             >
               {t('properties.wizard.pasteOptions')}
             </Button>

@@ -20,7 +20,7 @@ import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 import type { DataOrigin, OriginType } from '@shared/types/properties';
-import { useConfirm, useFieldHelp } from '@shared/components/feedback';
+import { useConfirm, useFieldHelp, useSnackbar } from '@shared/components/feedback';
 
 const ORIGIN_TYPES: OriginType[] = ['integration', 'migration', 'user', 'workflow'];
 
@@ -50,6 +50,7 @@ function ObjectFieldsEditor({
   onUpdate: (origin: DataOrigin) => Promise<void>;
 }): JSX.Element {
   const { t } = useTranslation('common');
+  const { notify } = useSnackbar();
   const fieldsHelp = useFieldHelp('properties.originsModal.fieldHelp.fields');
   const [text, setText] = useState(fields.join('\n'));
   const [saving, setSaving] = useState(false);
@@ -70,6 +71,12 @@ function ObjectFieldsEditor({
         objects: (origin.objects ?? []).map((object) =>
           object.id === objectId ? { ...object, fields: next } : object,
         ),
+      });
+    } catch (error) {
+      // SPEC-0006 §53.11: feedback en vez de unhandled rejection.
+      notify({
+        message: error instanceof Error ? error.message : t('common.loadError'),
+        severity: 'error',
       });
     } finally {
       setSaving(false);
@@ -189,6 +196,7 @@ export function OriginsModal({
   onDelete,
 }: OriginsModalProps): JSX.Element {
   const { t } = useTranslation('common');
+  const { notify } = useSnackbar();
   const askConfirm = useConfirm();
   const nameHelp = useFieldHelp('properties.originsModal.fieldHelp.name');
   const typeHelp = useFieldHelp('properties.originsModal.fieldHelp.type');
@@ -199,10 +207,18 @@ export function OriginsModal({
 
   const handleAdd = async (): Promise<void> => {
     if (!name.trim()) return;
-    await onCreate({ name: name.trim(), type, description: description.trim() || undefined });
-    setName('');
-    setDescription('');
-    setType('integration');
+    // SPEC-0006 §53.11: feedback en vez de unhandled rejection.
+    try {
+      await onCreate({ name: name.trim(), type, description: description.trim() || undefined });
+      setName('');
+      setDescription('');
+      setType('integration');
+    } catch (error) {
+      notify({
+        message: error instanceof Error ? error.message : t('common.loadError'),
+        severity: 'error',
+      });
+    }
   };
 
   const handleDelete = async (originId: string): Promise<void> => {
@@ -211,7 +227,15 @@ export function OriginsModal({
       title: t('properties.deleteOriginTitle'),
       body: t('properties.deleteOriginBody'),
     });
-    if (ok) await onDelete(originId);
+    if (!ok) return;
+    try {
+      await onDelete(originId);
+    } catch (error) {
+      notify({
+        message: error instanceof Error ? error.message : t('common.loadError'),
+        severity: 'error',
+      });
+    }
   };
 
   return (

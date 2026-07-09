@@ -2261,7 +2261,11 @@ Ambos (235 y 239 líneas) comparten estado (`query`/`bulkOpen`/`bulkText`/`ready
 
 - lista con `key={rowIds[i] ?? …}` + pegado masivo). Divergen solo en el tipo editado (`HsPropertyOption` vs
   `SourceEnumOption`). Fix: extraer un componente/hook genérico de edición de lista parametrizado por
-  render-de-fila y parser de pegado; los dos diálogos quedan como configuraciones finas.
+  render-de-fila y parser de pegado; los dos diálogos quedan como configuraciones finas. **IMPLEMENTADO
+  (2026-07-08)**: nuevo hook `components/useOptionListEditor.ts` con el estado común (query/bulkOpen/bulkText/
+  ready/rowIds), el efecto de reset y las ops de fila (`addRow`/`removeRow`/`addRows`, `toggleBulk`/`closeBulk`).
+  Ambos diálogos lo destructuran con los mismos nombres (JSX intacto salvo el botón de pegado); `bulkSep` sigue
+  local en `OptionsDialog`. Sin cambio de comportamiento; verificación typecheck/manual (no hay specs de diálogo).
 
 #### 53.11 Manejo de errores homogéneo en stores y pantalla (ALTA)
 
@@ -2270,7 +2274,10 @@ Ambos (235 y 239 líneas) comparten estado (`query`/`bulkOpen`/`bulkText`/`ready
 compensa desigual: `handleConvertAll` con try/catch, pero `onConvert`/`onDelete` individuales sin captura → toast
 verde falso + unhandled rejection ante fallo IPC. Contradice §50. Fix: todas las mutaciones de los stores capturan
 y fijan `error` (patrón de `load`), o la pantalla envuelve cada invocación en try/catch + Snackbar de forma
-uniforme.
+uniforme. **IMPLEMENTADO (2026-07-08)** — enfoque «pantalla/superficie envuelve», coherente con §50: en
+`PropertyManagementScreen` se envuelven `onDiscard`, `onDelete` y `onConvert` (este último ya no muestra el toast
+verde falso ante fallo); en `OriginsModal` se envuelven `handleAdd`, `handleDelete` y el `save` del editor de
+campos (se añade `useSnackbar`). Fallback de mensaje `common.loadError`.
 
 #### 53.12 `GroupsModal` sobre store (MEDIA)
 
@@ -2329,9 +2336,11 @@ modificar tests ya aprobados sin acuerdo previo (SPEC-0000 §8). Cambios con imp
 - **Bloque main ALTA — IMPLEMENTADO (2026-07-08)**: 53.1 (relectura del store en `applyGroupChange`), 53.2 (error
   estructurado de origen inexistente) y 53.3 (`buildBlocker` compartido). `service.ts`/`reconcile.ts`/`mcp-tools.ts`
   - tests en `service.spec.ts`/`mcp-tools.spec.ts`. Requiere rebuild MCP.
-- **Pendientes**: renderer ALTA (53.10 editor de lista genérico, 53.11 errores en stores) y todo lo MEDIA/BAJA
-  (53.4–53.9, 53.12–53.18). Sin cambios funcionales visibles salvo la corrección de tooltips (53.14) y de errores
-  en la UI (53.11).
+- **Bloque renderer ALTA — IMPLEMENTADO (2026-07-08)**: 53.10 (hook compartido `useOptionListEditor` para
+  OptionsDialog/SourceOptionsDialog) y 53.11 (captura homogénea de errores en `PropertyManagementScreen` y
+  `OriginsModal`). Sin specs de diálogo; verificación typecheck/manual.
+- **Pendientes**: MEDIA/BAJA (53.4–53.9 main, 53.12–53.18 renderer). Sin cambios funcionales visibles salvo la
+  corrección de tooltips (53.14).
 
 ## 54. Limitaciones en ejecución — alta masiva LNN (BORRADOR, 2026-07-08)
 
