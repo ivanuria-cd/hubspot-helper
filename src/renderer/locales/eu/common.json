@@ -496,6 +496,10 @@
     "wizard": {
       "fieldHelp": {
         "name": "Propietateen mapako sarreraren izen deskribatzailea. Sarrera lokalki soilik identifikatzen du; ez zaio HubSpot-i bidaltzen.",
+        "hubspotName": "HubSpot-eko propietatearen barne-izena (API): minuskulaz eta zuriunerik gabe. Sortu ondoren ezin da aldatu.",
+        "label": "HubSpot-eko propietatearen etiketa ikusgaia (erabiltzaileek ikusten dutena).",
+        "type": "Propietatearen datu-mota (testua, zenbakia, data, enumerazioa, boolearra…).",
+        "fieldType": "Eremu-mota: balioa nola sartzen den (testua, goitibeherakoa, kontrol-laukiak, data…).",
         "hubspotMode": "Adierazten du propietatea HubSpot-en dagoeneko existitzen den ala berria den eta aldaketa aplikatzean sortuko den.",
         "selectProperty": "Sarrera honek seinalatzen duen HubSpot-eko propietatea. Iragazi izenez aurkitzeko.",
         "group": "Propietatea kokatuko den HubSpot-eko propietate-taldea. Berri bat sor dezakezu existitzen ez bada.",

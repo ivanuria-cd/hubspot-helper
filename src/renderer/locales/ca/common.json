@@ -457,6 +457,10 @@
     "wizard": {
       "fieldHelp": {
         "name": "Nom descriptiu de l'entrada al mapa de propietats. Només identifica l'entrada localment; no s'envia a HubSpot.",
+        "hubspotName": "Nom intern (API) de la propietat a HubSpot: en minúscules i sense espais. No es pot canviar després de crear-la.",
+        "label": "Etiqueta visible de la propietat a HubSpot (la que veuen els usuaris).",
+        "type": "Tipus de dada de la propietat (text, número, data, enumeració, booleà…).",
+        "fieldType": "Tipus de camp: com s'introdueix el valor (text, desplegable, caselles, data…).",
         "hubspotMode": "Indica si la propietat ja existeix a HubSpot o si és nova i es crearà en aplicar el canvi.",
         "selectProperty": "Propietat de HubSpot a la qual apunta aquesta entrada. Filtra pel nom per localitzar-la.",
         "group": "Grup de propietats de HubSpot on s'ubicarà. Pots crear-ne un de nou si no existeix.",

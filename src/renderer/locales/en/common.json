@@ -471,6 +471,10 @@
     "wizard": {
       "fieldHelp": {
         "name": "Descriptive name of the entry in the property map. It only identifies the entry locally; it is not sent to HubSpot.",
+        "hubspotName": "Internal (API) name of the property in HubSpot: lowercase, no spaces. Cannot be changed after creation.",
+        "label": "Visible label of the property in HubSpot (what users see).",
+        "type": "Data type of the property (text, number, date, enumeration, boolean…).",
+        "fieldType": "Field type: how the value is entered (text, dropdown, checkboxes, date…).",
         "hubspotMode": "Indicates whether the property already exists in HubSpot or whether it is new and will be created when the change is applied.",
         "selectProperty": "HubSpot property this entry points to. Filter by name to locate it.",
         "group": "HubSpot property group where it will be placed. You can create a new one if it does not exist.",

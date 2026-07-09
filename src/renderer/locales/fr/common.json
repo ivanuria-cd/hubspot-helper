@@ -508,6 +508,10 @@
       "bulkApply": "Ajouter à la liste",
       "fieldHelp": {
         "name": "Nom descriptif de l'entrée dans la carte des propriétés. Il identifie uniquement l'entrée localement ; il n'est pas envoyé à HubSpot.",
+        "hubspotName": "Nom interne (API) de la propriété dans HubSpot : en minuscules et sans espaces. Non modifiable après création.",
+        "label": "Libellé visible de la propriété dans HubSpot (ce que voient les utilisateurs).",
+        "type": "Type de donnée de la propriété (texte, nombre, date, énumération, booléen…).",
+        "fieldType": "Type de champ : comment la valeur est saisie (texte, liste déroulante, cases, date…).",
         "hubspotMode": "Indique si la propriété existe déjà dans HubSpot ou si elle est nouvelle et sera créée lors de l'application de la modification.",
         "selectProperty": "Propriété de HubSpot que pointe cette entrée. Filtrez par nom pour la localiser.",
         "group": "Groupe de propriétés de HubSpot où elle sera placée. Vous pouvez en créer un nouveau s'il n'existe pas.",

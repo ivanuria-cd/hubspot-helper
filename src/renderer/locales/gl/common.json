@@ -508,6 +508,10 @@
       "bulkApply": "Engadir ao listado",
       "fieldHelp": {
         "name": "Nome descritivo da entrada no mapa de propiedades. Só identifica a entrada localmente; non se envía a HubSpot.",
+        "hubspotName": "Nome interno (API) da propiedade en HubSpot: en minúsculas e sen espazos. Non se pode cambiar tras creala.",
+        "label": "Etiqueta visible da propiedade en HubSpot (a que ven os usuarios).",
+        "type": "Tipo de dato da propiedade (texto, número, data, enumeración, booleano…).",
+        "fieldType": "Tipo de campo: como se introduce o valor (texto, despregable, caixas, data…).",
         "hubspotMode": "Indica se a propiedade xa existe en HubSpot ou se é nova e se creará ao aplicar o cambio.",
         "selectProperty": "Propiedade de HubSpot á que apunta esta entrada. Filtra por nome para localizala.",
         "group": "Grupo de propiedades de HubSpot onde se situará. Podes crear un novo se non existe.",

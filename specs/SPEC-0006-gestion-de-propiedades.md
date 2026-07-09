@@ -2297,7 +2297,9 @@ En `PropertyDefinitionEditor.tsx`, `hubspotName` (67) y `label` (74) usan ambos 
 `type` (84) y `fieldType` (98) usan ambos `properties.wizard.fieldHelp.kind`. No existen claves `fieldHelp`
 propias para esos campos → ayuda contextual semánticamente errónea (incumple SPEC-0002 §18, patrón
 `<superficie>.fieldHelp.<campo>`). Fix: añadir claves `fieldHelp` dedicadas (`hubspotName`, `label`, `type`,
-`fieldType`) en los 7 locales (`es` canónico) y apuntar cada campo a la suya.
+`fieldType`) en los 7 locales (`es` canónico) y apuntar cada campo a la suya. **IMPLEMENTADO (2026-07-08)**:
+4 claves nuevas en `properties.wizard.fieldHelp` ×7 (paridad verificada, 730 claves/locale); `PropertyDefinitionEditor`
+apunta cada campo a la suya. Sin el `check:locales` en verde no se cierra.
 
 #### 53.15 `startIcon` en botones con texto (MEDIA)
 
@@ -2344,8 +2346,9 @@ modificar tests ya aprobados sin acuerdo previo (SPEC-0000 §8). Cambios con imp
 - **Renderer MEDIA (quick wins) — IMPLEMENTADO (2026-07-08)**: 53.13 (`isBlockedEntry` compartido), 53.15
   (`startIcon` en cancelar/descartar/guardar), 53.16 (`LoadingState` en `EntryWizard`), 53.17 (id UUID en
   `OriginsModal`).
-- **Pendientes**: 53.14 (tooltips i18n ×7), 53.12 (`GroupsModal` sobre store) y main MEDIA/BAJA (53.4–53.9) +
-  renderer BAJA (53.18). Sin cambios funcionales visibles salvo la corrección de tooltips (53.14).
+- **53.14 tooltips i18n ×7 — IMPLEMENTADO (2026-07-08)**: 4 claves `fieldHelp` dedicadas (hubspotName/label/type/
+  fieldType) en los 7 locales; `PropertyDefinitionEditor` apunta cada campo a la suya. Paridad verificada.
+- **Pendientes**: 53.12 (`GroupsModal` sobre store), main MEDIA/BAJA (53.4–53.9) y renderer BAJA (53.18).
 
 ## 54. Limitaciones en ejecución — alta masiva LNN (BORRADOR, 2026-07-08)
 
