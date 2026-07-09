@@ -194,7 +194,10 @@ export function PlanningMapActions({
           </Typography>
           <List dense>
             {changelog?.changes.map((change, index) => (
-              <ListItem key={`change-${index}`} disableGutters>
+              <ListItem
+                key={`${change.kind}-${change.hubspotName ?? change.entryName}-${index}`}
+                disableGutters
+              >
                 <ListItemText
                   primary={`${t(`properties.planningMap.kind.${change.kind}`)}: ${change.hubspotName ?? change.entryName}`}
                   secondary={change.detail}
@@ -207,10 +210,10 @@ export function PlanningMapActions({
               <Divider sx={{ my: 1 }} />
               <Typography variant="subtitle2">{p('needsActionTitle')}</Typography>
               <List dense>
-                {changelog.needsAction.map((action, index) => {
+                {changelog.needsAction.map((action) => {
                   const key = needKey(action.objectType, action.entryName);
                   return (
-                    <ListItem key={`needs-${index}`} disableGutters>
+                    <ListItem key={key} disableGutters>
                       <ListItemText
                         primary={`${action.entryName} — ${action.userFriendlyType}`}
                         secondaryTypographyProps={{ component: 'div' }}
@@ -229,7 +232,7 @@ export function PlanningMapActions({
                               —
                             </MenuItem>
                             {action.candidates.map((candidate, ci) => (
-                              <MenuItem key={ci} value={String(ci)}>
+                              <MenuItem key={configLabel(candidate)} value={String(ci)}>
                                 {configLabel(candidate)}
                               </MenuItem>
                             ))}

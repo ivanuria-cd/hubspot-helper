@@ -187,7 +187,7 @@ export function PropertyManagementScreen(): JSX.Element | null {
       } else {
         notify({
           message: t('properties.applyToastError', {
-            error: useEntriesStore.getState().error ?? '',
+            error: useEntriesStore.getState().error ?? t('common.loadError'),
           }),
           severity: 'error',
         });

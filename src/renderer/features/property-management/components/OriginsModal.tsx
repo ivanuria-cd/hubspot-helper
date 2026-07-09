@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Button,
@@ -211,6 +211,15 @@ export function OriginsModal({
   const [name, setName] = useState('');
   const [type, setType] = useState<OriginType>('integration');
   const [description, setDescription] = useState('');
+
+  // SPEC-0006 §53.18: resetea el formulario al abrir (como el resto de diálogos).
+  useEffect(() => {
+    if (open) {
+      setName('');
+      setType('integration');
+      setDescription('');
+    }
+  }, [open]);
 
   const handleAdd = async (): Promise<void> => {
     if (!name.trim()) return;

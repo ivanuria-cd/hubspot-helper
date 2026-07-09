@@ -2380,11 +2380,12 @@ vs `''`) → unificar en `common.loadError`. `text.secondary` vs `text.primary` 
 `SourceOptionsDialog` → alinear con los hermanos (`text.primary`). Keys por índice en `PlanningMapActions.tsx`
 196/212/231 → keys estables.
 
-**IMPLEMENTADO (2026-07-08, parcial)**: `entries-store.load` sin `objectType`; `text.secondary`→`text.primary` en
-ambos diálogos; los 5 stubs muertos se eliminan por `git rm` (el mount del sandbox no permite `rm`; van en el
-commit del usuario). **Pendiente (residual BAJA)**: reset del formulario de `OriginsModal` al abrir, fallback
-`'Error desconocido'` de `entries-store`, y keys por índice de `PlanningMapActions` — cosméticos, sin impacto
-funcional.
+**IMPLEMENTADO (2026-07-08)**: `entries-store.load` sin `objectType`; `text.secondary`→`text.primary` en ambos
+diálogos; los 5 stubs muertos se eliminan por `git rm` (el mount del sandbox no permite `rm`; van en el commit del
+usuario); reset del formulario de `OriginsModal` al abrir (`useEffect` sobre `open`); fallback de error unificado
+(el store deja `error: null` y la pantalla traduce `common.loadError` en `applyToastError`); keys de listas de
+`PlanningMapActions` por contenido (changelog `kind`+nombre, needsAction `needKey`, candidatos `configLabel`) en vez
+de índice.
 
 ### 53.19 Estado y plan
 
@@ -2414,8 +2415,10 @@ modificar tests ya aprobados sin acuerdo previo (SPEC-0000 §8). Cambios con imp
   `planning-meta.ts` + resolución en el import + bump de esquema; tests en model/import/style.
 - **53.8 dedup — IMPLEMENTADO (2026-07-08, parcial)**: `mcp-scopes.ts` + `planning-defs.ts`; `sanitizeSheetPart` y
   `CellValue`/`SheetTab` quedan como residual aceptado (BAJA).
-- **Pendientes**: solo residuales cosméticos de 53.18 (reset de OriginsModal, literal `'Error desconocido'`, keys por
-  índice de PlanningMapActions) y el residual de 53.8. Nada de severidad alta/media abierto.
+- **53.18 residuales — IMPLEMENTADO (2026-07-08)**: reset de `OriginsModal`, fallback unificado (`common.loadError`),
+  keys por contenido en `PlanningMapActions`.
+- **§53 CERRADO** salvo el residual aceptado de 53.8 (dedup trivial `sanitizeSheetPart`/`CellValue`/`SheetTab`, BAJA).
+  Nada de severidad alta/media abierto en §53/§54.
 
 ## 54. Limitaciones en ejecución — alta masiva LNN (BORRADOR, 2026-07-08)
 

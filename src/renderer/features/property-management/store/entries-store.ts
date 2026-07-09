@@ -79,7 +79,8 @@ export const useEntriesStore = create<EntriesState>((set, get) => ({
   applyChange: async (projectId, changeId, environment) => {
     const result = await window.api.propertiesApplyChange({ projectId, changeId, environment });
     if (!result.success) {
-      set({ error: result.error ?? 'Error desconocido' });
+      // SPEC-0006 §53.18: sin literal; la pantalla traduce el fallback (common.loadError).
+      set({ error: result.error ?? null });
       return false;
     }
     await get().load(projectId);
