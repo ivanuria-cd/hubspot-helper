@@ -435,6 +435,61 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     return { success: true };
   }
 
+  /**
+   * Aplica varios cambios en lote (SPEC-0006 §54.2). Secuencial (no pisa el store entre awaits) y
+   * tolerante: un fallo por ítem no aborta el resto. Cada ref se resuelve por `changeId` o `entryId+operation`.
+   */
+  async function applyChangeBatch(input: {
+    projectId: string;
+    environment: ApplyChangeInput['environment'];
+    refs: Array<Pick<ApplyChangeInput, 'changeId' | 'entryId' | 'operation'>>;
+  }): Promise<{
+    results: Array<{ ref: (typeof input.refs)[number]; ok: boolean; error?: string }>;
+  }> {
+    const results: Array<{ ref: (typeof input.refs)[number]; ok: boolean; error?: string }> = [];
+    for (const ref of input.refs) {
+      const r = await applyChange({
+        projectId: input.projectId,
+        environment: input.environment,
+        ...ref,
+      });
+      results.push({ ref, ok: r.success, ...(r.error ? { error: r.error } : {}) });
+    }
+    return { results };
+  }
+
+  /**
+   * Aplica TODOS los cambios pendientes (opcionalmente de un `objectType`) en el entorno indicado (§54.2).
+   * Deriva las refs `(entryId, operation)` del estado actual — estables frente a la regeneración de ids (§54.1).
+   */
+  async function applyAllChanges(input: {
+    projectId: string;
+    environment: ApplyChangeInput['environment'];
+    objectType?: string;
+  }): Promise<{
+    results: Array<{
+      ref: Pick<ApplyChangeInput, 'entryId' | 'operation'>;
+      ok: boolean;
+      error?: string;
+    }>;
+    applied: number;
+    failed: number;
+  }> {
+    const refs = deps.store
+      .get(input.projectId)
+      .entries.filter((e) => !input.objectType || e.objectType === input.objectType)
+      .flatMap((e) =>
+        (e.pendingChanges ?? []).map((c) => ({ entryId: e.id, operation: c.operation })),
+      );
+    const { results } = await applyChangeBatch({
+      projectId: input.projectId,
+      environment: input.environment,
+      refs,
+    });
+    const applied = results.filter((r) => r.ok).length;
+    return { results, applied, failed: results.length - applied };
+  }
+
   /** Solicita archivar la propiedad destino de una entrada en HubSpot (genera un cambio `delete` al sincronizar). */
   function requestDelete(input: { projectId: string; entryId: string }): OperationResult {
     const state = deps.store.get(input.projectId);
@@ -646,6 +701,8 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     convertEntryToNew,
     convertMissingToNew,
     applyChange,
+    applyChangeBatch,
+    applyAllChanges,
     discardChange,
     requestDelete,
     requestGroupDelete,

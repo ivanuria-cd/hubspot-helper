@@ -2481,3 +2481,57 @@ No requiere migración de datos ni cambio de UI/i18n (54.7.3). Requiere rebuild 
 `inputSchema` de `properties_apply_change`. `typecheck`/`test:unit`/`e2e` pendientes en la máquina del usuario
 (el espejo del sandbox no ejecuta fiable sobre los ficheros editados). **Pendientes del §54**: 54.2 (apply por
 lote/apply-all), 54.4 (acuse de guía, coordinar con SPEC-0005) y 54.5 (filtro/paginación en pending_changes).
+
+### 54.9 Diseño de implementación del bloque 54.2 + 54.5 (pendiente de validación, 2026-07-08)
+
+Ambos son ergonomía de las tools MCP de propiedades y se refuerzan: paginar/filtrar la inspección de cambios y
+poder aplicarlos en lote sin la carrera de ids (§54.1). Solo MCP (sin UI en este bloque).
+
+**54.9.1 apply por lote y apply-all (54.2).**
+
+- `service.ts`:
+  - `applyChangeBatch({ projectId, environment, refs })` con `refs: Array<{ changeId?: string; entryId?: string;
+operation?: ChangeOperation }>`. Itera `applyChange` por ref (reutiliza §54.7.2: relee el store §47 y resuelve
+    por `changeId` **o** `entryId+operation`). Devuelve `{ results: Array<{ ref, ok, error? }> }`; un fallo por ítem
+    **no** aborta el lote (patrón §42). Aplicación **secuencial** (no paralela) para no pisar el store entre awaits.
+  - `applyAllChanges({ projectId, environment, objectType? })`: deriva las refs del estado actual — todas las
+    `pendingChanges` de las entradas (filtradas por `objectType` si se indica) como pares `(entryId, operation)`
+    estables — y delega en `applyChangeBatch`. Inmune a la regeneración de ids (§54.1). Orden: el de listado por
+    entrada; `ensureGroup` ya garantiza el grupo en los `create`, sin dependencia de orden crítica.
+- `mcp-tools.ts`: dos tools nuevas, ambas `requiresGuidance: true`:
+  - `properties_apply_batch` — `inputSchema { environment (req), items: array }`; valida ≥1 item y que cada item
+    lleve `changeId` **o** `entryId+operation` (si no, `{error:{code:'invalid-input'}}`). Devuelve `{ results }`.
+  - `properties_apply_all` — `inputSchema { environment (req), objectType? }`. Devuelve `{ results, applied, failed }`.
+- Se registran en `WRITE_TOOLS` del test de gate.
+
+**54.9.2 filtro y paginación en `properties_pending_changes` (54.5).**
+
+- `mcp-tools.ts`: `properties_pending_changes` acepta `{ objectType?, limit?, offset? }`. Filtra las entradas por
+  `objectType` (vía `service.listEntries({ projectId, objectType })`, que ya soporta el filtro); pagina el array
+  `changes` por `offset`/`limit`. Devuelve `{ changes, blockers, total, offset, limit }` (`total` = nº de cambios
+  antes de paginar; `blockers` también filtrados por `objectType`). **Sin params** → todos los cambios (compatible),
+  pero con `total` informado; nunca trunca en silencio (si se omite `limit`, no hay recorte). Sin cambios de servicio.
+- Deja de estar en `READ_TOOLS`… sigue siendo de solo lectura (no cambia el gate); solo enriquece el input.
+
+**54.9.3 Tests.**
+
+- `service.spec.ts`: `applyChangeBatch` (mezcla de refs, un fallo no aborta el resto); `applyAllChanges` (aplica todos
+  los pendientes de un `objectType` y marca los flags).
+- `mcp-tools.spec.ts`: `properties_apply_batch`/`properties_apply_all` en `WRITE_TOOLS` (gate) y funcionamiento;
+  `properties_pending_changes` con `objectType`/`limit`/`offset` (filtra, pagina, `total` correcto).
+
+**54.9.4 Estado.** IMPLEMENTADO (2026-07-08, enfoque validado). Cambios:
+
+- `service.ts`: `applyChangeBatch({ projectId, environment, refs })` (secuencial, tolerante) y
+  `applyAllChanges({ projectId, environment, objectType? })` (deriva refs `(entryId, operation)` del estado);
+  ambos expuestos en el objeto del servicio.
+- `mcp-tools.ts`: tools `properties_apply_batch` y `properties_apply_all` (ambas `requiresGuidance`);
+  `properties_pending_changes` acepta `objectType`/`limit`/`offset` y devuelve `{ changes, blockers, total, offset,
+limit }` (sin `limit` → todos, sin truncar).
+- Tests: `service.spec.ts` (`applyChangeBatch` con fallo por ítem; `applyAllChanges` filtrado por objeto) y
+  `mcp-tools.spec.ts` (apply_all, apply_batch tolerante + validación, pending_changes filtro/paginación; las dos
+  tools nuevas añadidas a `WRITE_TOOLS`).
+
+Requiere **rebuild MCP**. Sin UI (el «Aplicar todo» en la pantalla queda fuera de alcance; se puede añadir después).
+`typecheck`/`test:unit` en la máquina del usuario (el espejo del sandbox trunca los `.spec` al transformarlos). Con
+esto quedan pendientes del §54 solo **54.4** (acuse de guía, con SPEC-0005).

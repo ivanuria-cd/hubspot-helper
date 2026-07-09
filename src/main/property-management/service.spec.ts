@@ -194,6 +194,95 @@ describe('PropertyService (entradas)', () => {
     expect(after.appliedToSandbox).toBe(true);
   });
 
+  it('§54.2: applyChangeBatch aplica en lote y un fallo por ítem no aborta el resto', async () => {
+    const store = createMemoryPropertyStore();
+    const props = fakeProperties([]);
+    const service = createPropertyService(deps(store, props, fakeObjects()));
+    service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'contacts',
+        name: 'A',
+        hubspotProperty: {
+          mode: 'new',
+          definition: {
+            hubspotName: 'a',
+            label: 'A',
+            type: 'string',
+            fieldType: 'text',
+            groupName: 'g',
+          },
+        },
+        sources: [],
+      },
+    });
+    await service.syncHubspot({ projectId: 'p1' });
+    const entry = service.listEntries({ projectId: 'p1' })[0];
+    const { results } = await service.applyChangeBatch({
+      projectId: 'p1',
+      environment: 'sandbox',
+      refs: [
+        { entryId: entry.id, operation: 'create' },
+        { entryId: 'nope', operation: 'create' },
+      ],
+    });
+    expect(results.map((r) => r.ok)).toEqual([true, false]);
+    expect(props.createProperty).toHaveBeenCalledTimes(1);
+  });
+
+  it('§54.2: applyAllChanges aplica todos los pendientes de un objeto y cuenta aplicados', async () => {
+    const store = createMemoryPropertyStore();
+    const props = fakeProperties([]);
+    const service = createPropertyService(deps(store, props, fakeObjects()));
+    for (const n of ['a', 'b']) {
+      service.upsertEntry({
+        projectId: 'p1',
+        entry: {
+          objectType: 'contacts',
+          name: n,
+          hubspotProperty: {
+            mode: 'new',
+            definition: {
+              hubspotName: n,
+              label: n,
+              type: 'string',
+              fieldType: 'text',
+              groupName: 'g',
+            },
+          },
+          sources: [],
+        },
+      });
+    }
+    service.upsertEntry({
+      projectId: 'p1',
+      entry: {
+        objectType: 'deals',
+        name: 'z',
+        hubspotProperty: {
+          mode: 'new',
+          definition: {
+            hubspotName: 'z',
+            label: 'z',
+            type: 'string',
+            fieldType: 'text',
+            groupName: 'g',
+          },
+        },
+        sources: [],
+      },
+    });
+    await service.syncHubspot({ projectId: 'p1' });
+    const result = await service.applyAllChanges({
+      projectId: 'p1',
+      environment: 'sandbox',
+      objectType: 'contacts',
+    });
+    expect(result.applied).toBe(2);
+    expect(result.failed).toBe(0);
+    expect(props.createProperty).toHaveBeenCalledTimes(2);
+  });
+
   it('getDriveMeta refleja cambios y markDriveWritten limpia el dirty', () => {
     const store = createMemoryPropertyStore();
     const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));

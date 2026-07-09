@@ -72,6 +72,8 @@ const WRITE_TOOLS = [
   'properties_convert_to_new',
   'properties_convert_missing_to_new',
   'properties_apply_change',
+  'properties_apply_batch',
+  'properties_apply_all',
   'properties_discard_change',
   'properties_request_delete',
   'properties_groups_request_delete',
@@ -242,5 +244,87 @@ describe('registerPropertyTools (tools MCP de propiedades)', () => {
       environment: 'sandbox',
     })) as { error?: { code: string } };
     expect(none.error?.code).toBe('invalid-input');
+  });
+
+  const newEntry = (registry: McpRegistry, objectType: string, name: string) =>
+    call(registry, 'entries_upsert', {
+      entry: {
+        objectType,
+        name,
+        hubspotProperty: {
+          mode: 'new',
+          definition: {
+            hubspotName: name,
+            label: name,
+            type: 'string',
+            fieldType: 'text',
+            groupName: 'custom',
+          },
+        },
+        sources: [],
+      },
+    });
+
+  it('§54.2: properties_apply_all aplica todos los pendientes del entorno', async () => {
+    const { registry, props } = setup();
+    await newEntry(registry, 'contacts', 'a_prop');
+    await newEntry(registry, 'contacts', 'b_prop');
+    await call(registry, 'properties_sync', {});
+    const result = (await call(registry, 'properties_apply_all', { environment: 'sandbox' })) as {
+      applied: number;
+      failed: number;
+    };
+    expect(result.applied).toBe(2);
+    expect(result.failed).toBe(0);
+    expect(props.createProperty).toHaveBeenCalledTimes(2);
+  });
+
+  it('§54.2: properties_apply_batch tolera un fallo por ítem sin abortar el lote', async () => {
+    const { registry } = setup();
+    await newEntry(registry, 'contacts', 'ok_prop');
+    await call(registry, 'properties_sync', {});
+    const entries = (await call(registry, 'entries_list', {})) as Array<{ id: string }>;
+    const res = (await call(registry, 'properties_apply_batch', {
+      environment: 'sandbox',
+      items: [
+        { entryId: entries[0].id, operation: 'create' },
+        { entryId: 'inexistente', operation: 'create' },
+      ],
+    })) as { results: Array<{ ok: boolean }> };
+    expect(res.results.map((r) => r.ok)).toEqual([true, false]);
+  });
+
+  it('§54.2: properties_apply_batch rechaza referencia ambigua e items vacío', async () => {
+    const { registry } = setup();
+    const ambiguous = (await call(registry, 'properties_apply_batch', {
+      environment: 'sandbox',
+      items: [{ changeId: 'x', entryId: 'e', operation: 'create' }],
+    })) as { error?: { code: string } };
+    expect(ambiguous.error?.code).toBe('invalid-input');
+    const empty = (await call(registry, 'properties_apply_batch', {
+      environment: 'sandbox',
+      items: [],
+    })) as { error?: { code: string } };
+    expect(empty.error?.code).toBe('invalid-input');
+  });
+
+  it('§54.5: properties_pending_changes filtra por objectType y pagina', async () => {
+    const { registry } = setup();
+    await newEntry(registry, 'contacts', 'c1');
+    await newEntry(registry, 'deals', 'd1');
+    await call(registry, 'properties_sync', {});
+    const contacts = (await call(registry, 'properties_pending_changes', {
+      objectType: 'contacts',
+    })) as { changes: unknown[]; total: number };
+    expect(contacts.total).toBe(1);
+    expect(contacts.changes).toHaveLength(1);
+    const paged = (await call(registry, 'properties_pending_changes', { limit: 1, offset: 0 })) as {
+      changes: unknown[];
+      total: number;
+      limit: number;
+    };
+    expect(paged.total).toBe(2);
+    expect(paged.changes).toHaveLength(1);
+    expect(paged.limit).toBe(1);
   });
 });

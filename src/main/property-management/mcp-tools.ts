@@ -153,19 +153,37 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
     name: 'properties_pending_changes',
     description:
       'Lista los cambios pendientes de aplicar en HubSpot, junto con los `blockers`: entradas en estado ' +
-      '«falta» que NO generan cambio (modo existing apuntando a una propiedad inexistente; ver revops_guidance).',
-    inputSchema: { type: 'object', properties: {} },
+      '«falta» que NO generan cambio (modo existing apuntando a una propiedad inexistente; ver revops_guidance). ' +
+      'Admite `objectType` (filtro) y `limit`/`offset` (paginación de `changes`; sin `limit` devuelve todos). ' +
+      'Devuelve `{ changes, blockers, total, offset, limit }` (`total` = nº de cambios antes de paginar).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        objectType: { type: 'string' },
+        limit: { type: 'number' },
+        offset: { type: 'number' },
+      },
+    },
     featureKey: feature,
     requiredScopes: SCOPES,
-    handler: (_input, ctx) => {
-      const entries = service.listEntries({ projectId: ctx.projectId });
-      const changes = entries.flatMap((entry) =>
+    handler: (input, ctx) => {
+      const { objectType, limit, offset } = (input ?? {}) as {
+        objectType?: string;
+        limit?: number;
+        offset?: number;
+      };
+      const entries = service.listEntries({ projectId: ctx.projectId, objectType });
+      const allChanges = entries.flatMap((entry) =>
         (entry.pendingChanges ?? []).map((change) => ({
           entry: entry.name,
           objectType: entry.objectType,
           ...change,
         })),
       );
+      const total = allChanges.length;
+      const start = offset ?? 0;
+      const changes =
+        limit === undefined ? allChanges.slice(start) : allChanges.slice(start, start + limit);
       const blockers = entries
         .filter((e) => e.hubspotStatus === 'missing' && e.hubspotProperty.mode === 'existing')
         .map((e) => {
@@ -181,7 +199,7 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
             remediation: system ? ('relink' as const) : ('convert-to-new' as const),
           };
         });
-      return Promise.resolve({ changes, blockers });
+      return Promise.resolve({ changes, blockers, total, offset: start, limit: limit ?? null });
     },
   });
 
@@ -601,6 +619,71 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
         operation,
         environment,
       });
+    },
+  });
+
+  registry.register({
+    name: 'properties_apply_batch',
+    requiresGuidance: true,
+    description:
+      'Aplica VARIOS cambios pendientes en un entorno. Cada item se referencia por `changeId` O por ' +
+      '`entryId`+`operation` (referencia lógica estable). Un fallo por ítem no aborta el lote. ' +
+      'Devuelve { results: [{ ref, ok, error? }] }.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        environment: { type: 'string', enum: ['sandbox', 'production'] },
+        items: { type: 'array', items: { type: 'object' } },
+      },
+      required: ['environment', 'items'],
+    },
+    featureKey: feature,
+    requiredScopes: WRITE_SCOPES,
+    handler: (input, ctx) => {
+      const { environment, items } = (input ?? {}) as {
+        environment: HubSpotEnvironment;
+        items?: Array<{ changeId?: string; entryId?: string; operation?: ChangeOperation }>;
+      };
+      const refs = items ?? [];
+      if (refs.length === 0) {
+        return Promise.resolve({ error: { code: 'invalid-input', message: 'items vacío.' } });
+      }
+      // Cada item debe llevar changeId O (entryId + operation), exactamente una forma.
+      const invalid = refs.some((r) => Boolean(r.changeId) === Boolean(r.entryId && r.operation));
+      if (invalid) {
+        return Promise.resolve({
+          error: {
+            code: 'invalid-input',
+            message: 'Cada item lleva changeId O (entryId + operation), exactamente una forma.',
+          },
+        });
+      }
+      return service.applyChangeBatch({ projectId: ctx.projectId, environment, refs });
+    },
+  });
+
+  registry.register({
+    name: 'properties_apply_all',
+    requiresGuidance: true,
+    description:
+      'Aplica TODOS los cambios pendientes (opcionalmente de un `objectType`) en el entorno indicado. ' +
+      'Resuelve las referencias internamente (inmune a la regeneración de ids). Devuelve { results, applied, failed }.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        environment: { type: 'string', enum: ['sandbox', 'production'] },
+        objectType: { type: 'string' },
+      },
+      required: ['environment'],
+    },
+    featureKey: feature,
+    requiredScopes: WRITE_SCOPES,
+    handler: (input, ctx) => {
+      const { environment, objectType } = (input ?? {}) as {
+        environment: HubSpotEnvironment;
+        objectType?: string;
+      };
+      return service.applyAllChanges({ projectId: ctx.projectId, environment, objectType });
     },
   });
 
