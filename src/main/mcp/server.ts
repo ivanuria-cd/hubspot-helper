@@ -1,8 +1,5 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import type { McpRegistry } from './registry';
 import type { McpAuth } from './auth';
 import type {
@@ -62,6 +59,9 @@ export interface McpService {
 export function createMcpService(deps: McpServiceDeps): McpService {
   const log = deps.log ?? (() => undefined);
   let httpHandle: HttpSseHandle | null = null;
+  // SPEC-0005 §15 / SPEC-0006 §54.4: el acuse de guía es por PROYECTO y vive mientras el proceso esté
+  // activo. Sobrevive a reconexiones de la sesión MCP; solo se rearma al reiniciar la app o cambiar de
+  // proyecto (el projectId lo aporta contextProvider). Claves = projectId.
   const guidanceAck = new Set<string>();
 
   function blocked(): GuidanceBlocked {
@@ -70,8 +70,9 @@ export function createMcpService(deps: McpServiceDeps): McpService {
       reason: 'guidance-required',
       message:
         'Operación bloqueada. Llama a revops_guidance para leer las reglas de operación antes de continuar. ' +
-        'El acuse es por sesión MCP (no hay umbral por número de escrituras): una vez leída la guía, esta sesión ' +
-        'queda desbloqueada hasta que se cierre o se reinicie el servidor; al reconectar hay que leerla de nuevo.',
+        'El acuse es por PROYECTO y vive mientras la app esté abierta: una vez leída la guía para este proyecto, ' +
+        'queda desbloqueado aunque la sesión MCP se reconecte; solo se rearma si se reinicia la app o se cambia de ' +
+        'proyecto activo. Si te aparece a mitad de un flujo, es por un reinicio de la app o un cambio de proyecto.',
       next: GUIDANCE_TOOL,
     };
   }
@@ -79,20 +80,23 @@ export function createMcpService(deps: McpServiceDeps): McpService {
   async function callTool(name: string, args: unknown, sessionId: string): Promise<unknown> {
     const tool = deps.registry.get(name);
     if (!tool) throw new Error(`Tool MCP desconocida: ${name}`);
-    if (tool.requiresGuidance && !guidanceAck.has(sessionId)) return blocked();
+    const context = { ...deps.contextProvider(), sessionId };
+    if (tool.requiresGuidance && !guidanceAck.has(context.projectId)) return blocked();
     // SPEC-0005 §18: validación runtime del input contra el inputSchema declarado.
     const validation = validateToolInput(tool.inputSchema, args);
     if (!validation.ok) {
       return { error: { code: 'invalid-input', tool: name, issues: validation.issues } };
     }
     log(`tool MCP llamada: ${tool.name}`);
-    const result = await tool.handler(args ?? {}, { ...deps.contextProvider(), sessionId });
-    if (name === GUIDANCE_TOOL) guidanceAck.add(sessionId);
+    const result = await tool.handler(args ?? {}, context);
+    if (name === GUIDANCE_TOOL) guidanceAck.add(context.projectId);
     return result;
   }
 
-  function purgeSession(sessionId: string): void {
-    guidanceAck.delete(sessionId);
+  // El acuse es por proyecto (no por sesión): cerrar una sesión MCP ya no lo resetea (SPEC-0006 §54.4).
+  // Se conserva en la interfaz por compatibilidad; es un no-op respecto al gate.
+  function purgeSession(_sessionId: string): void {
+    /* no-op: el acuse de guía vive por proyecto mientras el proceso esté activo */
   }
 
   function buildServer(): Server {
@@ -158,7 +162,10 @@ export function createMcpService(deps: McpServiceDeps): McpService {
       deps.config.setEnabled(enabled);
       return { success: true };
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Error desconocido' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error desconocido',
+      };
     }
   }
 

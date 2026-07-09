@@ -148,6 +148,17 @@ describe('createMcpService', () => {
       return registry;
     }
 
+    function buildGatedService(port: number, projectRef: { current: string }): McpService {
+      let stored: string | null = null;
+      return createMcpService({
+        registry: gatedRegistry(),
+        auth: createAuth({ getToken: () => stored, setToken: (v) => (stored = v) }),
+        config: memoryConfig(port),
+        contextProvider: () => ({ projectId: projectRef.current }),
+        serverInfo: { name: 'revops-test', version: '0.0.0' },
+      });
+    }
+
     it('bloquea una tool con requiresGuidance sin acuse y la ejecuta tras leer la guía', async () => {
       const service = buildService(3742, gatedRegistry());
       const before = (await service.callTool('write_tool', {}, 'S1')) as { blocked?: boolean };
@@ -163,20 +174,29 @@ describe('createMcpService', () => {
       expect(await service.callTool('read_tool', {}, 'S1')).toBe('leido');
     });
 
-    it('el acuse de la sesión A no desbloquea la sesión B', async () => {
-      const service = buildService(3744, gatedRegistry());
+    it('§54.4: el acuse desbloquea todas las sesiones del mismo proyecto', async () => {
+      const service = buildGatedService(3744, { current: 'proj-1' });
       await service.callTool('revops_guidance', {}, 'A');
       expect(await service.callTool('write_tool', {}, 'A')).toBe('ejecutado');
-      const b = (await service.callTool('write_tool', {}, 'B')) as { blocked?: boolean };
-      expect(b.blocked).toBe(true);
+      // Otra sesión MCP del MISMO proyecto ya está desbloqueada (acuse por proyecto).
+      expect(await service.callTool('write_tool', {}, 'B')).toBe('ejecutado');
     });
 
-    it('purgar la sesión reactiva el bloqueo', async () => {
-      const service = buildService(3745, gatedRegistry());
+    it('§54.4: un proyecto distinto sigue bloqueado hasta leer su guía', async () => {
+      const projectRef = { current: 'proj-1' };
+      const service = buildGatedService(3746, projectRef);
+      await service.callTool('revops_guidance', {}, 'A');
+      expect(await service.callTool('write_tool', {}, 'A')).toBe('ejecutado');
+      projectRef.current = 'proj-2';
+      const blocked = (await service.callTool('write_tool', {}, 'A')) as { blocked?: boolean };
+      expect(blocked.blocked).toBe(true);
+    });
+
+    it('§54.4: cerrar la sesión NO reactiva el bloqueo (el acuse es por proyecto)', async () => {
+      const service = buildGatedService(3745, { current: 'proj-1' });
       await service.callTool('revops_guidance', {}, 'A');
       service.purgeSession('A');
-      const after = (await service.callTool('write_tool', {}, 'A')) as { blocked?: boolean };
-      expect(after.blocked).toBe(true);
+      expect(await service.callTool('write_tool', {}, 'A')).toBe('ejecutado');
     });
   });
 
@@ -211,7 +231,11 @@ describe('createMcpService', () => {
 
     it('ejecuta el handler con input válido', async () => {
       const service = buildService(3747, validatedRegistry());
-      const ok = await service.callTool('typed_tool', { changeId: 'c1', environment: 'sandbox' }, 'S1');
+      const ok = await service.callTool(
+        'typed_tool',
+        { changeId: 'c1', environment: 'sandbox' },
+        'S1',
+      );
       expect(ok).toBe('ok');
     });
   });

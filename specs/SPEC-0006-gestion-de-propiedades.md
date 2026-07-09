@@ -2390,6 +2390,12 @@ no bloqueante tras el primer acuse; el `message` del error debe indicar explíci
 reinicio de sesión (amplía la transparencia de SPEC-0005 §15.11). Al ser transversal al gate, la decisión de
 modelo vive en SPEC-0005; esta subsección registra el impacto en propiedades.
 
+**IMPLEMENTADO (2026-07-08)** — enfoque «acuse por proyecto, en memoria del proceso» (opción validada). El gate
+pasa a indexar el acuse por `projectId` en vez de `sessionId`: sobrevive a reconexiones de la sesión MCP y solo se
+rearma al reiniciar la app o cambiar de proyecto; el `message` lo explicita. Detalle e implementación en
+**SPEC-0005 §15.12** (`server.ts` + `server.spec.ts`). Cierra el §54 salvo los pendientes de prioridad BAJA
+(§54.10 UI «Aplicar todo»).
+
 ### 54.5 `properties_pending_changes` sin filtro ni paginación (MEDIA) — punto 6 del informe
 
 **Síntoma.** Cada llamada devuelve el proyecto completo (decenas de cambios con `payload`/`options` extensos).

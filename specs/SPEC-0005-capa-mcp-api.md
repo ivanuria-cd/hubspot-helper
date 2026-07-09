@@ -6,6 +6,7 @@
 **Depende de:** SPEC-0002
 
 > **Historial de implementación**
+>
 > - 2026-06-10 — Implementación inicial. SDK `@modelcontextprotocol/sdk@1.29.0` y `express@5.2.1` (ambas versiones con >10 días de antigüedad, sin vulnerabilidades nuevas en `npm audit`, conforme a SPEC-0000 §11). Núcleo (types/registry/auth), transportes stdio + HTTP/SSE, servicio `createMcpService`, IPC, UI `settings-mcp` e i18n (es/ca/eu/en). Tool de núcleo `mcp_health`. 17 tests en verde.
 
 ---
@@ -19,22 +20,26 @@ Implementar la capa de API y servidor MCP saliente que expone las capacidades de
 ## 2. Contexto y Decisiones de Diseño
 
 ### Protocolo
+
 - **Model Context Protocol (MCP)** — protocolo estándar para exponer herramientas a LLMs.
 - Versión: MCP spec 2024-11-05 (la más reciente al momento de redacción).
 - Transporte primario: **stdio** (para integración directa con clientes MCP como Claude Desktop, Cursor, etc.)
 - Transporte secundario: **HTTP/SSE** (para integraciones remotas o multi-cliente).
 
 ### Arquitectura
+
 - El servidor MCP corre en el **proceso main de Electron** (no en un proceso separado), exponiendo un puerto HTTP local configurable.
 - Cada feature registra sus tools en un **registry central** en tiempo de arranque.
 - Las tools tienen acceso a los conectores (HubSpot, Google Drive) vía los mismos mecanismos internos que el renderer.
 
 ### Seguridad del servidor local
+
 - El servidor HTTP/SSE escucha en `127.0.0.1` únicamente (no en `0.0.0.0`).
 - Autenticación por token local generado en el arranque (almacenado en electron-store, renovable).
 - El usuario puede habilitar/deshabilitar el servidor MCP en la configuración.
 
 ### SDK
+
 - **`@modelcontextprotocol/sdk`** (TypeScript) — SDK oficial de MCP para Node.js.
 - Proporciona `McpServer`, tipos de tools, y el servidor HTTP/SSE transport.
 
@@ -88,33 +93,37 @@ Pantalla en `Config > API / MCP`:
 ## 4. Modelo de Datos / Contratos
 
 ### Tipo `McpTool` (registro interno)
+
 ```typescript
 interface McpTool {
-  name: string;            // ej: 'hubspot_get_contacts'
+  name: string; // ej: 'hubspot_get_contacts'
   description: string;
   inputSchema: JSONSchema;
   handler: (input: unknown, context: McpContext) => Promise<unknown>;
-  featureKey: string;      // qué feature lo registra
+  featureKey: string; // qué feature lo registra
   requiredScopes?: string[]; // scopes HubSpot necesarios
 }
 ```
 
 ### Tipo `McpContext`
+
 ```typescript
 interface McpContext {
-  projectId: string;       // proyecto activo en la sesión MCP
+  projectId: string; // proyecto activo en la sesión MCP
 }
 ```
 
 ### IPC Channels
-| Canal | Dirección | Input | Output |
-|-------|-----------|-------|--------|
-| `mcp:get-status` | renderer → main | — | `{ running, port, toolCount }` |
-| `mcp:toggle` | renderer → main | `{ enabled }` | `{ success }` |
-| `mcp:regenerate-token` | renderer → main | — | `{ token }` |
-| `mcp:list-tools` | renderer → main | — | `McpTool[]` |
+
+| Canal                  | Dirección       | Input         | Output                         |
+| ---------------------- | --------------- | ------------- | ------------------------------ |
+| `mcp:get-status`       | renderer → main | —             | `{ running, port, toolCount }` |
+| `mcp:toggle`           | renderer → main | `{ enabled }` | `{ success }`                  |
+| `mcp:regenerate-token` | renderer → main | —             | `{ token }`                    |
+| `mcp:list-tools`       | renderer → main | —             | `McpTool[]`                    |
 
 ### API de registro para features (uso interno)
+
 ```typescript
 // Cada feature llama esto en su inicialización:
 mcpRegistry.register({
@@ -171,11 +180,13 @@ src/renderer/features/settings-mcp/        # UI de configuración MCP
 ## 7. Tests Requeridos
 
 ### Unitarios
+
 - `registry.spec.ts` — registrar tools, listar, prevenir duplicados de nombre
 - `auth.spec.ts` — generación de token, validación correcta, rechazo de token inválido
 - `server.spec.ts` — arranque y parada del servidor, manejo de puerto ocupado
 
 ### Funcionales
+
 - `mcp-connection.spec.ts` — un cliente MCP de test se conecta al servidor SSE y lista las tools disponibles
 - `mcp-tool-call.spec.ts` — llamar a una tool de test registrada devuelve el resultado esperado (fixture mock)
 
@@ -242,9 +253,11 @@ grupos de propiedades (escritura destructiva en HubSpot, no expuesta hoy en la U
 Origen: Informe UX 2026-06-19, hallazgos #1 y #2. En `McpSettingsScreen.tsx`: "Copiado" desaparece a los 2 s (feedback efímero) y **regenerar el token** (L116) se ejecuta a un clic, invalidando toda sesión activa, sin confirmación.
 
 Adopción de SPEC-0002 §11 (ConfirmDialog):
+
 - Antes de regenerar el token: `await confirm({ tone:'danger', title: t('mcp.regenerateTitle'), body: t('mcp.regenerateBody') })`.
 
 Adopción de SPEC-0002 §10 (Snackbar):
+
 - "Token copiado", "Config copiada", "Token regenerado" → `notify({ severity:'success' })`, sustituyendo el texto inline de 2 s.
 - Error de toggle del servidor → `notify({ severity:'error' })` (puede mantenerse el `Alert` persistente).
 
@@ -299,7 +312,7 @@ primera contribución es SPEC-0006 §35.6) y la lógica de negocio de cada tool.
   sección concreta por `featureKey`; sin argumento devuelve la guía completa.
 - `handler`: ensambla el documento a partir del registro de secciones (15.4), ordenado por `order` y luego
   `featureKey`, y **registra el acuse** de la sesión (15.5). Devuelve `{ content: <markdown>, sections: string[],
-  acknowledged: true }`.
+acknowledged: true }`.
 - `description`: debe instruir explícitamente: «LÉEME PRIMERO. Devuelve las reglas de operación del MCP `revops`.
   Las tools de escritura están bloqueadas hasta llamar a esta tool en la sesión.»
 
@@ -309,14 +322,14 @@ Análogo al registry de tools. Estructura nueva en `src/main/mcp/`:
 
 ```ts
 export interface GuidanceSection {
-  featureKey: string;   // dominio que la aporta
-  title: string;        // título de la sección
-  order: number;        // orden en el documento ensamblado
-  body: string;         // markdown; texto literal en castellano (es la guía del LLM, no UI i18n)
+  featureKey: string; // dominio que la aporta
+  title: string; // título de la sección
+  order: number; // orden en el documento ensamblado
+  body: string; // markdown; texto literal en castellano (es la guía del LLM, no UI i18n)
 }
 
 export interface GuidanceRegistry {
-  register(section: GuidanceSection): void;   // duplicado por featureKey → error
+  register(section: GuidanceSection): void; // duplicado por featureKey → error
   getAll(): GuidanceSection[];
   assemble(filter?: { featureKey?: string }): string;
 }
@@ -424,6 +437,27 @@ pocas escrituras» es el churn de sesiones (cada reconexión = sesión nueva = a
 Fix (diagnóstico, sin cambiar la lógica del gate): el `message` de la respuesta `guidance-required` (`server.ts`,
 `blocked()`) explicita la semántica real — acuse por sesión, sin umbral de escrituras, rearme al reconectar/reiniciar.
 `server.spec.ts` solo afirma `blocked === true`, así que el cambio de texto no rompe tests. Requiere rebuild del MCP.
+
+### 15.12 Acuse por proyecto, no por sesión (CORREGIDO, 2026-07-08 — SPEC-0006 §54.4)
+
+Corrección de §15.5/§15.6: el acuse pasa de indexarse por **`sessionId`** a indexarse por **`projectId`**, en memoria
+del proceso. Motivo (SPEC-0006 §54.4, informe LNN): el churn de sesiones MCP (cada reconexión = sesión nueva)
+rearmaba el bloqueo a mitad de un flujo largo, interrumpiéndolo sin causa real. Con el acuse por proyecto:
+
+- `guidanceAck: Set<projectId>`; el `projectId` se obtiene de `contextProvider()` en `callTool`. El gate comprueba
+  `guidanceAck.has(projectId)` y `revops_guidance` marca `guidanceAck.add(projectId)`.
+- Sobrevive a reconexiones de la sesión MCP: `purgeSession` deja de resetear el acuse (queda como no-op, conservado
+  en la interfaz por compatibilidad; `onclose` ya no rearma el gate).
+- Se rearma solo al **reiniciar el proceso** (Set nuevo) o al **cambiar de proyecto activo** (otro `projectId` sin
+  acuse). Así un arranque nuevo de la app sigue forzando releer las reglas, pero una reconexión dentro de la misma
+  sesión de trabajo no interrumpe.
+- El `message` de `guidance-required` se reescribe para indicar que el acuse es por proyecto y que, si aparece a
+  mitad de un flujo, la causa es un reinicio de la app o un cambio de proyecto.
+- Tests (`server.spec.ts`): el caso «A no desbloquea B» se sustituye por «el acuse desbloquea todas las sesiones del
+  mismo proyecto» + «un proyecto distinto sigue bloqueado»; «purgar reactiva el bloqueo» pasa a «cerrar la sesión NO
+  reactiva el bloqueo». Cambio de tests acordado (SPEC-0000 §8) por corregir comportamiento previo.
+
+IMPLEMENTADO (2026-07-08). Requiere rebuild del MCP. `typecheck`/`test:unit` en la máquina del usuario.
 
 ## 16. Endurecimiento de seguridad de la capa MCP (IMPLEMENTADO, 2026-07-02)
 
