@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SheetMeta } from './sheets-style';
 import type { PlanningWorkbook } from '../../property-management/planning-model';
+import { PLANNING_META_TITLE } from '../../property-management/planning-meta';
 import { buildPlanningStyleRequests } from './planning-style';
 
 const workbook: PlanningWorkbook = {
@@ -24,6 +25,13 @@ const workbook: PlanningWorkbook = {
       ],
     },
     { title: 'Listas', rows: [['contacts|Pipedrive'], ['email']] },
+    {
+      title: PLANNING_META_TITLE,
+      rows: [
+        ['Tab', 'Object type'],
+        ['contacts', 'contacts'],
+      ],
+    },
   ],
   hiddenTabs: ['Listas'],
   validations: [
@@ -42,6 +50,7 @@ const workbook: PlanningWorkbook = {
 const sheets: SheetMeta[] = [
   { properties: { sheetId: 1, title: 'contacts' } },
   { properties: { sheetId: 2, title: 'Listas' }, bandedRanges: [{ bandedRangeId: 7 }] },
+  { properties: { sheetId: 3, title: PLANNING_META_TITLE } },
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,8 +64,13 @@ describe('buildPlanningStyleRequests (SPEC-0016 incremento 5)', () => {
     expect(hide?.updateSheetProperties?.properties?.sheetId).toBe(2);
   });
 
-  it('NO protege rangos (documento editable)', () => {
-    expect(reqs.some((r) => r.addProtectedRange)).toBe(false);
+  it('protege SOLO la hoja de metadatos; el resto sigue editable (SPEC-0006 §53.6)', () => {
+    const protectedIds = reqs
+      .filter((r) => r.addProtectedRange)
+      .map((r) => r.addProtectedRange.protectedRange.range.sheetId);
+    expect(protectedIds).toEqual([3]); // 00_Metadatos
+    const meta = reqs.find((r) => r.addProtectedRange);
+    expect(meta.addProtectedRange.protectedRange.warningOnly).toBe(false);
   });
 
   it('limpia bandas previas (idempotencia)', () => {

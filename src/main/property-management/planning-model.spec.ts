@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { DataOrigin, PropertyEntry } from '@shared/types/properties';
 import type { PlanningAssociation } from '@shared/types/planning';
 import { buildPlanningWorkbook, type SheetTab } from './planning-model';
+import { PLANNING_META_TITLE } from './planning-meta';
 
 const origins: DataOrigin[] = [
   {
@@ -190,5 +191,13 @@ describe('buildPlanningWorkbook (SPEC-0016 incremento 3)', () => {
     const aso = tab(wb.tabs, 'Asociaciones');
     expect(aso.rows[0]).toEqual(['Objeto A', 'Objeto B', 'Clave de enlace', 'Notas']);
     expect(aso.rows[1]).toEqual(['contacts', 'deals', 'email', 'nota']);
+  });
+
+  it('§53.6: incluye 00_Metadatos (titulo -> objectType) con A1 != Custom', () => {
+    const meta = wb.tabs.find((t) => t.title === PLANNING_META_TITLE);
+    expect(meta).toBeTruthy();
+    expect(meta!.rows[0]).toEqual(['Tab', 'Object type']);
+    expect(meta!.rows[0][0]).not.toBe('Custom');
+    expect(meta!.rows.slice(1)).toContainEqual(['contacts', 'contacts']);
   });
 });

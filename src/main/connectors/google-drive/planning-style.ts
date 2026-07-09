@@ -10,6 +10,7 @@ import type {
   PlanningValidation,
   PlanningWorkbook,
 } from '../../property-management/planning-model';
+import { PLANNING_META_TITLE } from '../../property-management/planning-meta';
 
 type Request = Record<string, unknown>;
 
@@ -176,7 +177,19 @@ export function buildPlanningStyleRequests(
         fields: 'pixelSize',
       },
     });
-    // Sin addProtectedRange: el mapa de planificacion es editable (SPEC-0016 D1).
+    // SPEC-0016 D1: el mapa es editable, SALVO la hoja de metadatos, que se protege (SPEC-0006 §53.6)
+    // para preservar el mapeo titulo -> objectType del round-trip. La limpieza previa (arriba) evita duplicados.
+    if (tab.title === PLANNING_META_TITLE) {
+      requests.push({
+        addProtectedRange: {
+          protectedRange: {
+            range: { sheetId },
+            description: 'Metadatos (SPEC-0006 53.6): no editar',
+            warningOnly: false,
+          },
+        },
+      });
+    }
   }
 
   // Desplegables (Custom/Origin literales, Field name/Type por rango o lista).

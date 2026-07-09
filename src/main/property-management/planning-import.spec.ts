@@ -3,11 +3,13 @@ import type { DataOrigin, PropertyEntry } from '@shared/types/properties';
 import {
   buildDraftEntries,
   ingestPlanning,
+  parsePlanningTabs,
   type CellValue,
   type ParsedPlanningEntry,
   type PlanningResolution,
   type ReadTab,
 } from './planning-import';
+import { PLANNING_META_TITLE } from './planning-meta';
 
 const origins: DataOrigin[] = [
   {
@@ -280,5 +282,38 @@ describe('buildDraftEntries (SPEC-0016 2.6 apply / incremento 6 parte 2)', () =>
     if (ref.mode === 'new') {
       expect(ref.definition.fieldType).toBe('select');
     }
+  });
+});
+
+describe('§53.6 round-trip del objectType via 00_Metadatos', () => {
+  const OBJ_HEADER = [
+    'Custom',
+    'Name',
+    'Internal name',
+    'Type',
+    'Unique',
+    'Options',
+    'Group',
+    'Description',
+    'Read-only / Schema',
+  ];
+  const objectTab = (title: string): ReadTab => ({
+    title,
+    rows: [OBJ_HEADER, ['No', 'Correo', 'email', 'text', 'No', '', 'contactinformation', '', '']],
+  });
+  const metaTab = (pairs: Array<[string, string]>): ReadTab => ({
+    title: PLANNING_META_TITLE,
+    rows: [['Tab', 'Object type'], ...pairs],
+  });
+
+  it('usa el objectType real de la hoja de metadatos, no el titulo saneado', () => {
+    const tabs = [metaTab([['Mi Objeto', '2-99_real']]), objectTab('Mi Objeto')];
+    expect(parsePlanningTabs(tabs, []).map((e) => e.objectType)).toEqual(['2-99_real']);
+  });
+
+  it('sin hoja de metadatos cae al titulo (mapas anteriores al schema 2)', () => {
+    expect(parsePlanningTabs([objectTab('contacts')], []).map((e) => e.objectType)).toEqual([
+      'contacts',
+    ]);
   });
 });

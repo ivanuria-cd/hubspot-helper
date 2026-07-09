@@ -28,6 +28,7 @@ import {
   userFriendlyFieldType,
 } from '@shared/constants/planningFieldTypes';
 import { entryDestName as destName } from './dest-name';
+import { PLANNING_META_TITLE } from './planning-meta';
 
 export type CellValue = string | number | boolean;
 
@@ -74,9 +75,27 @@ function isUserFriendlyKey(value: string): value is UserFriendlyFieldTypeKey {
   return userFriendlyFieldType(value as UserFriendlyFieldTypeKey) !== undefined;
 }
 
+/**
+ * SPEC-0006 §53.6: lee la hoja de metadatos `00_Metadatos` (titulo de pestana -> objectType real).
+ * Vacia si no existe (mapas generados antes del schema 2): el llamador cae al titulo.
+ */
+function objectTypeByTitle(tabs: ReadTab[]): Map<string, string> {
+  const map = new Map<string, string>();
+  const meta = tabs.find((tab) => tab.title === PLANNING_META_TITLE);
+  if (!meta) return map;
+  for (const row of meta.rows.slice(1)) {
+    const title = cell(row, 0);
+    const objectType = cell(row, 1);
+    if (title && objectType) map.set(title, objectType);
+  }
+  return map;
+}
+
 /** Parsea las pestanas de objeto (cabecera con 'Custom' en A1) a entradas estructuradas. */
 export function parsePlanningTabs(tabs: ReadTab[], origins: DataOrigin[]): ParsedPlanningEntry[] {
   const parsed: ParsedPlanningEntry[] = [];
+  // §53.6: el objectType real viene de la hoja de metadatos; el titulo saneado es solo el fallback.
+  const objectTypeMap = objectTypeByTitle(tabs);
   for (const tab of tabs) {
     if (!isObjectTab(tab)) continue;
     const header = (tab.rows[0] ?? []).map((c) => String(c ?? '').trim());
@@ -104,7 +123,7 @@ export function parsePlanningTabs(tabs: ReadTab[], origins: DataOrigin[]): Parse
       }
       if (!name && !internalName && sources.length === 0) continue; // fila en blanco
       parsed.push({
-        objectType: tab.title,
+        objectType: objectTypeMap.get(tab.title) ?? tab.title,
         custom: cell(row, 0),
         name,
         internalName,

@@ -10,9 +10,11 @@ import type { DataOrigin, HubSpotPropertyDef, PropertyEntry } from '@shared/type
 import type { PlanningAssociation } from '@shared/types/planning';
 import { USER_FRIENDLY_FIELD_TYPES } from '@shared/constants/planningFieldTypes';
 import { entryDestName as destName } from './dest-name';
+import { PLANNING_META_TITLE, PLANNING_META_HEADER } from './planning-meta';
 
 export const PLANNING_MAP_FEATURE_KEY = 'property-planning-map';
-export const PLANNING_SCHEMA_VERSION = 1;
+// SPEC-0006 §53.6: sube a 2 al anadir la hoja de metadatos (round-trip fiel del objectType).
+export const PLANNING_SCHEMA_VERSION = 2;
 
 export type CellValue = string | number | boolean;
 
@@ -223,6 +225,14 @@ export function buildPlanningWorkbook(input: PlanningInput): PlanningWorkbook {
       listRangeByKey.set(key, `Listas!$${letter}$2:$${letter}$${values.length + 1}`);
     }
   }
+
+  // SPEC-0006 §53.6: hoja de metadatos (protegida por la capa de estilo) que guarda el objectType REAL
+  // por titulo de pestana, para que el import no lo derive del titulo saneado/truncado/desambiguado.
+  const metaRows: CellValue[][] = [[...PLANNING_META_HEADER]];
+  for (const objectType of objectTypes) {
+    metaRows.push([objectTitles.get(objectType)!, objectType]);
+  }
+  tabs.splice(1, 0, { title: PLANNING_META_TITLE, rows: metaRows });
 
   // Hojas de objeto
   for (const objectType of objectTypes) {

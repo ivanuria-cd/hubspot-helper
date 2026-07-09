@@ -2236,6 +2236,34 @@ reimportado no coincide con el real → `entry-added`/`entry-removed` espurios o
 incorrecto. Fix: persistir el `objectType` real en la hoja (celda/rango no editable o metadato) y leerlo de ahí,
 no del título.
 
+**Diseño aprobado (2026-07-08): enfoque B — hoja de metadatos protegida.** Pendiente de validación del detalle
+antes de codificar; toca el conector (SPEC-0004) y sube el esquema del mapa (SPEC-0016).
+
+- `planning-model.ts`: nueva hoja **`00_Metadatos`** al inicio del workbook, con cabecera `['Pestaña', 'Object type']`
+  y una fila `[tabTitle, objectType]` por objeto. A1 = `'Pestaña'` (≠ `'Custom'`) para que `isObjectTab` NO la trate
+  como pestaña de objeto. Constante `PLANNING_META_TITLE`.
+- `planning-import.ts`: helper `objectTypeByTitle(tabs)` que lee `00_Metadatos` a un `Map<title, objectType>`;
+  `parsePlanningTabs` **e** `ingestPlanning` resuelven `objectType = map.get(tab.title) ?? tab.title` (fallback al
+  título → mapas antiguos sin la hoja, sin regresión).
+- `planning-style.ts`: proteger **solo** `00_Metadatos` con `addProtectedRange` (`warningOnly:false`), reutilizando
+  el `protect(sheetId)` de `sheets-style.ts` (el resto del mapa sigue editable, SPEC-0016 D1). La limpieza de
+  `protectedRanges` heredados ya existe (idempotencia).
+- Esquema: subir `PLANNING_SCHEMA_VERSION`. El import cae al título cuando la hoja no está (compatibilidad).
+- Límite conocido: si el usuario **renombra** una pestaña de objeto, el `Map` (indexado por título) no casa y se
+  degrada al título nuevo — mismo comportamiento que hoy, sin regresión. La hoja protegida evita que se edite el
+  propio mapeo.
+- Tests: `planning-model.spec` (genera `00_Metadatos` con los pares correctos y A1≠'Custom'); `planning-import.spec`
+  (round-trip con un `objectType` cuyo título es lossy → se resuelve el real; sin la hoja → fallback al título);
+  `planning-style.spec` (protege `00_Metadatos` y nada más).
+
+**IMPLEMENTADO (2026-07-08)**: constantes en `planning-meta.ts` (módulo aparte, para no acoplar import/estilo al
+builder); `planning-model` inserta `00_Metadatos` tras «Leyenda» y sube `PLANNING_SCHEMA_VERSION` 1→2;
+`planning-import` resuelve `objectType` vía `objectTypeByTitle` en `parsePlanningTabs` (cubre changelog y borradores
+por herencia); `planning-style` protege solo esa hoja (`warningOnly:false`). Tests en los tres specs; el caso
+«sin addProtectedRange» de `planning-style.spec` se sustituye por «protege solo 00_Metadatos» (cambio acordado,
+SPEC-0000 §8). Requiere rebuild de la app/MCP. Nota: el `grep` del sandbox marca `planning-model`/`planning-import`
+como binarios (espejo); ficheros reales verificados sanos.
+
 #### 53.7 `planning_field_types`: featureKey de planning + `isAmbiguous` compartido (MEDIA)
 
 La tool `planning_field_types` se registra con `featureKey: 'property-management'` (`mcp-tools.ts` 141) pese a
@@ -2376,8 +2404,9 @@ modificar tests ya aprobados sin acuerdo previo (SPEC-0000 §8). Cambios con imp
   `isCompleted` conservada por tener test) y 53.18 (parcial: `entries-store.load` sin `objectType`,
   `text.secondary`→`text.primary`, stubs muertos vía `git rm`).
 - **53.12 `GroupsModal` sobre store — IMPLEMENTADO (2026-07-08)**: `groups-store` + test; el componente lo consume.
-- **Pendientes**: 53.6 (round-trip `objectType` — requiere persistir el `objectType` real en la hoja, diseño
-  aparte), 53.8 (dedup de helpers/tipos sheets/planning, BAJA) y los residuales cosméticos de 53.18.
+- **53.6 round-trip `objectType` — IMPLEMENTADO (2026-07-08)**: hoja `00_Metadatos` protegida (enfoque B) +
+  `planning-meta.ts` + resolución en el import + bump de esquema; tests en model/import/style.
+- **Pendientes**: 53.8 (dedup de helpers/tipos sheets/planning, BAJA) y los residuales cosméticos de 53.18.
 
 ## 54. Limitaciones en ejecución — alta masiva LNN (BORRADOR, 2026-07-08)
 
