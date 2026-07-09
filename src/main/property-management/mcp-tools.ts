@@ -10,6 +10,7 @@ import { buildBlocker } from './reconcile';
 import type { ChangeOperation, EntryUpsertInput } from '@shared/types/properties';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
 import { USER_FRIENDLY_FIELD_TYPES, isAmbiguous } from '@shared/constants/planningFieldTypes';
+import { SCOPES, WRITE_SCOPES } from './mcp-scopes';
 
 const PROPERTY_GUIDANCE = `Una entrada del mapa apunta a una propiedad de HubSpot en uno de dos modos:
 - "existing": la propiedad YA existe en HubSpot; la entrada solo la mapea.
@@ -52,18 +53,6 @@ Reglas del nombre interno (hubspotName): minúsculas, números y "_", empezando 
   "phonenumber"; multiple checkboxes -> "checkbox"). Inferir fieldType desde type produce divergencias.
 
 Flujo completo: origins_upsert -> entries_upsert -> properties_sync -> properties_apply_change.`;
-
-const SCOPES = [
-  'crm.schemas.contacts.read',
-  'crm.schemas.deals.read',
-  'crm.schemas.companies.read',
-];
-
-const WRITE_SCOPES = [
-  'crm.schemas.contacts.write',
-  'crm.schemas.deals.write',
-  'crm.schemas.companies.write',
-];
 
 export function registerPropertyTools(registry: McpRegistry, service: PropertyService): void {
   if (registry.has('entries_list')) return;

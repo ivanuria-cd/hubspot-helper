@@ -8,6 +8,7 @@ import type { McpRegistry } from '../mcp/registry';
 import { guidanceRegistry } from '../mcp/guidance';
 import type { PropertyService } from './service';
 import { configsFor } from '@shared/constants/planningFieldTypes';
+import { SCOPES, WRITE_SCOPES } from './mcp-scopes';
 import type {
   PlanningApplyResult,
   PlanningImportResult,
@@ -26,17 +27,6 @@ para planificar el mapeo de propiedades. Flujo:
   para pasarla en "resolutions" de planning_apply_import.
 - planning_field_types (solo lectura): lista el catalogo user-friendly y marca los ambiguos.
 No aplica cambios en HubSpot: solo produce borradores (luego properties_sync + properties_apply_change).`;
-
-const SCOPES = [
-  'crm.schemas.contacts.read',
-  'crm.schemas.deals.read',
-  'crm.schemas.companies.read',
-];
-const WRITE_SCOPES = [
-  'crm.schemas.contacts.write',
-  'crm.schemas.deals.write',
-  'crm.schemas.companies.write',
-];
 
 /** Operaciones de Drive del mapa editable (subset de drive-docs). */
 export interface PlanningDriveOps {

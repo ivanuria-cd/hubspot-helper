@@ -9,7 +9,6 @@
 import type {
   DataOrigin,
   EntryUpsertInput,
-  HubSpotPropertyDef,
   PropertyEntry,
   SourceFieldKind,
 } from '@shared/types/properties';
@@ -29,6 +28,7 @@ import {
 } from '@shared/constants/planningFieldTypes';
 import { entryDestName as destName } from './dest-name';
 import { PLANNING_META_TITLE } from './planning-meta';
+import { defOf, typeDisplay } from './planning-defs';
 
 export type CellValue = string | number | boolean;
 
@@ -133,15 +133,6 @@ export function parsePlanningTabs(tabs: ReadTab[], origins: DataOrigin[]): Parse
     }
   }
   return parsed;
-}
-
-function defOf(entry: PropertyEntry): HubSpotPropertyDef | undefined {
-  return entry.hubspotProperty.definition;
-}
-
-function typeDisplay(def: HubSpotPropertyDef | undefined): string {
-  if (!def) return '';
-  return def.fieldType ? `${def.type} (${def.fieldType})` : String(def.type ?? '');
 }
 
 function entryKey(objectType: string, dest: string, name: string): string {

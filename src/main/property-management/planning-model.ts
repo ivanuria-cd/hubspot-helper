@@ -11,6 +11,7 @@ import type { PlanningAssociation } from '@shared/types/planning';
 import { USER_FRIENDLY_FIELD_TYPES } from '@shared/constants/planningFieldTypes';
 import { entryDestName as destName } from './dest-name';
 import { PLANNING_META_TITLE, PLANNING_META_HEADER } from './planning-meta';
+import { defOf, typeDisplay } from './planning-defs';
 
 export const PLANNING_MAP_FEATURE_KEY = 'property-planning-map';
 // SPEC-0006 §53.6: sube a 2 al anadir la hoja de metadatos (round-trip fiel del objectType).
@@ -99,15 +100,6 @@ function uniqueTitle(base: string, used: Set<string>): string {
   }
   used.add(title);
   return title;
-}
-
-function defOf(entry: PropertyEntry): HubSpotPropertyDef | undefined {
-  return entry.hubspotProperty.definition;
-}
-
-function typeDisplay(def: HubSpotPropertyDef | undefined): string {
-  if (!def) return '';
-  return def.fieldType ? `${def.type} (${def.fieldType})` : String(def.type ?? '');
 }
 
 function customValue(entry: PropertyEntry): string {

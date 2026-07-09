@@ -2281,6 +2281,12 @@ Duplicados idénticos: `defOf`/`typeDisplay` (`planning-model.ts` 101–113 y `p
 `SCOPES`/`WRITE_SCOPES` (`mcp-tools.ts` 56–66 y `planning-mcp-tools.ts` 30–39). Fix: extraer a un módulo común de
 sheets/planning y a las constantes de scopes compartidas.
 
+**IMPLEMENTADO (2026-07-08, parcial)**: `mcp-scopes.ts` (SCOPES/WRITE_SCOPES, usado por mcp-tools y
+planning-mcp-tools) y `planning-defs.ts` (`defOf`/`typeDisplay`, usado por planning-model y planning-import sin
+acoplarlos). **Residual (aceptado, BAJA)**: `sanitizeSheetPart`+`SHEET_NAME_MAX`+`INVALID_SHEET_CHARS` y
+`CellValue`/`SheetTab` siguen duplicados — triviales y cruzan `sheets-model`↔`planning-model` (ficheros ASCII y con
+mirror inestable); consolidarlos no compensa el riesgo para BAJA.
+
 #### 53.9 `isoNow`, `isCompleted`, `schema_version` (BAJA)
 
 `isoNow = deps.now ?? (() => …)` (`service.ts` 130) tiene fallback muerto (`now` es obligatorio en
@@ -2406,7 +2412,10 @@ modificar tests ya aprobados sin acuerdo previo (SPEC-0000 §8). Cambios con imp
 - **53.12 `GroupsModal` sobre store — IMPLEMENTADO (2026-07-08)**: `groups-store` + test; el componente lo consume.
 - **53.6 round-trip `objectType` — IMPLEMENTADO (2026-07-08)**: hoja `00_Metadatos` protegida (enfoque B) +
   `planning-meta.ts` + resolución en el import + bump de esquema; tests en model/import/style.
-- **Pendientes**: 53.8 (dedup de helpers/tipos sheets/planning, BAJA) y los residuales cosméticos de 53.18.
+- **53.8 dedup — IMPLEMENTADO (2026-07-08, parcial)**: `mcp-scopes.ts` + `planning-defs.ts`; `sanitizeSheetPart` y
+  `CellValue`/`SheetTab` quedan como residual aceptado (BAJA).
+- **Pendientes**: solo residuales cosméticos de 53.18 (reset de OriginsModal, literal `'Error desconocido'`, keys por
+  índice de PlanningMapActions) y el residual de 53.8. Nada de severidad alta/media abierto.
 
 ## 54. Limitaciones en ejecución — alta masiva LNN (BORRADOR, 2026-07-08)
 
