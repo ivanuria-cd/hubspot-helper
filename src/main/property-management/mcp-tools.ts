@@ -6,7 +6,7 @@ import type { McpRegistry } from '../mcp/registry';
 import { guidanceRegistry } from '../mcp/guidance';
 import type { PropertyService } from './service';
 import { EntryValidationError } from './entry-validation';
-import { isSystemProperty } from './system-properties';
+import { buildBlocker } from './reconcile';
 import type { ChangeOperation, EntryUpsertInput } from '@shared/types/properties';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
 import { USER_FRIENDLY_FIELD_TYPES } from '@shared/constants/planningFieldTypes';
@@ -184,21 +184,10 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
       const start = offset ?? 0;
       const changes =
         limit === undefined ? allChanges.slice(start) : allChanges.slice(start, start + limit);
+      // SPEC-0006 §53.3: fuente única del blocker (reconcile.buildBlocker), sin duplicar el mapeo.
       const blockers = entries
         .filter((e) => e.hubspotStatus === 'missing' && e.hubspotProperty.mode === 'existing')
-        .map((e) => {
-          const hubspotName =
-            e.hubspotProperty.mode === 'existing' ? e.hubspotProperty.hubspotName : '';
-          const system = isSystemProperty(e.objectType, hubspotName);
-          return {
-            entryId: e.id,
-            entry: e.name,
-            objectType: e.objectType,
-            hubspotName,
-            reason: system ? ('system-property' as const) : ('existing-missing-remote' as const),
-            remediation: system ? ('relink' as const) : ('convert-to-new' as const),
-          };
-        });
+        .map(buildBlocker);
       return Promise.resolve({ changes, blockers, total, offset: start, limit: limit ?? null });
     },
   });

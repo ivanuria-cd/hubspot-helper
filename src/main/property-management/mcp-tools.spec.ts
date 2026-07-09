@@ -327,4 +327,40 @@ describe('registerPropertyTools (tools MCP de propiedades)', () => {
     expect(paged.changes).toHaveLength(1);
     expect(paged.limit).toBe(1);
   });
+
+  it('§53.2: entries_upsert devuelve error estructurado si el originId no existe', async () => {
+    const { registry } = setup();
+    const res = (await call(registry, 'entries_upsert', {
+      entry: {
+        objectType: 'contacts',
+        name: 'X',
+        hubspotProperty: { mode: 'existing', hubspotName: 'x' },
+        sources: [
+          { id: 's1', originId: 'no-existe', sourceField: 'F', definition: { kind: 'text' } },
+        ],
+      },
+    })) as { error?: { code: string; issues?: Array<{ code: string }> } };
+    expect(res.error?.code).toBe('ENTRY_VALIDATION');
+    expect(res.error?.issues?.[0]?.code).toBe('ORIGIN_NOT_FOUND');
+  });
+
+  it('§53.3: properties_pending_changes expone blockers vía buildBlocker', async () => {
+    const { registry } = setup();
+    await call(registry, 'entries_upsert', {
+      entry: {
+        objectType: 'contacts',
+        name: 'Falta',
+        hubspotProperty: { mode: 'existing', hubspotName: 'ausente' },
+        sources: [],
+      },
+    });
+    await call(registry, 'properties_sync', {});
+    const res = (await call(registry, 'properties_pending_changes', {})) as {
+      blockers: Array<{ reason: string; remediation: string; hubspotName: string }>;
+    };
+    expect(res.blockers).toHaveLength(1);
+    expect(res.blockers[0].reason).toBe('existing-missing-remote');
+    expect(res.blockers[0].remediation).toBe('convert-to-new');
+    expect(res.blockers[0].hubspotName).toBe('ausente');
+  });
 });

@@ -2182,7 +2182,8 @@ la fila de SPEC-0006 en `CLAUDE.md`.
 escribe derivando `groupChanges` de ese snapshot obsoleto (`deps.store.set(input.projectId, { ...state, groupChanges })`),
 pisando `entries`/`origins` editados concurrentemente (last-write-wins). `applyChange` (406) y `syncHubspot`
 (271) ya adoptaron la relectura `fresh = deps.store.get(...)` en §47. Fix: aplicar el mismo patrón — releer el
-store tras los await y mapear solo `groupChanges`.
+store tras los await y mapear solo `groupChanges`. **IMPLEMENTADO (2026-07-08)**: `applyGroupChange` relee `fresh`
+antes de derivar `groupChanges`; test de concurrencia en `service.spec.ts`.
 
 #### 53.2 Error «Origen no encontrado» estructurado y coherente single/batch (ALTA)
 
@@ -2191,14 +2192,18 @@ solo captura `EntryValidationError` y relanza el resto como excepción opaca del
 mientras `entries_upsert_batch` sí lo devuelve estructurado (354–362). Además ese caso escapa del canal
 `EntryValidationError`/`{error:{issues}}` prometido en §39.9. Fix: la validación de existencia de origen emite un
 `EntryValidationError` (code `ORIGIN_NOT_FOUND`, field `sources[].originId`), de modo que single y batch devuelven
-la misma respuesta accionable.
+la misma respuesta accionable. **IMPLEMENTADO (2026-07-08)**: `upsertEntry` lanza `EntryValidationError` (se conserva
+el texto «Origen no encontrado: …» para no romper el test existente); `entries_upsert` lo devuelve estructurado; test
+en `mcp-tools.spec.ts`.
 
 #### 53.3 `blockers`: fuente única en `reconcile`, reutilizada por `properties_pending_changes` (ALTA)
 
 El mapeo `reason`/`remediation` (system→`relink` / else→`convert-to-new`) está escrito dos veces: `reconcile.ts`
 88–95 y `mcp-tools.ts` 169–183. Dos fuentes de verdad para el mismo shape `Blocker`. Fix: `properties_pending_changes`
 reutiliza el cálculo de bloqueos de la reconciliación (helper compartido `buildBlocker(entry)` en `reconcile.ts`)
-en vez de recalcularlo.
+en vez de recalcularlo. **IMPLEMENTADO (2026-07-08)**: `reconcile.ts` exporta `buildBlocker`; `reconcile` y
+`properties_pending_changes` lo usan (se elimina el import de `isSystemProperty` en `mcp-tools.ts`); test en
+`mcp-tools.spec.ts`.
 
 #### 53.4 `destName` compartida en el main (una sola versión defensiva) (MEDIA)
 
@@ -2316,11 +2321,17 @@ vs `''`) → unificar en `common.loadError`. `text.secondary` vs `text.primary` 
 
 ### 53.19 Estado y plan
 
-BORRADOR (2026-07-08). Al validar: implementar por severidad (alta → media → baja), un commit por bloque
-coherente, sin modificar tests ya aprobados sin acuerdo previo (SPEC-0000 §8). Cambios con impacto en contrato
-MCP (53.2, 53.3, 53.5, 53.7) requieren rebuild del MCP; los de i18n (53.14) tocan los 7 locales. `typecheck`/
-`test:unit`/`e2e` en la máquina del usuario tras cada bloque. Sin cambios funcionales visibles salvo la corrección
-de tooltips (53.14) y de errores en la UI (53.11).
+EN CURSO (2026-07-08). Implementación por severidad (alta → media → baja), un commit por bloque coherente, sin
+modificar tests ya aprobados sin acuerdo previo (SPEC-0000 §8). Cambios con impacto en contrato MCP
+(53.2, 53.3, 53.5, 53.7) requieren rebuild del MCP; los de i18n (53.14) tocan los 7 locales. `typecheck`/
+`test:unit`/`e2e` en la máquina del usuario tras cada bloque.
+
+- **Bloque main ALTA — IMPLEMENTADO (2026-07-08)**: 53.1 (relectura del store en `applyGroupChange`), 53.2 (error
+  estructurado de origen inexistente) y 53.3 (`buildBlocker` compartido). `service.ts`/`reconcile.ts`/`mcp-tools.ts`
+  - tests en `service.spec.ts`/`mcp-tools.spec.ts`. Requiere rebuild MCP.
+- **Pendientes**: renderer ALTA (53.10 editor de lista genérico, 53.11 errores en stores) y todo lo MEDIA/BAJA
+  (53.4–53.9, 53.12–53.18). Sin cambios funcionales visibles salvo la corrección de tooltips (53.14) y de errores
+  en la UI (53.11).
 
 ## 54. Limitaciones en ejecución — alta masiva LNN (BORRADOR, 2026-07-08)
 

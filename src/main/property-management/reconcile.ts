@@ -32,6 +32,23 @@ function destName(entry: PropertyEntry): string {
   return ref.definition?.hubspotName ?? '';
 }
 
+/**
+ * Fuente única del `Blocker` de una entrada `existing` cuya propiedad destino no existe (SPEC-0006 §35/§53.3).
+ * Si es una propiedad de sistema, el remedio es `relink`; si no, `convert-to-new`.
+ */
+export function buildBlocker(entry: PropertyEntry): Blocker {
+  const name = destName(entry);
+  const system = isSystemProperty(entry.objectType, name);
+  return {
+    entryId: entry.id,
+    entry: entry.name,
+    objectType: entry.objectType,
+    hubspotName: name,
+    reason: system ? 'system-property' : 'existing-missing-remote',
+    remediation: system ? 'relink' : 'convert-to-new',
+  };
+}
+
 export function reconcileEntries(
   entries: PropertyEntry[],
   remotes: RemoteProperty[],
@@ -92,20 +109,10 @@ export function reconcileEntries(
 
     // Propiedad existente referenciada.
     if (!remote) {
-      // Bloqueo: apunta a una propiedad inexistente y no genera cambio (SPEC-0006 §35).
-      // Si es una propiedad de sistema de HubSpot, no procede recrearla (relink, no convert-to-new) (§43).
-      const name = destName(entry);
-      const system = isSystemProperty(entry.objectType, name);
+      // Bloqueo: apunta a una propiedad inexistente y no genera cambio (SPEC-0006 §35/§43).
       missing += 1;
       blocked += 1;
-      blockers.push({
-        entryId: entry.id,
-        entry: entry.name,
-        objectType: entry.objectType,
-        hubspotName: name,
-        reason: system ? 'system-property' : 'existing-missing-remote',
-        remediation: system ? 'relink' : 'convert-to-new',
-      });
+      blockers.push(buildBlocker(entry));
       return { ...entry, hubspotStatus: 'missing' as const, pendingChanges: [] };
     }
     // Si el usuario editó la definición, comparamos para proponer update_*.

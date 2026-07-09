@@ -512,6 +512,35 @@ describe('PropertyService (entradas)', () => {
     expect(names).toContain('Previa');
   });
 
+  it('§53.1: applyGroupChange no pisa una entrada creada durante el borrado (relectura del store)', async () => {
+    const store = createMemoryPropertyStore();
+    const props = fakeProperties([]); // grupo vacío en el entorno destino
+    const service = createPropertyService(deps(store, props, fakeObjects()));
+    service.requestGroupDelete({ projectId: 'p1', objectType: 'contacts', groupName: 'g1' });
+    const change = service.listGroupChanges({ projectId: 'p1' })[0];
+    // listProperties (dentro de applyGroupChange) inserta una entrada concurrente.
+    (props.listProperties as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      service.upsertEntry({
+        projectId: 'p1',
+        entry: {
+          objectType: 'deals',
+          name: 'Concurrente',
+          hubspotProperty: { mode: 'existing', hubspotName: 'conc' },
+          sources: [],
+        },
+      });
+      return Promise.resolve([]);
+    });
+    const result = await service.applyGroupChange({
+      projectId: 'p1',
+      changeId: change.id,
+      environment: 'production',
+    });
+    expect(result.success).toBe(true);
+    expect(service.listEntries({ projectId: 'p1' }).map((e) => e.name)).toContain('Concurrente');
+    expect(service.listGroupChanges({ projectId: 'p1' })).toHaveLength(0);
+  });
+
   it('§47: updateOrigin lanza si el id no existe y devuelve el origen fusionado si existe', () => {
     const store = createMemoryPropertyStore();
     const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));

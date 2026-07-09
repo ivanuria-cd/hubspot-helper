@@ -175,7 +175,15 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     const validOrigins = new Set(state.origins.map((o) => o.id));
     for (const source of incoming.sources) {
       if (source.originId && !validOrigins.has(source.originId)) {
-        throw new Error(`Origen no encontrado: ${source.originId}`);
+        // SPEC-0006 §53.2: error estructurado (mismo canal que la validación de forma) para que
+        // entries_upsert lo devuelva accionable, igual que entries_upsert_batch, y no como excepción opaca.
+        throw new EntryValidationError([
+          {
+            code: 'ORIGIN_NOT_FOUND',
+            field: 'sources[].originId',
+            message: `Origen no encontrado: ${source.originId}`,
+          },
+        ]);
       }
     }
     const existing = incoming.id ? state.entries.find((e) => e.id === incoming.id) : undefined;
@@ -567,14 +575,17 @@ export function createPropertyService(deps: PropertyServiceDeps) {
       return { success: false, error: hubspotErrorMessage(error) };
     }
 
+    // SPEC-0006 §53.1: relectura del store tras los await de red (patrón §47), para no pisar ediciones
+    // concurrentes (entries/origins) con el snapshot previo a listProperties/deleteGroup.
+    const fresh = deps.store.get(input.projectId);
     // Aplicado a producción ⇒ completado: se retira. En sandbox ⇒ se marca el flag.
     const groupChanges =
       input.environment === 'production'
-        ? state.groupChanges.filter((c) => c.id !== input.changeId)
-        : state.groupChanges.map((c) =>
+        ? fresh.groupChanges.filter((c) => c.id !== input.changeId)
+        : fresh.groupChanges.map((c) =>
             c.id === input.changeId ? { ...c, appliedToSandbox: true } : c,
           );
-    deps.store.set(input.projectId, { ...state, groupChanges });
+    deps.store.set(input.projectId, { ...fresh, groupChanges });
     markChanged(input.projectId);
     return { success: true };
   }
