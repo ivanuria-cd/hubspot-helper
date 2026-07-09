@@ -2258,7 +2258,10 @@ sheets/planning y a las constantes de scopes compartidas.
 `isoNow = deps.now ?? (() => …)` (`service.ts` 130) tiene fallback muerto (`now` es obligatorio en
 `PropertyServiceDeps`) y coexiste con usos directos de `deps.now()`; unificar la fuente de tiempo. `isCompleted`
 (`pending-changes.ts` 215) está exportada sin llamador en la feature; eliminar o justificar. `schema_version: 2`
-literal (`origin-export.ts` 48) frente a constantes nombradas en el resto; introducir constante.
+literal (`origin-export.ts` 48) frente a constantes nombradas en el resto; introducir constante. **IMPLEMENTADO
+(2026-07-08)**: `isoNow = deps.now` (fallback muerto retirado); `ORIGIN_EXPORT_SCHEMA_VERSION = 2` nombrada.
+`isCompleted` se **conserva**: la cubre `pending-changes.spec.ts` («markApplied/isCompleted»), así que no es export
+muerto (justificado, no se elimina).
 
 ### RENDERER — `src/renderer/features/property-management/`
 
@@ -2338,6 +2341,12 @@ vs `''`) → unificar en `common.loadError`. `text.secondary` vs `text.primary` 
 `SourceOptionsDialog` → alinear con los hermanos (`text.primary`). Keys por índice en `PlanningMapActions.tsx`
 196/212/231 → keys estables.
 
+**IMPLEMENTADO (2026-07-08, parcial)**: `entries-store.load` sin `objectType`; `text.secondary`→`text.primary` en
+ambos diálogos; los 5 stubs muertos se eliminan por `git rm` (el mount del sandbox no permite `rm`; van en el
+commit del usuario). **Pendiente (residual BAJA)**: reset del formulario de `OriginsModal` al abrir, fallback
+`'Error desconocido'` de `entries-store`, y keys por índice de `PlanningMapActions` — cosméticos, sin impacto
+funcional.
+
 ### 53.19 Estado y plan
 
 EN CURSO (2026-07-08). Implementación por severidad (alta → media → baja), un commit por bloque coherente, sin
@@ -2358,8 +2367,12 @@ modificar tests ya aprobados sin acuerdo previo (SPEC-0000 §8). Cambios con imp
   fieldType) en los 7 locales; `PropertyDefinitionEditor` apunta cada campo a la suya. Paridad verificada.
 - **Main MEDIA — IMPLEMENTADO (2026-07-08)**: 53.4 (`dest-name.ts` compartido), 53.5 (contrato «no encontrado» en
   `deleteEntry`/`deleteOrigin`), 53.7 (`planning_field_types` featureKey planning + `isAmbiguous`).
-- **Pendientes**: 53.6 (round-trip `objectType` en el mapa editable — requiere persistir el `objectType` real en la
-  hoja, diseño aparte), 53.12 (`GroupsModal` sobre store) y BAJA (53.8/53.9 main, 53.18 renderer).
+- **BAJA — IMPLEMENTADO (2026-07-08)**: 53.9 (`isoNow` sin fallback muerto, `ORIGIN_EXPORT_SCHEMA_VERSION`;
+  `isCompleted` conservada por tener test) y 53.18 (parcial: `entries-store.load` sin `objectType`,
+  `text.secondary`→`text.primary`, stubs muertos vía `git rm`).
+- **Pendientes**: 53.6 (round-trip `objectType` — requiere persistir el `objectType` real en la hoja, diseño
+  aparte), 53.12 (`GroupsModal` sobre store — refactor de consistencia, conviene con un spec de GroupsModal),
+  53.8 (dedup de helpers/tipos sheets/planning, BAJA) y los residuales cosméticos de 53.18.
 
 ## 54. Limitaciones en ejecución — alta masiva LNN (BORRADOR, 2026-07-08)
 

@@ -14,7 +14,7 @@ interface EntriesState {
   syncing: boolean;
   lastSync: PropertiesSyncResult | null;
   error: string | null;
-  load: (projectId: string, objectType?: string) => Promise<void>;
+  load: (projectId: string) => Promise<void>;
   sync: (projectId: string) => Promise<void>;
   convertToNew: (projectId: string, entryId: string) => Promise<ConvertEntryResult>;
   convertMissing: (projectId: string, objectType?: string) => Promise<ConvertMissingResult>;

@@ -103,14 +103,14 @@ export function SourceOptionsDialog({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.primary">
             {t('properties.wizard.optionsCount', { count: options.length })}
           </Typography>
           <Stack spacing={1} sx={{ maxHeight: 320, overflowY: 'auto', pr: 1 }}>
             {!ready ? (
               <LoadingState variant="list" rows={6} />
             ) : visible.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" color="text.primary">
                 {t('properties.wizard.noOptions')}
               </Typography>
             ) : (

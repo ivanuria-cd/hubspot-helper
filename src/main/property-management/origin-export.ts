@@ -5,6 +5,9 @@
 import type { DataOrigin, OriginExport, PropertyEntry } from '@shared/types/properties';
 import { entryDestName as destName } from './dest-name';
 
+// SPEC-0006 §53.9: versión de esquema como constante nombrada (antes literal `2`).
+export const ORIGIN_EXPORT_SCHEMA_VERSION = 2;
+
 export interface ExportInput {
   origin: DataOrigin;
   entries: PropertyEntry[];
@@ -40,7 +43,7 @@ export function buildOriginExport(input: ExportInput): OriginExport {
   );
 
   return {
-    schema_version: 2,
+    schema_version: ORIGIN_EXPORT_SCHEMA_VERSION,
     origin: { id: input.origin.id, name: input.origin.name, type: input.origin.type },
     exported_at: input.now(),
     properties,

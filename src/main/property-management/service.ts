@@ -118,7 +118,8 @@ function isAlreadyExists(error: unknown): boolean {
 }
 
 export function createPropertyService(deps: PropertyServiceDeps) {
-  const isoNow = deps.now ?? (() => new Date().toISOString());
+  // SPEC-0006 §53.9: `deps.now` es obligatorio; se retira el fallback muerto `?? (() => …)`.
+  const isoNow = deps.now;
 
   function changeFactory() {
     return { newId: deps.newId, now: deps.now };
