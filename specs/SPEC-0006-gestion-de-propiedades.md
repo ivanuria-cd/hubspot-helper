@@ -2535,3 +2535,11 @@ limit }` (sin `limit` → todos, sin truncar).
 Requiere **rebuild MCP**. Sin UI (el «Aplicar todo» en la pantalla queda fuera de alcance; se puede añadir después).
 `typecheck`/`test:unit` en la máquina del usuario (el espejo del sandbox trunca los `.spec` al transformarlos). Con
 esto quedan pendientes del §54 solo **54.4** (acuse de guía, con SPEC-0005).
+
+### 54.10 UI «Aplicar todo» (PENDIENTE, prioridad BAJA)
+
+El apply-all quedó disponible por MCP (`properties_apply_all`, §54.9). Falta exponerlo en la pantalla de
+Propiedades: un botón «Aplicar todo» (por entorno, opcionalmente por `objectType`) en la vista de cambios
+pendientes, que llame a un IPC nuevo `propertiesApplyAll` → `service.applyAllChanges` y muestre el resumen
+`{ applied, failed }` (con Snackbar y confirmación como el resto de acciones destructivas). **No implementado**:
+prioridad BAJA. Requiere IPC/preload + botón en `PendingChangesView`/`PropertyManagementScreen` + i18n ×7.

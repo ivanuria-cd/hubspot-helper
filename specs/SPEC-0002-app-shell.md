@@ -16,33 +16,40 @@ Implementar la estructura visual y de navegación completa de la aplicación: pa
 ## 2. Contexto y Decisiones de Diseño
 
 ### Router
+
 - **React Router v6** (modo memory — no hay URLs reales en Electron).
 - Las rutas de primer nivel corresponden a proyectos; las rutas de segundo nivel a capacidades dentro del menú lateral.
 
 ### Gestión de estado del shell
+
 - **Zustand** con un store `shellStore`: proyecto activo, menú colapsado/expandido, estado de notificaciones de update.
 - Los proyectos se persisten con `electron-store` (proceso main, vía IPC).
 
 ### Pantalla de bienvenida
+
 - Se muestra al abrir la app si no hay proyecto seleccionado (o si el usuario accede vía ruta `/`).
 - Ritmo dark/light de marca CD: hero dark con logo, sección light con lista de proyectos.
 
 ### Proyectos
+
 - Un proyecto = un conjunto de configuración (nombre, portal HubSpot asociado, carpeta Google Drive, etc.).
 - Se almacenan localmente; en el futuro podrán sincronizarse.
 - Máximo razonable inicial: sin límite hard (lista scrollable).
 
 ### Menú lateral
+
 - Basado en MUI `Drawer` (variant `permanent` en escritorio).
 - Colapsable a iconos (rail mode) para maximizar el espacio de trabajo.
 - Grupos de capacidades con separador visual.
 - Indicador de elemento activo con accent lima.
 
 ### Layout principal
+
 - Tres zonas: `<Sidebar>` | `<TopBar>` | `<MainContent>`.
 - `<TopBar>` muestra breadcrumb del contexto actual + nombre del proyecto activo + **selector de idioma global** + indicador de update.
 
 ### Selección de idioma
+
 - El selector de idioma (`LanguageSwitcher`, definido en SPEC-0001) es **global** y vive en el header de la ventana, no en la configuración del proyecto.
 - Se monta en el `<TopBar>` (todas las pantallas dentro de un proyecto) y en el hero de la pantalla de bienvenida (variante `onDark`), de modo que está disponible en todo el programa, incluido el primer arranque sin proyecto.
 - Cambia el idioma en caliente (sin reiniciar) y persiste la preferencia vía electron-store.
@@ -77,6 +84,7 @@ Implementar la estructura visual y de navegación completa de la aplicación: pa
 - Botón "+ Nuevo proyecto" abre un diálogo de creación.
 
 ### Diálogo "Nuevo Proyecto"
+
 Campos: Nombre del proyecto, Descripción (opcional). La configuración de conectores se realiza dentro del proyecto, no aquí.
 
 ### Layout Principal (tras seleccionar proyecto)
@@ -129,12 +137,13 @@ Conforme a SPEC-0000 §10, los tutoriales de usuario deben poder verse desde la 
 ## 4. Modelo de Datos
 
 ### Tipo `Project`
+
 ```typescript
 interface Project {
-  id: string;           // uuid
+  id: string; // uuid
   name: string;
   description?: string;
-  createdAt: string;    // ISO 8601
+  createdAt: string; // ISO 8601
   lastOpenedAt: string;
   connectors: {
     hubspot?: { portalId: string };
@@ -144,12 +153,13 @@ interface Project {
 ```
 
 ### IPC Channels nuevos
-| Canal | Dirección | Descripción |
-|-------|-----------|-------------|
-| `projects:list` | renderer → main | Devuelve `Project[]` |
-| `projects:create` | renderer → main | Crea proyecto, devuelve `Project` |
-| `projects:update` | renderer → main | Actualiza proyecto |
-| `projects:delete` | renderer → main | Elimina proyecto |
+
+| Canal                 | Dirección       | Descripción                         |
+| --------------------- | --------------- | ----------------------------------- |
+| `projects:list`       | renderer → main | Devuelve `Project[]`                |
+| `projects:create`     | renderer → main | Crea proyecto, devuelve `Project`   |
+| `projects:update`     | renderer → main | Actualiza proyecto                  |
+| `projects:delete`     | renderer → main | Elimina proyecto                    |
 | `projects:set-active` | renderer → main | Establece proyecto activo en sesión |
 
 ---
@@ -175,12 +185,14 @@ interface Project {
 ## 6. Tests Requeridos
 
 ### Unitarios
+
 - `shellStore.spec.ts` — transiciones de estado (cambiar proyecto activo, colapsar menú)
 - `projects-ipc.spec.ts` — handlers IPC de proyectos (CRUD correcto en store)
 - `WelcomeScreen.spec.tsx` — renderiza lista de proyectos, muestra estado vacío
 - `NewProjectDialog.spec.tsx` — validación del formulario (nombre requerido, longitud)
 
 ### Funcionales
+
 - `welcome-flow.spec.ts` — flujo completo: abrir app → crear proyecto → entrar al proyecto → sidebar visible
 - `project-switch.spec.ts` — cambiar de proyecto desde el menú o botón de retorno
 - `help-section.spec.ts` — abrir Ayuda desde el sidebar, ver la lista de tutoriales y renderizar uno (añadido al ampliar el shell con la sección Ayuda)
@@ -620,33 +632,33 @@ SPEC-0000 §3).
 
 Mapa canónico verbo → icono (fuente única de consistencia):
 
-| Acción | Icono `@mui/icons-material` |
-|--------|------------------------------|
-| Cerrar / Cancelar | `Close` |
-| Volver / Atrás | `ArrowBack` |
-| Confirmar (genérico) / Seleccionar esta | `Check` |
-| Crear / Añadir | `Add` |
-| Editar / Editar opciones | `Edit` |
-| Guardar | `Save` |
-| Aplicar (sandbox/producción) | `CheckCircle` |
-| Eliminar / Descartar / Borrar borrador | `Delete` |
-| Archivar | `Archive` |
-| Sincronizar | `Sync` |
-| Regenerar | `Autorenew` |
-| Importar / Cargar (proyecto) | `FileUploadOutlined` |
-| Exportar JSON / Cargar desde Drive | `FileDownloadOutlined` |
-| Actualizar documento de Drive | `CloudUpload` |
-| Abrir en Drive (enlace) | `OpenInNew` |
-| Copiar | `ContentCopy` *(ya en uso)* |
-| Pegar opciones (en bloque) | `ContentPaste` |
-| Conectar (Drive) / Token (HubSpot) | `Hub` |
-| Desconectar / Revocar | `LinkOff` |
-| Vincular origen | `Link` |
-| Seleccionar/Cambiar carpeta | `Folder` |
-| Ir a / Abrir destino (navegación CTA) | `ArrowForward` |
-| Configurar / Gestionar orígenes | `Settings` |
-| Ver cambios pendientes | `PendingActions` |
-| Salir sin guardar | `Logout` |
+| Acción                                  | Icono `@mui/icons-material` |
+| --------------------------------------- | --------------------------- |
+| Cerrar / Cancelar                       | `Close`                     |
+| Volver / Atrás                          | `ArrowBack`                 |
+| Confirmar (genérico) / Seleccionar esta | `Check`                     |
+| Crear / Añadir                          | `Add`                       |
+| Editar / Editar opciones                | `Edit`                      |
+| Guardar                                 | `Save`                      |
+| Aplicar (sandbox/producción)            | `CheckCircle`               |
+| Eliminar / Descartar / Borrar borrador  | `Delete`                    |
+| Archivar                                | `Archive`                   |
+| Sincronizar                             | `Sync`                      |
+| Regenerar                               | `Autorenew`                 |
+| Importar / Cargar (proyecto)            | `FileUploadOutlined`        |
+| Exportar JSON / Cargar desde Drive      | `FileDownloadOutlined`      |
+| Actualizar documento de Drive           | `CloudUpload`               |
+| Abrir en Drive (enlace)                 | `OpenInNew`                 |
+| Copiar                                  | `ContentCopy` _(ya en uso)_ |
+| Pegar opciones (en bloque)              | `ContentPaste`              |
+| Conectar (Drive) / Token (HubSpot)      | `Hub`                       |
+| Desconectar / Revocar                   | `LinkOff`                   |
+| Vincular origen                         | `Link`                      |
+| Seleccionar/Cambiar carpeta             | `Folder`                    |
+| Ir a / Abrir destino (navegación CTA)   | `ArrowForward`              |
+| Configurar / Gestionar orígenes         | `Settings`                  |
+| Ver cambios pendientes                  | `PendingActions`            |
+| Salir sin guardar                       | `Logout`                    |
 
 ### 19.3 Mapeo botón a botón (76 botones, 26 ficheros)
 
@@ -685,8 +697,8 @@ Mapa canónico verbo → icono (fuente única de consistencia):
   `Settings`; :185 exportar JSON → `FileDownloadOutlined`; :189 cambios pendientes → `PendingActions`.
 - `PendingChangesView.tsx` — :36 applySandbox → `CheckCircle`; :44 applyProduction → `CheckCircle`; :52 discard →
   `Delete`.
-- `EntryPanel.tsx` — :137 fila de cambio pendiente (abre el diálogo de aplicar) → `CheckCircle` *(corrige el
-  borrador, que anticipaba `Delete`: el botón no descarta, lleva a aplicar)*; :171 cancel → `Close`; :172
+- `EntryPanel.tsx` — :137 fila de cambio pendiente (abre el diálogo de aplicar) → `CheckCircle` _(corrige el
+  borrador, que anticipaba `Delete`: el botón no descarta, lleva a aplicar)_; :171 cancel → `Close`; :172
   applySandbox → `CheckCircle`; :175 applyProduction → `CheckCircle`.
 - `EntryWizard.tsx` — :297 editOptions → `Edit`; :316 createGroup → `Add`; :513 addSource → `Add`; :576 editOptions →
   `Edit`; :589 cancel → `Close`; :590 save → `Save`.
@@ -992,3 +1004,10 @@ Del informe de revisión de código 2026-07-02, hallazgos 12.1–12.5.
   userData temporal).
 
 Estado: IMPLEMENTADO (2026-07-03). Los movimientos son renames para git (mismo contenido).
+
+## 29. Los tests e2e fallan en GitHub Actions (PENDIENTE, prioridad BAJA)
+
+Los tests e2e (Playwright + Electron, `npm run test:e2e`) fallan al ejecutarse en **GitHub Actions**
+(`.github/workflows/ci.yml`, §27) pese a pasar en local. Pendiente de investigar la causa (entorno headless/xvfb,
+sandbox de Electron en CI, timeouts, permisos, o dependencias del runner) y estabilizarlos. **No implementado**:
+prioridad BAJA. Mientras tanto, la verificación e2e se hace en local.
