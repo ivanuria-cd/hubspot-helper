@@ -14,6 +14,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import MoveToInboxIcon from '@mui/icons-material/MoveToInbox';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
@@ -243,7 +244,9 @@ export function PlanningMapActions({
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setChangelog(null)}>{p('cancel')}</Button>
+          <Button startIcon={<CloseIcon />} onClick={() => setChangelog(null)}>
+            {p('cancel')}
+          </Button>
           <BusyButton busy={applying} onClick={handleApply} startIcon={<PlaylistAddCheckIcon />}>
             {p('apply')}
           </BusyButton>

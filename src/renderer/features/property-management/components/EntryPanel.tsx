@@ -28,6 +28,7 @@ import { useConfirm } from '@shared/components/feedback';
 import { SIDE_PANEL_WIDTH } from '@shared/components/layout-constants';
 import { StatusBadge } from './StatusBadge';
 import { destName } from '../utils/dest-name';
+import { isBlockedEntry } from '../utils/is-blocked';
 
 interface EntryPanelProps {
   entry: PropertyEntry | null;
@@ -40,7 +41,16 @@ interface EntryPanelProps {
   onConvert?: (entryId: string) => void;
 }
 
-export function EntryPanel({ entry, origins, busy, onClose, onEdit, onDelete, onApply, onConvert }: EntryPanelProps): JSX.Element {
+export function EntryPanel({
+  entry,
+  origins,
+  busy,
+  onClose,
+  onEdit,
+  onDelete,
+  onApply,
+  onConvert,
+}: EntryPanelProps): JSX.Element {
   const { t } = useTranslation('common');
   const askConfirm = useConfirm();
   const originName = new Map(origins.map((o) => [o.id, o.name]));
@@ -63,7 +73,11 @@ export function EntryPanel({ entry, origins, busy, onClose, onEdit, onDelete, on
 
   return (
     <Drawer anchor="right" open={Boolean(entry)} onClose={onClose}>
-      <Box sx={{ width: SIDE_PANEL_WIDTH, p: 3 }} role="region" aria-label={t('properties.panel.definition')}>
+      <Box
+        sx={{ width: SIDE_PANEL_WIDTH, p: 3 }}
+        role="region"
+        aria-label={t('properties.panel.definition')}
+      >
         {entry ? (
           <>
             <Stack direction="row" alignItems="center" spacing={1}>
@@ -71,10 +85,16 @@ export function EntryPanel({ entry, origins, busy, onClose, onEdit, onDelete, on
                 {entry.name}
               </Typography>
               <StatusBadge status={entry.hubspotStatus} />
-              <IconButton aria-label={t('properties.wizard.editTitle')} onClick={() => onEdit(entry)}>
+              <IconButton
+                aria-label={t('properties.wizard.editTitle')}
+                onClick={() => onEdit(entry)}
+              >
                 <EditIcon />
               </IconButton>
-              <IconButton aria-label={t('properties.panel.delete')} onClick={() => void handleDelete(entry.id)}>
+              <IconButton
+                aria-label={t('properties.panel.delete')}
+                onClick={() => void handleDelete(entry.id)}
+              >
                 <DeleteIcon />
               </IconButton>
               <IconButton aria-label={t('properties.panel.close')} onClick={onClose}>
@@ -96,7 +116,7 @@ export function EntryPanel({ entry, origins, busy, onClose, onEdit, onDelete, on
               {destName(entry)}
               {entry.hubspotProperty.mode === 'new' ? ` (${t('properties.wizard.new')})` : ''}
             </Typography>
-            {entry.hubspotStatus === 'missing' && entry.hubspotProperty.mode === 'existing' && onConvert ? (
+            {isBlockedEntry(entry) && onConvert ? (
               <Button
                 variant="outlined"
                 size="small"

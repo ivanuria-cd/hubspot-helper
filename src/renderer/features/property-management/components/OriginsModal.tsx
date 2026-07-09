@@ -18,6 +18,7 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
+import SaveIcon from '@mui/icons-material/Save';
 import { useTranslation } from 'react-i18next';
 import type { DataOrigin, OriginType } from '@shared/types/properties';
 import { useConfirm, useFieldHelp, useSnackbar } from '@shared/components/feedback';
@@ -96,7 +97,13 @@ function ObjectFieldsEditor({
         inputProps={{ 'aria-describedby': fieldsHelp.describedById }}
       />
       <Stack direction="row" spacing={1} alignItems="center">
-        <Button size="small" variant="outlined" onClick={() => void save()} disabled={saving}>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<SaveIcon />}
+          onClick={() => void save()}
+          disabled={saving}
+        >
           {t('properties.originsModal.saveFields')}
         </Button>
         {fieldsHelp.tooltip}
@@ -121,7 +128,7 @@ function OriginObjects({
     if (!objectName.trim()) return;
     const next: DataOrigin = {
       ...origin,
-      objects: [...objects, { id: `o-${Date.now()}`, name: objectName.trim() }],
+      objects: [...objects, { id: crypto.randomUUID(), name: objectName.trim() }],
     };
     await onUpdate(next);
     setObjectName('');

@@ -8,7 +8,6 @@ import {
   DialogTitle,
   Divider,
   InputAdornment,
-  LinearProgress,
   Stack,
   TextField,
   ToggleButton,
@@ -23,7 +22,13 @@ import { SourceOptionsDialog } from './SourceOptionsDialog';
 import { PropertyDefinitionEditor } from './PropertyDefinitionEditor';
 import { SourceRow } from './SourceRow';
 import type { DraftSource } from './SourceRow';
-import { BusyButton, FieldTooltip, useFieldHelp, useSnackbar } from '@shared/components/feedback';
+import {
+  BusyButton,
+  FieldTooltip,
+  LoadingState,
+  useFieldHelp,
+  useSnackbar,
+} from '@shared/components/feedback';
 import { useTranslation } from 'react-i18next';
 import type {
   DataOrigin,
@@ -37,17 +42,21 @@ import type {
 function hasAdvancedContent(def: HubSpotPropertyDef): boolean {
   return Boolean(
     def.numberDisplayHint ||
-      def.textDisplayHint ||
-      def.calculationFormula ||
-      def.dataSensitivity ||
-      def.hasUniqueValue ||
-      def.formField !== undefined ||
-      def.fieldType === 'calculation_equation',
+    def.textDisplayHint ||
+    def.calculationFormula ||
+    def.dataSensitivity ||
+    def.hasUniqueValue ||
+    def.formField !== undefined ||
+    def.fieldType === 'calculation_equation',
   );
 }
 
 function slugify(label: string): string {
-  return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
 }
 
 const EMPTY_DEF: HubSpotPropertyDef = {
@@ -65,7 +74,9 @@ interface EntryWizardProps {
   entry?: PropertyEntry | null;
   origins: DataOrigin[];
   onClose: () => void;
-  onSubmit: (entry: Omit<PropertyEntry, 'id' | 'hubspotStatus' | 'pendingChanges'> & { id?: string }) => Promise<void>;
+  onSubmit: (
+    entry: Omit<PropertyEntry, 'id' | 'hubspotStatus' | 'pendingChanges'> & { id?: string },
+  ) => Promise<void>;
 }
 
 function toDraft(source: EntrySource): DraftSource {
@@ -115,7 +126,9 @@ export function EntryWizard({
     let cancelled = false;
     setName(entry?.name ?? '');
     setMode(entry?.hubspotProperty.mode ?? 'existing');
-    setExistingName(entry?.hubspotProperty.mode === 'existing' ? entry.hubspotProperty.hubspotName : '');
+    setExistingName(
+      entry?.hubspotProperty.mode === 'existing' ? entry.hubspotProperty.hubspotName : '',
+    );
     const loadedDef =
       entry?.hubspotProperty.mode === 'new'
         ? entry.hubspotProperty.definition
@@ -150,7 +163,9 @@ export function EntryWizard({
           .then((list) => {
             if (cancelled) return;
             setGroups(list);
-            setDef((d) => (d.groupName || list.length === 0 ? d : { ...d, groupName: list[0].name }));
+            setDef((d) =>
+              d.groupName || list.length === 0 ? d : { ...d, groupName: list[0].name },
+            );
           })
           .catch(() => {
             if (!cancelled) setGroups([]);
@@ -177,7 +192,17 @@ export function EntryWizard({
   const addSource = (): void => {
     setSources((prev) => [
       ...prev,
-      { id: `tmp-${crypto.randomUUID()}`, originId: origins[0]?.id ?? '', originObjectId: '', sourceField: '', kind: 'text', truthy: 'true', falsy: 'false', options: [], notes: '' },
+      {
+        id: `tmp-${crypto.randomUUID()}`,
+        originId: origins[0]?.id ?? '',
+        originObjectId: '',
+        sourceField: '',
+        kind: 'text',
+        truthy: 'true',
+        falsy: 'false',
+        options: [],
+        notes: '',
+      },
     ]);
   };
 
@@ -185,7 +210,12 @@ export function EntryWizard({
     const label = newGroupLabel.trim();
     if (!label || typeof window.api.groupsCreate !== 'function') return;
     try {
-      const created = await window.api.groupsCreate({ projectId, objectType, name: slugify(label), label });
+      const created = await window.api.groupsCreate({
+        projectId,
+        objectType,
+        name: slugify(label),
+        label,
+      });
       const list = await window.api.groupsList({ projectId, objectType });
       setGroups(list);
       setDef((d) => ({ ...d, groupName: created.name }));
@@ -201,7 +231,9 @@ export function EntryWizard({
 
   // El grupo se resuelve antes de aplicar en HubSpot (puede no haber grupos sin portal);
   // para guardar la entrada local basta nombre técnico + etiqueta.
-  const canSubmit = name.trim() && (mode === 'existing' ? existingName : def.hubspotName.trim() && def.label.trim());
+  const canSubmit =
+    name.trim() &&
+    (mode === 'existing' ? existingName : def.hubspotName.trim() && def.label.trim());
 
   const handleSubmit = async (): Promise<void> => {
     const builtSources: EntrySource[] = sources.map((s) => ({
@@ -232,7 +264,11 @@ export function EntryWizard({
         name: name.trim(),
         hubspotProperty:
           mode === 'existing'
-            ? { mode: 'existing', hubspotName: existingName, definition: { ...cleanDef, hubspotName: existingName } }
+            ? {
+                mode: 'existing',
+                hubspotName: existingName,
+                definition: { ...cleanDef, hubspotName: existingName },
+              }
             : { mode: 'new', definition: cleanDef },
         sources: builtSources,
       });
@@ -261,114 +297,137 @@ export function EntryWizard({
 
   return (
     <>
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle>{t(entry ? 'properties.wizard.editTitle' : 'properties.wizard.title')}</DialogTitle>
-      <DialogContent>
-        {metaLoading ? (
-          <LinearProgress aria-label={t('common.loading')} sx={{ mb: 2 }} />
-        ) : null}
-        <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField
-            label={t('properties.wizard.name')}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            fullWidth
-            inputProps={{ 'aria-describedby': nameHelp.describedById }}
-            InputProps={{ endAdornment: <InputAdornment position="end">{nameHelp.tooltip}</InputAdornment> }}
-          />
-
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <Typography variant="subtitle2">{t('properties.wizard.hubspotMode')}</Typography>
-            <FieldTooltip helpKey="properties.wizard.fieldHelp.hubspotMode" />
-          </Stack>
-          <ToggleButtonGroup exclusive size="small" value={mode} onChange={(_e, v) => v && setMode(v)}>
-            <ToggleButton value="existing">{t('properties.wizard.existing')}</ToggleButton>
-            <ToggleButton value="new">{t('properties.wizard.new')}</ToggleButton>
-          </ToggleButtonGroup>
-
-          {mode === 'existing' ? (
-            <>
-              <Autocomplete
-                options={hsProps}
-                getOptionLabel={(o) => `${o.label} (${o.hubspotName})`}
-                isOptionEqualToValue={(o, v) => o.hubspotName === v.hubspotName}
-                value={hsProps.find((p) => p.hubspotName === existingName) ?? null}
-                onChange={(_e, v) => selectExisting(v)}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label={t('properties.wizard.selectProperty')}
-                    placeholder={t('properties.wizard.searchProperty')}
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <Stack direction="row" spacing={0.5} alignItems="center">
-                          {params.InputProps.endAdornment}
-                          <FieldTooltip helpKey="properties.wizard.fieldHelp.selectProperty" />
-                        </Stack>
-                      ),
-                    }}
-                  />
-                )}
-                fullWidth
-              />
-              {existingName ? (
-                <>
-                  <Typography variant="caption" color="text.primary">{t('properties.wizard.editExistingHint')}</Typography>
-                  <PropertyDefinitionEditor editableName={false} {...definitionEditorProps} />
-                </>
-              ) : null}
-            </>
-          ) : (
-            <PropertyDefinitionEditor editableName {...definitionEditorProps} />
-          )}
-
-          <Divider />
-          <Stack direction="row" alignItems="center">
-            <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>{t('properties.entry.sources')}</Typography>
-            <Button size="small" startIcon={<AddIcon />} onClick={addSource} disabled={origins.length === 0}>
-              {t('properties.wizard.addSource')}
-            </Button>
-          </Stack>
-
-          {sources.map((s) => (
-            <SourceRow
-              key={s.id}
-              source={s}
-              origins={origins}
-              onUpdate={(patch) => updateSource(s.id, patch)}
-              onRemove={() => setSources((prev) => prev.filter((x) => x.id !== s.id))}
-              onEditOptions={() => setSrcOptionsId(s.id)}
+      <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+        <DialogTitle>
+          {t(entry ? 'properties.wizard.editTitle' : 'properties.wizard.title')}
+        </DialogTitle>
+        <DialogContent>
+          {metaLoading ? <LoadingState variant="list" rows={4} /> : null}
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label={t('properties.wizard.name')}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              fullWidth
+              inputProps={{ 'aria-describedby': nameHelp.describedById }}
+              InputProps={{
+                endAdornment: <InputAdornment position="end">{nameHelp.tooltip}</InputAdornment>,
+              }}
             />
-          ))}
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button startIcon={<CloseIcon />} onClick={onClose}>
-          {t('properties.wizard.cancel')}
-        </Button>
-        <BusyButton variant="contained" busy={saving} startIcon={<SaveIcon />} disabled={!canSubmit} onClick={handleSubmit}>
-          {t('properties.wizard.save')}
-        </BusyButton>
-      </DialogActions>
-    </Dialog>
-    <OptionsDialog
-      open={optionsOpen}
-      title={`${t('properties.wizard.optionsTitle')} — ${def.label || name}`}
-      options={def.options ?? []}
-      onChange={(opts) => setDef((d) => ({ ...d, options: opts }))}
-      onClose={() => setOptionsOpen(false)}
-    />
-    <SourceOptionsDialog
-      open={srcOptionsId !== null}
-      title={`${t('properties.wizard.optionsTitle')} — ${
-        origins.find((o) => o.id === sources.find((s) => s.id === srcOptionsId)?.originId)?.name ?? ''
-      }`}
-      options={sources.find((s) => s.id === srcOptionsId)?.options ?? []}
-      hubspotOptions={def.options ?? []}
-      onChange={(opts) => srcOptionsId && updateSource(srcOptionsId, { options: opts })}
-      onClose={() => setSrcOptionsId(null)}
-    />
+
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <Typography variant="subtitle2">{t('properties.wizard.hubspotMode')}</Typography>
+              <FieldTooltip helpKey="properties.wizard.fieldHelp.hubspotMode" />
+            </Stack>
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              value={mode}
+              onChange={(_e, v) => v && setMode(v)}
+            >
+              <ToggleButton value="existing">{t('properties.wizard.existing')}</ToggleButton>
+              <ToggleButton value="new">{t('properties.wizard.new')}</ToggleButton>
+            </ToggleButtonGroup>
+
+            {mode === 'existing' ? (
+              <>
+                <Autocomplete
+                  options={hsProps}
+                  getOptionLabel={(o) => `${o.label} (${o.hubspotName})`}
+                  isOptionEqualToValue={(o, v) => o.hubspotName === v.hubspotName}
+                  value={hsProps.find((p) => p.hubspotName === existingName) ?? null}
+                  onChange={(_e, v) => selectExisting(v)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={t('properties.wizard.selectProperty')}
+                      placeholder={t('properties.wizard.searchProperty')}
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            {params.InputProps.endAdornment}
+                            <FieldTooltip helpKey="properties.wizard.fieldHelp.selectProperty" />
+                          </Stack>
+                        ),
+                      }}
+                    />
+                  )}
+                  fullWidth
+                />
+                {existingName ? (
+                  <>
+                    <Typography variant="caption" color="text.primary">
+                      {t('properties.wizard.editExistingHint')}
+                    </Typography>
+                    <PropertyDefinitionEditor editableName={false} {...definitionEditorProps} />
+                  </>
+                ) : null}
+              </>
+            ) : (
+              <PropertyDefinitionEditor editableName {...definitionEditorProps} />
+            )}
+
+            <Divider />
+            <Stack direction="row" alignItems="center">
+              <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>
+                {t('properties.entry.sources')}
+              </Typography>
+              <Button
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={addSource}
+                disabled={origins.length === 0}
+              >
+                {t('properties.wizard.addSource')}
+              </Button>
+            </Stack>
+
+            {sources.map((s) => (
+              <SourceRow
+                key={s.id}
+                source={s}
+                origins={origins}
+                onUpdate={(patch) => updateSource(s.id, patch)}
+                onRemove={() => setSources((prev) => prev.filter((x) => x.id !== s.id))}
+                onEditOptions={() => setSrcOptionsId(s.id)}
+              />
+            ))}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button startIcon={<CloseIcon />} onClick={onClose}>
+            {t('properties.wizard.cancel')}
+          </Button>
+          <BusyButton
+            variant="contained"
+            busy={saving}
+            startIcon={<SaveIcon />}
+            disabled={!canSubmit}
+            onClick={handleSubmit}
+          >
+            {t('properties.wizard.save')}
+          </BusyButton>
+        </DialogActions>
+      </Dialog>
+      <OptionsDialog
+        open={optionsOpen}
+        title={`${t('properties.wizard.optionsTitle')} — ${def.label || name}`}
+        options={def.options ?? []}
+        onChange={(opts) => setDef((d) => ({ ...d, options: opts }))}
+        onClose={() => setOptionsOpen(false)}
+      />
+      <SourceOptionsDialog
+        open={srcOptionsId !== null}
+        title={`${t('properties.wizard.optionsTitle')} — ${
+          origins.find((o) => o.id === sources.find((s) => s.id === srcOptionsId)?.originId)
+            ?.name ?? ''
+        }`}
+        options={sources.find((s) => s.id === srcOptionsId)?.options ?? []}
+        hubspotOptions={def.options ?? []}
+        onChange={(opts) => srcOptionsId && updateSource(srcOptionsId, { options: opts })}
+        onClose={() => setSrcOptionsId(null)}
+      />
     </>
   );
 }

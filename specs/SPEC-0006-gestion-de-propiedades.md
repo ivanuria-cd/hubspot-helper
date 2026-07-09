@@ -2289,7 +2289,7 @@ alineado con entries/origins/objects.
 #### 53.13 Predicado `isBlocked` único (MEDIA)
 
 La regla `hubspotStatus === 'missing' && hubspotProperty.mode === 'existing'` está tres veces:
-`PropertyManagementScreen.tsx` 142–143 (`isBlocked`) y de nuevo inline en `blockedCount` 146–148; `EntryPanel.tsx` 99. Fix: un único helper (p. ej. en `utils/`) reutilizado por los tres puntos.
+`PropertyManagementScreen.tsx` 142–143 (`isBlocked`) y de nuevo inline en `blockedCount` 146–148; `EntryPanel.tsx` 99. Fix: un único helper (p. ej. en `utils/`) reutilizado por los tres puntos. **IMPLEMENTADO (2026-07-08)**: `utils/is-blocked.ts` (`isBlockedEntry`); usado en `blockedCount`, `StatusBadge` y `EntryPanel`.
 
 #### 53.14 `FieldTooltip` con claves `fieldHelp` propias por campo (MEDIA)
 
@@ -2304,16 +2304,18 @@ propias para esos campos → ayuda contextual semánticamente errónea (incumple
 Botones sin `startIcon` frente a sus vecinos con icono (norma SPEC-0002 §19): `PlanningMapActions.tsx` 246
 (cancelar), `GroupsModal.tsx` 158 (descartar), `OriginsModal.tsx` 92 (guardar campos). Componentes de SPEC-0016
 que no pasaron por el barrido de §19. Fix: `startIcon` según el mapeo verbo→icono (cancelar→`Close`,
-descartar→`Delete`, guardar→`Save`/`Add` según semántica).
+descartar→`Delete`, guardar→`Save`/`Add` según semántica). **IMPLEMENTADO (2026-07-08)**: cancelar→`Close`,
+descartar→`Delete`, guardar campos→`Save`.
 
 #### 53.16 `LoadingState` compartido en `EntryWizard` (MEDIA)
 
 `EntryWizard.tsx` 268 usa `<LinearProgress>` mientras el resto de superficies usa el `LoadingState` compartido
-(SPEC-0002 §17). Fix: sustituir por `LoadingState`.
+(SPEC-0002 §17). Fix: sustituir por `LoadingState`. **IMPLEMENTADO (2026-07-08)**: `LoadingState variant="list"`;
+se retira el import de `LinearProgress`.
 
 #### 53.17 Id temporal UUID en `OriginsModal` (MEDIA)
 
-`OriginsModal.tsx` 117 usa `id: \`o-${Date.now()}\``(colisionable en el mismo ms) frente a`crypto.randomUUID()`en el resto (§51). Fix:`crypto.randomUUID()`.
+`OriginsModal.tsx` 117 usa `id: \`o-${Date.now()}\``(colisionable en el mismo ms) frente a`crypto.randomUUID()`en el resto (§51). Fix:`crypto.randomUUID()`. **IMPLEMENTADO (2026-07-08)**.
 
 #### 53.18 Limpieza (BAJA)
 
@@ -2339,8 +2341,11 @@ modificar tests ya aprobados sin acuerdo previo (SPEC-0000 §8). Cambios con imp
 - **Bloque renderer ALTA — IMPLEMENTADO (2026-07-08)**: 53.10 (hook compartido `useOptionListEditor` para
   OptionsDialog/SourceOptionsDialog) y 53.11 (captura homogénea de errores en `PropertyManagementScreen` y
   `OriginsModal`). Sin specs de diálogo; verificación typecheck/manual.
-- **Pendientes**: MEDIA/BAJA (53.4–53.9 main, 53.12–53.18 renderer). Sin cambios funcionales visibles salvo la
-  corrección de tooltips (53.14).
+- **Renderer MEDIA (quick wins) — IMPLEMENTADO (2026-07-08)**: 53.13 (`isBlockedEntry` compartido), 53.15
+  (`startIcon` en cancelar/descartar/guardar), 53.16 (`LoadingState` en `EntryWizard`), 53.17 (id UUID en
+  `OriginsModal`).
+- **Pendientes**: 53.14 (tooltips i18n ×7), 53.12 (`GroupsModal` sobre store) y main MEDIA/BAJA (53.4–53.9) +
+  renderer BAJA (53.18). Sin cambios funcionales visibles salvo la corrección de tooltips (53.14).
 
 ## 54. Limitaciones en ejecución — alta masiva LNN (BORRADOR, 2026-07-08)
 

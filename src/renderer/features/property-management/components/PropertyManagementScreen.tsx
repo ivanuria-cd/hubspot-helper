@@ -33,6 +33,7 @@ import { DriveDirtyGuard } from '@shared/components/DriveDirtyGuard';
 import type { PropertyEntry } from '@shared/types/properties';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
 import { destName } from '../utils/dest-name';
+import { isBlockedEntry } from '../utils/is-blocked';
 import { useEntriesStore } from '../store/entries-store';
 import { useObjectsStore } from '../store/objects-store';
 import { useOriginsStore } from '../store/origins-store';
@@ -143,15 +144,8 @@ export function PropertyManagementScreen(): JSX.Element | null {
     () => (entries ?? []).reduce((sum, e) => sum + (e.pendingChanges?.length ?? 0), 0),
     [entries],
   );
-  const isBlocked = (entry: PropertyEntry): boolean =>
-    entry.hubspotStatus === 'missing' && entry.hubspotProperty.mode === 'existing';
-  const blockedCount = useMemo(
-    () =>
-      objectEntries.filter(
-        (e) => e.hubspotStatus === 'missing' && e.hubspotProperty.mode === 'existing',
-      ).length,
-    [objectEntries],
-  );
+  // SPEC-0006 §53.13: predicado único de «bloqueada» compartido con EntryPanel.
+  const blockedCount = useMemo(() => objectEntries.filter(isBlockedEntry).length, [objectEntries]);
 
   if (!activeProject) return null;
 
@@ -413,7 +407,7 @@ export function PropertyManagementScreen(): JSX.Element | null {
                     <Typography color="text.primary" sx={{ minWidth: 160 }}>
                       {destName(entry)}
                     </Typography>
-                    <StatusBadge status={entry.hubspotStatus} blocked={isBlocked(entry)} />
+                    <StatusBadge status={entry.hubspotStatus} blocked={isBlockedEntry(entry)} />
                     <Box sx={{ flexGrow: 1 }} />
                     <Chip
                       size="small"

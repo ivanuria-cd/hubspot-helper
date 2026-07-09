@@ -31,7 +31,12 @@ interface GroupsModalProps {
  * Gestión de grupos de propiedades del objeto activo (SPEC-0006 §33). Permite solicitar el borrado
  * (destructivo, doble confirmación) de un grupo vacío y aplicar/descartar los borrados pendientes.
  */
-export function GroupsModal({ open, projectId, objectType, onClose }: GroupsModalProps): JSX.Element {
+export function GroupsModal({
+  open,
+  projectId,
+  objectType,
+  onClose,
+}: GroupsModalProps): JSX.Element {
   const { t } = useTranslation('common');
   const { notify } = useSnackbar();
   const askConfirm = useConfirm();
@@ -53,7 +58,12 @@ export function GroupsModal({ open, projectId, objectType, onClose }: GroupsModa
       setUsedGroups(new Set(properties.map((p) => p.groupName).filter(Boolean) as string[]));
       setChanges(pending.filter((c) => c.objectType === objectType));
     } catch (error) {
-      notify({ message: t('properties.groupsModal.toastError', { error: error instanceof Error ? error.message : '' }), severity: 'error' });
+      notify({
+        message: t('properties.groupsModal.toastError', {
+          error: error instanceof Error ? error.message : '',
+        }),
+        severity: 'error',
+      });
     } finally {
       setLoading(false);
     }
@@ -80,26 +90,44 @@ export function GroupsModal({ open, projectId, objectType, onClose }: GroupsModa
     if (!second) return;
     setBusy(true);
     try {
-      const result = await window.api.groupRequestDelete({ projectId, objectType, groupName: group.name, label: group.label });
+      const result = await window.api.groupRequestDelete({
+        projectId,
+        objectType,
+        groupName: group.name,
+        label: group.label,
+      });
       if (result.success) {
         notify({ message: t('properties.groupsModal.toastRequested'), severity: 'success' });
         await reload();
       } else {
-        notify({ message: result.error ?? t('properties.groupsModal.toastError', { error: '' }), severity: 'error' });
+        notify({
+          message: result.error ?? t('properties.groupsModal.toastError', { error: '' }),
+          severity: 'error',
+        });
       }
     } finally {
       setBusy(false);
     }
   };
 
-  const handleApply = async (change: GroupDeleteChange, environment: 'sandbox' | 'production'): Promise<void> => {
+  const handleApply = async (
+    change: GroupDeleteChange,
+    environment: 'sandbox' | 'production',
+  ): Promise<void> => {
     setBusy(true);
     try {
-      const result = await window.api.groupApplyChange({ projectId, changeId: change.id, environment });
+      const result = await window.api.groupApplyChange({
+        projectId,
+        changeId: change.id,
+        environment,
+      });
       notify(
         result.success
           ? { message: t('properties.groupsModal.toastApplied'), severity: 'success' }
-          : { message: result.error ?? t('properties.groupsModal.toastError', { error: '' }), severity: 'error' },
+          : {
+              message: result.error ?? t('properties.groupsModal.toastError', { error: '' }),
+              severity: 'error',
+            },
       );
       await reload();
     } finally {
@@ -133,7 +161,15 @@ export function GroupsModal({ open, projectId, objectType, onClose }: GroupsModa
                 </Typography>
                 <Stack spacing={1}>
                   {changes.map((change) => (
-                    <Box key={change.id} sx={{ p: 1.5, border: '1px solid', borderColor: 'warning.main', borderRadius: 1 }}>
+                    <Box
+                      key={change.id}
+                      sx={{
+                        p: 1.5,
+                        border: '1px solid',
+                        borderColor: 'warning.main',
+                        borderRadius: 1,
+                      }}
+                    >
                       <Typography sx={{ fontWeight: 600 }}>{change.summary}</Typography>
                       <Stack direction="row" spacing={1} sx={{ mt: 1 }} flexWrap="wrap" useFlexGap>
                         <Button
@@ -155,7 +191,12 @@ export function GroupsModal({ open, projectId, objectType, onClose }: GroupsModa
                         >
                           {t('properties.groupsModal.applyProduction')}
                         </Button>
-                        <Button size="small" disabled={busy} onClick={() => void handleDiscard(change)}>
+                        <Button
+                          size="small"
+                          startIcon={<DeleteIcon />}
+                          disabled={busy}
+                          onClick={() => void handleDiscard(change)}
+                        >
                           {t('properties.groupsModal.discard')}
                         </Button>
                       </Stack>
@@ -186,15 +227,25 @@ export function GroupsModal({ open, projectId, objectType, onClose }: GroupsModa
                       sx={{ p: 1, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}
                     >
                       <Box sx={{ flexGrow: 1 }}>
-                        <Typography sx={{ fontWeight: 600 }}>{group.label || group.name}</Typography>
+                        <Typography sx={{ fontWeight: 600 }}>
+                          {group.label || group.name}
+                        </Typography>
                         <Typography variant="body2" color="text.primary">
                           {group.name}
                         </Typography>
                       </Box>
                       {alreadyPending ? (
-                        <Chip size="small" color="warning" label={t('properties.groupsModal.pendingChip')} />
+                        <Chip
+                          size="small"
+                          color="warning"
+                          label={t('properties.groupsModal.pendingChip')}
+                        />
                       ) : used ? (
-                        <Chip size="small" variant="outlined" label={t('properties.groupsModal.notEmptyChip')} />
+                        <Chip
+                          size="small"
+                          variant="outlined"
+                          label={t('properties.groupsModal.notEmptyChip')}
+                        />
                       ) : null}
                       <Tooltip title={used ? t('properties.groupsModal.notEmptyHint') : ''}>
                         <span>
