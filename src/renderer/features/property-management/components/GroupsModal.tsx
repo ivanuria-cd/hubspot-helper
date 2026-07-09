@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box,
   Button,
@@ -19,6 +19,7 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useTranslation } from 'react-i18next';
 import type { GroupDeleteChange, HubSpotGroup } from '@shared/types/properties';
 import { LoadingState, useConfirm, useSnackbar } from '@shared/components/feedback';
+import { useGroupsStore } from '../store/groups-store';
 
 interface GroupsModalProps {
   open: boolean;
@@ -40,38 +41,29 @@ export function GroupsModal({
   const { t } = useTranslation('common');
   const { notify } = useSnackbar();
   const askConfirm = useConfirm();
-  const [groups, setGroups] = useState<HubSpotGroup[]>([]);
-  const [usedGroups, setUsedGroups] = useState<Set<string>>(new Set());
-  const [changes, setChanges] = useState<GroupDeleteChange[]>([]);
-  const [loading, setLoading] = useState(false);
+  // SPEC-0006 §53.12: estado de grupos centralizado en el store; el componente conserva feedback y `busy`.
+  const {
+    groups,
+    usedGroups,
+    changes,
+    loading,
+    error,
+    load,
+    requestDelete,
+    applyChange,
+    discardChange,
+  } = useGroupsStore();
   const [busy, setBusy] = useState(false);
 
-  const reload = useCallback(async (): Promise<void> => {
-    setLoading(true);
-    try {
-      const [groupList, properties, pending] = await Promise.all([
-        window.api.groupsList({ projectId, objectType }),
-        window.api.hubspotPropertiesList({ projectId, objectType }),
-        window.api.groupChanges({ projectId }),
-      ]);
-      setGroups(groupList);
-      setUsedGroups(new Set(properties.map((p) => p.groupName).filter(Boolean) as string[]));
-      setChanges(pending.filter((c) => c.objectType === objectType));
-    } catch (error) {
-      notify({
-        message: t('properties.groupsModal.toastError', {
-          error: error instanceof Error ? error.message : '',
-        }),
-        severity: 'error',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [projectId, objectType, notify, t]);
+  useEffect(() => {
+    if (open) void load(projectId, objectType);
+  }, [open, projectId, objectType, load]);
 
   useEffect(() => {
-    if (open) void reload();
-  }, [open, reload]);
+    if (error) {
+      notify({ message: t('properties.groupsModal.toastError', { error }), severity: 'error' });
+    }
+  }, [error, notify, t]);
 
   const pendingNames = new Set(changes.map((c) => c.groupName));
 
@@ -90,7 +82,7 @@ export function GroupsModal({
     if (!second) return;
     setBusy(true);
     try {
-      const result = await window.api.groupRequestDelete({
+      const result = await requestDelete({
         projectId,
         objectType,
         groupName: group.name,
@@ -98,7 +90,7 @@ export function GroupsModal({
       });
       if (result.success) {
         notify({ message: t('properties.groupsModal.toastRequested'), severity: 'success' });
-        await reload();
+        await load(projectId, objectType);
       } else {
         notify({
           message: result.error ?? t('properties.groupsModal.toastError', { error: '' }),
@@ -116,11 +108,7 @@ export function GroupsModal({
   ): Promise<void> => {
     setBusy(true);
     try {
-      const result = await window.api.groupApplyChange({
-        projectId,
-        changeId: change.id,
-        environment,
-      });
+      const result = await applyChange(projectId, change.id, environment);
       notify(
         result.success
           ? { message: t('properties.groupsModal.toastApplied'), severity: 'success' }
@@ -129,7 +117,7 @@ export function GroupsModal({
               severity: 'error',
             },
       );
-      await reload();
+      await load(projectId, objectType);
     } finally {
       setBusy(false);
     }
@@ -138,9 +126,9 @@ export function GroupsModal({
   const handleDiscard = async (change: GroupDeleteChange): Promise<void> => {
     setBusy(true);
     try {
-      await window.api.groupDiscardChange({ projectId, changeId: change.id });
+      await discardChange(projectId, change.id);
       notify({ message: t('properties.groupsModal.toastDiscarded'), severity: 'success' });
-      await reload();
+      await load(projectId, objectType);
     } finally {
       setBusy(false);
     }

@@ -2295,7 +2295,12 @@ campos (se añade `useSnackbar`). Fallback de mensaje `common.loadError`.
 `GroupsModal.tsx` no usa store: gestiona `groups`/`usedGroups`/`changes`/`loading`/`busy` en estado local y llama
 a `window.api.*` directamente, reimplementando loading/error/reload; además lee `result.success` en el componente
 (95–108) en vez de centralizarlo como `entries-store.applyChange`. Fix: `groups-store` que encapsule el patrón,
-alineado con entries/origins/objects.
+alineado con entries/origins/objects. **IMPLEMENTADO (2026-07-08)**: nuevo `store/groups-store.ts`
+(`groups`/`usedGroups`/`changes`/`loading`/`error` + `load` con try/catch + `requestDelete`/`applyChange`/
+`discardChange` que devuelven el resultado). `GroupsModal` lo consume (conserva `busy`, confirm y notify; el toast
+de error de carga sale de un efecto sobre `error`). Test `store/groups-store.spec.ts` (load filtra por objectType y
+descarta `groupName` vacíos, captura de error, forward de las escrituras). Verificación typecheck/unit; el componente
+no tiene spec propio.
 
 #### 53.13 Predicado `isBlocked` único (MEDIA)
 
@@ -2370,9 +2375,9 @@ modificar tests ya aprobados sin acuerdo previo (SPEC-0000 §8). Cambios con imp
 - **BAJA — IMPLEMENTADO (2026-07-08)**: 53.9 (`isoNow` sin fallback muerto, `ORIGIN_EXPORT_SCHEMA_VERSION`;
   `isCompleted` conservada por tener test) y 53.18 (parcial: `entries-store.load` sin `objectType`,
   `text.secondary`→`text.primary`, stubs muertos vía `git rm`).
+- **53.12 `GroupsModal` sobre store — IMPLEMENTADO (2026-07-08)**: `groups-store` + test; el componente lo consume.
 - **Pendientes**: 53.6 (round-trip `objectType` — requiere persistir el `objectType` real en la hoja, diseño
-  aparte), 53.12 (`GroupsModal` sobre store — refactor de consistencia, conviene con un spec de GroupsModal),
-  53.8 (dedup de helpers/tipos sheets/planning, BAJA) y los residuales cosméticos de 53.18.
+  aparte), 53.8 (dedup de helpers/tipos sheets/planning, BAJA) y los residuales cosméticos de 53.18.
 
 ## 54. Limitaciones en ejecución — alta masiva LNN (BORRADOR, 2026-07-08)
 
