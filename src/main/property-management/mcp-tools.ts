@@ -9,7 +9,7 @@ import { EntryValidationError } from './entry-validation';
 import { buildBlocker } from './reconcile';
 import type { ChangeOperation, EntryUpsertInput } from '@shared/types/properties';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
-import { USER_FRIENDLY_FIELD_TYPES } from '@shared/constants/planningFieldTypes';
+import { USER_FRIENDLY_FIELD_TYPES, isAmbiguous } from '@shared/constants/planningFieldTypes';
 
 const PROPERTY_GUIDANCE = `Una entrada del mapa apunta a una propiedad de HubSpot en uno de dos modos:
 - "existing": la propiedad YA existe en HubSpot; la entrada solo la mapea.
@@ -137,14 +137,15 @@ export function registerPropertyTools(registry: McpRegistry, service: PropertySe
       'configuracion(es) de HubSpot. «ambiguous: true» = el tipo mapea a varias configs y «necesita accion» ' +
       '(el usuario debe elegir la config concreta antes de pasar a borrador).',
     inputSchema: { type: 'object', properties: {} },
-    featureKey: feature,
+    // SPEC-0006 §53.7: tool de planificación (SPEC-0016) → featureKey de planning, no property-management.
+    featureKey: 'property-planning',
     requiredScopes: SCOPES,
     handler: () =>
       Promise.resolve(
         USER_FRIENDLY_FIELD_TYPES.map((t) => ({
           key: t.key,
           configs: t.configs,
-          ambiguous: t.configs.length > 1,
+          ambiguous: isAmbiguous(t.key),
         })),
       ),
   });

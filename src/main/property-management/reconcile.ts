@@ -13,23 +13,12 @@ import {
   type ChangeFactoryDeps,
 } from './pending-changes';
 import { isSystemProperty } from './system-properties';
+import { entryDestName as destName } from './dest-name';
 
 export interface ReconcileResult {
   entries: PropertyEntry[];
   summary: { updated: number; divergent: number; missing: number; blocked: number };
   blockers: Blocker[];
-}
-
-function destName(entry: PropertyEntry): string {
-  // Defensivo (SPEC-0006 §39): un `hubspotProperty` malformado no debe tumbar el sync.
-  const ref = entry.hubspotProperty as unknown as {
-    mode?: string;
-    hubspotName?: string;
-    definition?: { hubspotName?: string };
-  };
-  if (!ref || typeof ref !== 'object') return '';
-  if (ref.mode === 'existing') return ref.hubspotName ?? '';
-  return ref.definition?.hubspotName ?? '';
 }
 
 /**

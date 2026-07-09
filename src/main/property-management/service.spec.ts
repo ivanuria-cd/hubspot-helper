@@ -283,6 +283,20 @@ describe('PropertyService (entradas)', () => {
     expect(props.createProperty).toHaveBeenCalledTimes(2);
   });
 
+  it('§53.5: deleteEntry/deleteOrigin devuelven error si el id no existe', () => {
+    const service = createPropertyService(
+      deps(createMemoryPropertyStore(), fakeProperties(), fakeObjects()),
+    );
+    expect(service.deleteEntry({ projectId: 'p1', entryId: 'no' })).toEqual({
+      success: false,
+      error: 'Entrada no encontrada',
+    });
+    expect(service.deleteOrigin({ projectId: 'p1', originId: 'no' })).toEqual({
+      success: false,
+      error: 'Origen no encontrado',
+    });
+  });
+
   it('getDriveMeta refleja cambios y markDriveWritten limpia el dirty', () => {
     const store = createMemoryPropertyStore();
     const service = createPropertyService(deps(store, fakeProperties(), fakeObjects()));

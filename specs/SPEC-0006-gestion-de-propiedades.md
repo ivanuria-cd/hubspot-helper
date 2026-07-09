@@ -2211,7 +2211,10 @@ en vez de recalcularlo. **IMPLEMENTADO (2026-07-08)**: `reconcile.ts` exporta `b
 `reconcile.ts` 22–32; **no** defensiva en `sheets-model.ts`, `origin-export.ts`, `planning-model.ts`,
 `planning-import.ts`. Con un `hubspotProperty` malformado (el que reconcile protege por §39) el volcado a Sheets y
 el export se tumbarían. Fix: helper único defensivo en el main (equivalente a `renderer/.../utils/dest-name.ts`
-de §52, p. ej. `property-management/dest-name.ts` o en `shared/`), importado por los seis puntos.
+de §52, p. ej. `property-management/dest-name.ts` o en `shared/`), importado por los seis puntos. **IMPLEMENTADO
+(2026-07-08)**: nuevo `property-management/dest-name.ts` (`entryDestName`, type guard `isLooseRef`); `service.ts` y
+`reconcile.ts` lo usan y los cuatro no defensivos (`sheets-model`/`origin-export`/`planning-model`/`planning-import`)
+lo importan como `destName` (alias). Comportamiento idéntico para datos válidos, robusto ante malformados.
 
 #### 53.5 Contrato homogéneo de «recurso no encontrado» (MEDIA)
 
@@ -2219,7 +2222,10 @@ Tres contratos para el mismo concepto: `deleteEntry`/`deleteOrigin` devuelven `s
 `discardChange`/`discardGroupChange`/`requestDelete`/`convertEntryToNew` devuelven `OperationResult` con `error`;
 `updateOrigin`/`setObjectFields` lanzan `throw`. Consecuencia: `entries_delete_batch` reporta `ok:true` al borrar
 un id inexistente (`mcp-tools.ts` 380–388). Fix: unificar en `OperationResult` con comprobación de existencia
-(las de borrado devuelven `success:false` si el id no existe); ajustar los reportes batch.
+(las de borrado devuelven `success:false` si el id no existe); ajustar los reportes batch. **IMPLEMENTADO
+(2026-07-08)**: `deleteEntry`/`deleteOrigin` comprueban existencia y devuelven `{success:false, error}` si el id no
+existe (el batch ya reporta `ok: r.success`, así queda correcto); test en `service.spec.ts`. `updateOrigin`/
+`setObjectFields` siguen lanzando `throw` (los invoca la UI, que ya captura); no se cambian aquí.
 
 #### 53.6 Round-trip de `objectType` en el mapa editable (MEDIA)
 
@@ -2235,7 +2241,9 @@ no del título.
 La tool `planning_field_types` se registra con `featureKey: 'property-management'` (`mcp-tools.ts` 141) pese a
 pertenecer a la planificación (SPEC-0016; gate de guía de `property-planning`), y recomputa `ambiguous:
 t.configs.length > 1` (147) en vez del helper compartido `isAmbiguous`. Fix: registrarla bajo el featureKey de
-planning y usar `isAmbiguous(key)`.
+planning y usar `isAmbiguous(key)`. **IMPLEMENTADO (2026-07-08)**: `featureKey: 'property-planning'` y
+`ambiguous: isAmbiguous(t.key)` (import de `isAmbiguous`). La tool sigue registrándose en `registerPropertyTools`
+(solo cambia la metadata del featureKey; es de solo lectura, sin gate).
 
 #### 53.8 Deduplicación de helpers/tipos y constantes (BAJA)
 
@@ -2348,7 +2356,10 @@ modificar tests ya aprobados sin acuerdo previo (SPEC-0000 §8). Cambios con imp
   `OriginsModal`).
 - **53.14 tooltips i18n ×7 — IMPLEMENTADO (2026-07-08)**: 4 claves `fieldHelp` dedicadas (hubspotName/label/type/
   fieldType) en los 7 locales; `PropertyDefinitionEditor` apunta cada campo a la suya. Paridad verificada.
-- **Pendientes**: 53.12 (`GroupsModal` sobre store), main MEDIA/BAJA (53.4–53.9) y renderer BAJA (53.18).
+- **Main MEDIA — IMPLEMENTADO (2026-07-08)**: 53.4 (`dest-name.ts` compartido), 53.5 (contrato «no encontrado» en
+  `deleteEntry`/`deleteOrigin`), 53.7 (`planning_field_types` featureKey planning + `isAmbiguous`).
+- **Pendientes**: 53.6 (round-trip `objectType` en el mapa editable — requiere persistir el `objectType` real en la
+  hoja, diseño aparte), 53.12 (`GroupsModal` sobre store) y BAJA (53.8/53.9 main, 53.18 renderer).
 
 ## 54. Limitaciones en ejecución — alta masiva LNN (BORRADOR, 2026-07-08)
 

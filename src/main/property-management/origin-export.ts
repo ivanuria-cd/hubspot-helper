@@ -3,17 +3,12 @@
  * Recorre las entradas y, por cada fuente que use el origen, emite su definición genérica.
  */
 import type { DataOrigin, OriginExport, PropertyEntry } from '@shared/types/properties';
+import { entryDestName as destName } from './dest-name';
 
 export interface ExportInput {
   origin: DataOrigin;
   entries: PropertyEntry[];
   now: () => string;
-}
-
-function destName(entry: PropertyEntry): string {
-  return entry.hubspotProperty.mode === 'existing'
-    ? entry.hubspotProperty.hubspotName
-    : entry.hubspotProperty.definition.hubspotName;
 }
 
 export function buildOriginExport(input: ExportInput): OriginExport {

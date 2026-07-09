@@ -9,6 +9,7 @@
 import type { DataOrigin, HubSpotPropertyDef, PropertyEntry } from '@shared/types/properties';
 import type { PlanningAssociation } from '@shared/types/planning';
 import { USER_FRIENDLY_FIELD_TYPES } from '@shared/constants/planningFieldTypes';
+import { entryDestName as destName } from './dest-name';
 
 export const PLANNING_MAP_FEATURE_KEY = 'property-planning-map';
 export const PLANNING_SCHEMA_VERSION = 1;
@@ -100,11 +101,6 @@ function uniqueTitle(base: string, used: Set<string>): string {
 
 function defOf(entry: PropertyEntry): HubSpotPropertyDef | undefined {
   return entry.hubspotProperty.definition;
-}
-
-function destName(entry: PropertyEntry): string {
-  const ref = entry.hubspotProperty;
-  return ref.mode === 'existing' ? ref.hubspotName : ref.definition.hubspotName;
 }
 
 function typeDisplay(def: HubSpotPropertyDef | undefined): string {

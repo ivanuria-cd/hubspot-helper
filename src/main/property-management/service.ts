@@ -49,6 +49,7 @@ import { reconcileEntries, type ReconcileResult } from './reconcile';
 import { markApplied, cleanOptions, diffDefinition } from './pending-changes';
 import { EntryValidationError, validateEntryInput } from './entry-validation';
 import { isSystemProperty } from './system-properties';
+import { entryDestName } from './dest-name';
 import { buildOriginExport } from './origin-export';
 import type { PropertyDriveState } from './drive-state';
 
@@ -75,17 +76,6 @@ export interface PropertyServiceDeps {
   objectsApiFor: (projectId: string) => ObjectsApi;
   newId: () => string;
   now: () => string;
-}
-
-function entryDestName(entry: PropertyEntry): string {
-  const ref = entry.hubspotProperty as unknown as {
-    mode?: string;
-    hubspotName?: string;
-    definition?: { hubspotName?: string };
-  };
-  if (!ref || typeof ref !== 'object') return '';
-  if (ref.mode === 'existing') return ref.hubspotName ?? '';
-  return ref.definition?.hubspotName ?? '';
 }
 
 function toDef(remote: RemoteProperty): HubSpotPropertyDef {
@@ -240,6 +230,11 @@ export function createPropertyService(deps: PropertyServiceDeps) {
 
   function deleteEntry(input: EntryDeleteInput): OperationResult {
     const state = deps.store.get(input.projectId);
+    // SPEC-0006 §53.5: contrato homogéneo — antes devolvía success aunque el id no existiera, y el
+    // batch reportaba `ok` para ids inexistentes.
+    if (!state.entries.some((e) => e.id === input.entryId)) {
+      return { success: false, error: 'Entrada no encontrada' };
+    }
     deps.store.set(input.projectId, {
       ...state,
       entries: state.entries.filter((e) => e.id !== input.entryId),
@@ -656,6 +651,10 @@ export function createPropertyService(deps: PropertyServiceDeps) {
 
   function deleteOrigin(input: OriginDeleteInput): OperationResult {
     const state = deps.store.get(input.projectId);
+    // SPEC-0006 §53.5: contrato homogéneo — comprobar existencia antes de borrar.
+    if (!state.origins.some((origin) => origin.id === input.originId)) {
+      return { success: false, error: 'Origen no encontrado' };
+    }
     deps.store.set(input.projectId, {
       ...state,
       origins: state.origins.filter((origin) => origin.id !== input.originId),

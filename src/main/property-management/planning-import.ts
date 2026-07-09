@@ -27,6 +27,7 @@ import {
   resolveUserFriendlyType,
   userFriendlyFieldType,
 } from '@shared/constants/planningFieldTypes';
+import { entryDestName as destName } from './dest-name';
 
 export type CellValue = string | number | boolean;
 
@@ -117,11 +118,6 @@ export function parsePlanningTabs(tabs: ReadTab[], origins: DataOrigin[]): Parse
 
 function defOf(entry: PropertyEntry): HubSpotPropertyDef | undefined {
   return entry.hubspotProperty.definition;
-}
-
-function destName(entry: PropertyEntry): string {
-  const ref = entry.hubspotProperty;
-  return ref.mode === 'existing' ? ref.hubspotName : ref.definition.hubspotName;
 }
 
 function typeDisplay(def: HubSpotPropertyDef | undefined): string {

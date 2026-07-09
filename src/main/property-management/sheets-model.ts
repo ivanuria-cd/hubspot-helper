@@ -6,6 +6,7 @@
  * Drive) para poder testearlo. Las erratas en nombres/claves se reflejan tal cual (no se corrigen).
  */
 import type { DataOrigin, HubSpotPropertyDef, PropertyEntry } from '@shared/types/properties';
+import { entryDestName as destName } from './dest-name';
 
 export const SHEETS_SCHEMA_VERSION = 4;
 export const PROPERTY_MAP_FEATURE_KEY = 'property-management';
@@ -28,7 +29,16 @@ const ENTRADAS_HEADER = [
   'Nº orígenes',
   'Cambios pendientes',
 ];
-const FUENTES_HEADER = ['ID', 'Entrada', 'Objeto', 'Origen', 'Campo origen', 'Tipo genérico', 'Formato booleano', 'Notas'];
+const FUENTES_HEADER = [
+  'ID',
+  'Entrada',
+  'Objeto',
+  'Origen',
+  'Campo origen',
+  'Tipo genérico',
+  'Formato booleano',
+  'Notas',
+];
 const OPCIONES_HEADER = ['Entrada', 'Origen', 'Valor origen', 'Etiqueta origen', 'Valor HubSpot'];
 const DEFINICION_HEADER = [
   'ID',
@@ -52,15 +62,17 @@ const DEFINICION_HEADER = [
   'Oculta',
   'Campo de formulario',
 ];
-const DEFOPCIONES_HEADER = ['ID', 'Nombre', 'Propiedad HubSpot', 'Valor', 'Etiqueta', 'Orden', 'Oculta'];
+const DEFOPCIONES_HEADER = [
+  'ID',
+  'Nombre',
+  'Propiedad HubSpot',
+  'Valor',
+  'Etiqueta',
+  'Orden',
+  'Oculta',
+];
 const SHEET_NAME_MAX = 100;
 const INVALID_SHEET_CHARS = /[:\\/?*[\]]/g;
-
-function destName(entry: PropertyEntry): string {
-  return entry.hubspotProperty.mode === 'existing'
-    ? entry.hubspotProperty.hubspotName
-    : entry.hubspotProperty.definition.hubspotName;
-}
 
 function destType(entry: PropertyEntry): string {
   const ref = entry.hubspotProperty;
@@ -102,7 +114,9 @@ function fuenteRows(entry: PropertyEntry, originName: Map<string, string>): Cell
     originName.get(source.originId) ?? source.originId,
     source.sourceField,
     source.definition.kind,
-    source.definition.boolean ? `${source.definition.boolean.truthy}/${source.definition.boolean.falsy}` : '',
+    source.definition.boolean
+      ? `${source.definition.boolean.truthy}/${source.definition.boolean.falsy}`
+      : '',
     source.notes ?? '',
   ]);
 }
@@ -204,7 +218,9 @@ export function buildPropertyMapTabs(
       ['schema_version', SHEETS_SCHEMA_VERSION],
       ['Generado', generatedAt],
       [],
-      ['Hoja generada por RevOps Assistant. No edites las zonas de datos: se regeneran en cada volcado.'],
+      [
+        'Hoja generada por RevOps Assistant. No edites las zonas de datos: se regeneran en cada volcado.',
+      ],
       ['Objetos', objectTypes.length],
       ['Campos', entries.length],
       ['Orígenes', origins.length],
@@ -255,12 +271,18 @@ export function buildPropertyMapTabs(
     const sheetNames = [entradas.title, definicion.title, fuentes.title];
     blocks.push(entradas, definicion, fuentes);
     if (opcionesRows.length > 0) {
-      const opciones: SheetTab = { title: blockTitle(prefix, part, 'Opciones'), rows: [OPCIONES_HEADER, ...opcionesRows] };
+      const opciones: SheetTab = {
+        title: blockTitle(prefix, part, 'Opciones'),
+        rows: [OPCIONES_HEADER, ...opcionesRows],
+      };
       sheetNames.push(opciones.title);
       blocks.push(opciones);
     }
     if (defOpcionesRows.length > 0) {
-      const defOpciones: SheetTab = { title: blockTitle(prefix, part, 'DefOpciones'), rows: [DEFOPCIONES_HEADER, ...defOpcionesRows] };
+      const defOpciones: SheetTab = {
+        title: blockTitle(prefix, part, 'DefOpciones'),
+        rows: [DEFOPCIONES_HEADER, ...defOpcionesRows],
+      };
       sheetNames.push(defOpciones.title);
       blocks.push(defOpciones);
     }
