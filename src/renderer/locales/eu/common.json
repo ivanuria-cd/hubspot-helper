@@ -240,7 +240,8 @@
       "dontAsk": "Ez galdetu berriro proiektu honetan",
       "cancel": "Utzi",
       "leave": "Irten eguneratu gabe",
-      "updateAndLeave": "Eguneratu eta irten"
+      "updateAndLeave": "Eguneratu eta irten",
+      "updating": "Eguneratzen…"
     }
   },
   "update": {

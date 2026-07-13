@@ -1196,3 +1196,20 @@ Del informe de revisión de código 2026-07-02, hallazgo 7.6. En `updateAndLeave
 el Snackbar compartido (`result.error` o el mensaje de la excepción; fallback `common.loadError`) y el diálogo
 permanece para reintentar o salir sin actualizar. El tipo del prop `onUpdate` expone `error?` (compatible).
 Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 28. Feedback de progreso en el `DriveDirtyGuard` (IMPLEMENTADO, 2026-07-13)
+
+Al pulsar «Actualizar y salir» la escritura en Drive (Sheets + Doc de estado, §15.5) puede tardar y el modal
+no comunicaba que estaba trabajando: los tres botones seguían pulsables y no había indicador. Se adopta el
+patrón de estado ocupado transversal (SPEC-0002 §17, `BusyButton`):
+
+- Estado local `busy` en `DriveDirtyGuard`, activo mientras corre `onUpdate()` (se resetea en `finally`).
+- «Actualizar y salir» pasa a `BusyButton` (spinner + `aria-busy` + deshabilitado) y muestra el texto
+  `drive.dirtyGuard.updating` mientras `busy`.
+- «Cancelar» y «Salir sin actualizar» se deshabilitan mientras `busy` (evita salir a medias); el `onClose`
+  del `Dialog` y el checkbox «no volver a preguntar» también quedan inhabilitados durante la operación.
+- Se conserva el manejo de error de §27 (Snackbar + el diálogo permanece).
+
+i18n: clave nueva `drive.dirtyGuard.updating` en los 7 locales (es/ca/eu/en/gl/pt/fr). Sin cambios de
+contrato ni IPC. Alcance: `DriveDirtyGuard.tsx` + `locales/*/common.json`. Requiere rebuild de la app;
+typecheck/test en la máquina del usuario.

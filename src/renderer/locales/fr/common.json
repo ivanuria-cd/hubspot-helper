@@ -245,7 +245,8 @@
       "dontAsk": "Ne plus demander pour ce projet",
       "cancel": "Annuler",
       "leave": "Quitter sans mettre à jour",
-      "updateAndLeave": "Mettre à jour et quitter"
+      "updateAndLeave": "Mettre à jour et quitter",
+      "updating": "Mise à jour…"
     }
   },
   "update": {

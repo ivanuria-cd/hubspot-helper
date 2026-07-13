@@ -19,7 +19,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import SaveIcon from '@mui/icons-material/Save';
 import { useBlocker, type BlockerFunction } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useSnackbar } from './feedback';
+import { BusyButton, useSnackbar } from './feedback';
 
 interface DriveDirtyGuardProps {
   dirty: boolean;
@@ -43,6 +43,7 @@ export function DriveDirtyGuard({
   const { notify } = useSnackbar();
   const [skip, setSkip] = useState(false);
   const [dontAsk, setDontAsk] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     setSkip(localStorage.getItem(skipKey(projectId, featureKey)) === 'true');
@@ -71,8 +72,9 @@ export function DriveDirtyGuard({
   };
 
   const updateAndLeave = async (): Promise<void> => {
-    // SPEC-0004 §27: si la actualización falla, el diálogo permanece y se notifica el motivo
-    // (antes se quedaba abierto sin ningún feedback).
+    // SPEC-0004 §27: si la actualización falla, el diálogo permanece y se notifica el motivo.
+    // SPEC-0004 §28: mientras corre, el modal marca estado ocupado (spinner + botones inhabilitados).
+    setBusy(true);
     try {
       const result = await onUpdate();
       if (result.success) {
@@ -86,11 +88,13 @@ export function DriveDirtyGuard({
         message: error instanceof Error ? error.message : t('common.loadError'),
         severity: 'error',
       });
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
-    <Dialog open onClose={() => blocker.reset()}>
+    <Dialog open onClose={() => !busy && blocker.reset()}>
       <DialogTitle>{t('drive.dirtyGuard.title')}</DialogTitle>
       <DialogContent>
         <DialogContentText>{t('drive.dirtyGuard.body')}</DialogContentText>
@@ -98,18 +102,24 @@ export function DriveDirtyGuard({
           control={<Checkbox checked={dontAsk} onChange={(e) => setDontAsk(e.target.checked)} />}
           label={t('drive.dirtyGuard.dontAsk')}
           sx={{ mt: 1 }}
+          disabled={busy}
         />
       </DialogContent>
       <DialogActions>
-        <Button startIcon={<CloseIcon />} onClick={() => blocker.reset()}>
+        <Button startIcon={<CloseIcon />} onClick={() => blocker.reset()} disabled={busy}>
           {t('drive.dirtyGuard.cancel')}
         </Button>
-        <Button startIcon={<LogoutIcon />} onClick={leaveWithout}>
+        <Button startIcon={<LogoutIcon />} onClick={leaveWithout} disabled={busy}>
           {t('drive.dirtyGuard.leave')}
         </Button>
-        <Button variant="contained" startIcon={<SaveIcon />} onClick={() => void updateAndLeave()}>
-          {t('drive.dirtyGuard.updateAndLeave')}
-        </Button>
+        <BusyButton
+          variant="contained"
+          startIcon={<SaveIcon />}
+          busy={busy}
+          onClick={() => void updateAndLeave()}
+        >
+          {busy ? t('drive.dirtyGuard.updating') : t('drive.dirtyGuard.updateAndLeave')}
+        </BusyButton>
       </DialogActions>
     </Dialog>
   );

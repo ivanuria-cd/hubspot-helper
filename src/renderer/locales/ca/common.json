@@ -240,7 +240,8 @@
       "dontAsk": "No tornis a preguntar en aquest projecte",
       "cancel": "Cancel·la",
       "leave": "Surt sense actualitzar",
-      "updateAndLeave": "Actualitza i surt"
+      "updateAndLeave": "Actualitza i surt",
+      "updating": "Actualitzant…"
     }
   },
   "update": {

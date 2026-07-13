@@ -240,7 +240,8 @@
       "dontAsk": "Don't ask again for this project",
       "cancel": "Cancel",
       "leave": "Leave without updating",
-      "updateAndLeave": "Update and leave"
+      "updateAndLeave": "Update and leave",
+      "updating": "Updating…"
     }
   },
   "update": {

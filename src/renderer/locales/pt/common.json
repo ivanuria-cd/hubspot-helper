@@ -245,7 +245,8 @@
       "dontAsk": "Não voltar a perguntar neste projeto",
       "cancel": "Cancelar",
       "leave": "Sair sem atualizar",
-      "updateAndLeave": "Atualizar e sair"
+      "updateAndLeave": "Atualizar e sair",
+      "updating": "A atualizar…"
     }
   },
   "update": {
