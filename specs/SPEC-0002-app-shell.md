@@ -959,10 +959,10 @@ las pantallas siguientes — iterar con la misma orden de dump. `e2e-dump.txt`/`
 
 Del informe de revisión de código 2026-07-02, hallazgos 11.1–11.9 (transversal; se registra aquí como el §26).
 
-- **CI (§11.1)**: `.github/workflows/ci.yml` con dos jobs sobre `push` a main y `pull_request` — `unit`
-  (npm ci, typecheck, lint, `check:locales`, `check:tutoriales`, test:unit) y `e2e` (Playwright/Electron bajo
-  `xvfb-run`, con `pretest:e2e` compilando; artefactos de test-results subidos en fallo). Cumple SPEC-0000
-  §8/§11.
+- **CI (§11.1)**: `.github/workflows/ci.yml` con el job `unit` sobre `push` a main y `pull_request`
+  (npm ci, typecheck, lint, `check:locales`, `check:tutoriales`, test:unit). Cumple SPEC-0000 §8/§11.
+  El job `e2e` (Playwright/Electron bajo `xvfb-run`) se **retiró del CI** (§29): era inestable en GitHub
+  Actions; la verificación e2e se hace en local.
 - **Pre-commit sin dependencias (§11.2)**: `.githooks/pre-commit` (ESLint + Prettier --check sobre los `.ts(x)`
   staged). Activación única por desarrollador: `git config core.hooksPath .githooks`. Sin husky/lint-staged
   (cero dependencias nuevas).
@@ -1005,9 +1005,11 @@ Del informe de revisión de código 2026-07-02, hallazgos 12.1–12.5.
 
 Estado: IMPLEMENTADO (2026-07-03). Los movimientos son renames para git (mismo contenido).
 
-## 29. Los tests e2e fallan en GitHub Actions (PENDIENTE, prioridad BAJA)
+## 29. Los tests e2e se retiran del CI (RESUELTO, 2026-07-13)
 
-Los tests e2e (Playwright + Electron, `npm run test:e2e`) fallan al ejecutarse en **GitHub Actions**
-(`.github/workflows/ci.yml`, §27) pese a pasar en local. Pendiente de investigar la causa (entorno headless/xvfb,
-sandbox de Electron en CI, timeouts, permisos, o dependencias del runner) y estabilizarlos. **No implementado**:
-prioridad BAJA. Mientras tanto, la verificación e2e se hace en local.
+Los tests e2e (Playwright + Electron, `npm run test:e2e`) fallaban al ejecutarse en **GitHub Actions**
+(`.github/workflows/ci.yml`, §27) pese a pasar en local, por causas del entorno del runner (headless/xvfb,
+sandbox de Electron en CI, timeouts o dependencias). En vez de mantener un job rojo permanente, se **retira el
+job `e2e` del workflow**: el CI queda solo con `unit` (typecheck, lint, paridad, test:unit) y la verificación
+e2e se ejecuta en local (`npm run test:e2e`). Si en el futuro se estabiliza el entorno headless en CI, puede
+reintroducirse el job.

@@ -1,6 +1,6 @@
 # CI del proyecto (SPEC-0000 §8/§11; informe 2026-07-02, hallazgo 11.1).
 # unit: typecheck + lint + paridad i18n/tutoriales + suite unitaria (rápido, en cada push/PR).
-# e2e: build + Playwright/Electron bajo xvfb (más lento; mismo disparador, job aparte).
+# e2e: retirado del CI (SPEC-0002 §29) — inestable en GitHub Actions; se ejecuta en local.
 name: CI
 
 on:
@@ -23,23 +23,3 @@ jobs:
       - run: npm run check:locales
       - run: npm run check:tutoriales
       - run: npm run test:unit
-
-  e2e:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      # pretest:e2e ya compila (npm run build); xvfb da display a Electron en el runner.
-      - run: xvfb-run --auto-servernum -- npm run test:e2e
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: playwright-artifacts
-          path: |
-            test-results/
-            playwright-report/
-          retention-days: 7
