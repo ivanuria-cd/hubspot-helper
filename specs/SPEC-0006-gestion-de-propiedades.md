@@ -2649,3 +2649,31 @@ Propiedades: un botón «Aplicar todo» (por entorno, opcionalmente por `objectT
 pendientes, que llame a un IPC nuevo `propertiesApplyAll` → `service.applyAllChanges` y muestre el resumen
 `{ applied, failed }` (con Snackbar y confirmación como el resto de acciones destructivas). **No implementado**:
 prioridad BAJA. Requiere IPC/preload + botón en `PendingChangesView`/`PropertyManagementScreen` + i18n ×7.
+
+## 55. Store de objetos compartido en `shared/` (elimina el import cruzado) (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14 (hallazgo G1 del bloque 1 y duplicación de stores del bloque 2).
+
+**Problema.** `CustomObjectsScreen.tsx:12` importa `useObjectsStore` de `property-management/store/objects-store`
+—único import cruzado entre features del árbol; prohibido por SPEC-0000 §6—. Además, el mismo wrapper del IPC
+`objectsList` está por triplicado: `property-management/store/objects-store.ts`, la lectura que hace de él
+custom-objects (vía el cruzado) y `forms-management/store/forms-refs-store.ts` (que agrupa `objectsList` +
+`originsList` + `entriesList`).
+
+**Decisión (enfoque C, validado 2026-07-14).** `objects-store` pasa a `shared/store/objects-store.ts` como store
+compartido: única fuente de la lista de objetos del portal. Conserva `objects`/`loading`/`error`/`load` con el
+`catch` actual (§50). Lo consumen `PropertyManagementScreen` (esta feature), `CustomObjectsScreen` (SPEC-0007 §24)
+y `FormsManagementScreen` (SPEC-0008 §35). Se elimina `property-management/store/objects-store.ts`.
+
+**Ubicación.** Se crea la carpeta `shared/store/` (no existía; `shared/` tenía components/hooks/utils/constants/
+types/i18n). Alternativa descartada: `shared/hooks/`, por tratarse de estado de dominio global y no de un hook de
+utilidad.
+
+**Alcance.** Sin cambios funcionales (mismo IPC, mismos datos); sin i18n ni IPC nuevo. En propiedades solo cambia
+la ruta del import (`PropertyManagementScreen.tsx:38`).
+
+**Caso límite.** El `catch` del store (evita el unhandled rejection ante fallo de `objectsList`, ya que las
+pantallas llaman con `void load(...)`) se conserva en el store compartido; `forms-refs-store` no lo tenía, así que
+formularios gana esa robustez al adoptarlo.
+
+Implementado 2026-07-14: `shared/store/objects-store.ts` (nuevo, con `catch`), `property-management/store/objects-store.ts` eliminado, imports repuntados en las tres pantallas y `forms-refs-store` sin `objects` (SPEC-0008 §35). Requiere rebuild de la app; typecheck/test en la máquina del usuario.

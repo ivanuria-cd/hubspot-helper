@@ -545,3 +545,11 @@ aparte (bloque 1); esta corrección no depende de él porque la pantalla cae a `
 del store viniera vacío.
 
 Implementado 2026-07-14 (`CustomObjectsScreen.tsx:95-120`). Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 24. Eliminar el import cruzado con property-management (adopta SPEC-0006 §55) (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, hallazgo G1. `CustomObjectsScreen.tsx:12` importaba `useObjectsStore`
+de `property-management/store/objects-store` —único import cruzado del árbol, prohibido por SPEC-0000 §6—. Se
+sustituye por el store compartido `@shared/store/objects-store` (ver **SPEC-0006 §55**): cambia la línea de import
+(12) y el sitio de consumo (`:45`) pasa a leer del store compartido; comportamiento idéntico. Implementado
+2026-07-14. Requiere rebuild de la app; typecheck/test en la máquina del usuario.

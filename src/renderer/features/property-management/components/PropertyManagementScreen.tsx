@@ -35,7 +35,7 @@ import type { HubSpotEnvironment } from '@shared/types/hubspot';
 import { destName } from '../utils/dest-name';
 import { isBlockedEntry } from '../utils/is-blocked';
 import { useEntriesStore } from '../store/entries-store';
-import { useObjectsStore } from '../store/objects-store';
+import { useObjectsStore } from '@shared/store/objects-store';
 import { useOriginsStore } from '../store/origins-store';
 import { StatusBadge } from './StatusBadge';
 import { EntryWizard } from './EntryWizard';

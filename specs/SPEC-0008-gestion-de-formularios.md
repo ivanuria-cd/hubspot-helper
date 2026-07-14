@@ -889,3 +889,16 @@ Caso límite: el fallback literal `'Error desconocido'` del store (`forms-store.
 viniera vacío.
 
 Implementado 2026-07-14 (`FormsManagementScreen.tsx:135-157`). Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 35. `forms-refs-store` deja de duplicar la lista de objetos (adopta SPEC-0006 §55) (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14 (duplicación de stores). `forms-refs-store` cargaba `objectsList`
+junto a `originsList`/`entriesList`. Con el store de objetos compartido (**SPEC-0006 §55**), `forms-refs-store` se
+queda con `origins` + `entries` (datos propios de la relación formularios↔propiedades) y `FormsManagementScreen`
+(`:62`) obtiene `objects` del store compartido, cargándolo junto a `loadRefs`.
+
+**Matiz de alcance.** Este paso es separable del núcleo (SPEC-0006 §55 + SPEC-0007 §24), que ya elimina el import
+cruzado. Tocar formularios solo aporta cerrar la duplicación restante; si se prefiere minimizar el blast radius,
+puede diferirse dejando `forms-refs-store` como está. Incluido por la elección del enfoque C.
+
+Implementado 2026-07-14 (`forms-refs-store.ts` sin `objects`; `FormsManagementScreen.tsx:20,62,90-103` consume el store compartido). Requiere rebuild de la app; typecheck/test en la máquina del usuario.

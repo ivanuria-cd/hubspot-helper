@@ -17,6 +17,7 @@ import type { HubSpotForm } from '@shared/types/forms';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
 import { useFormsStore } from '../store/forms-store';
 import { useFormsRefsStore } from '../store/forms-refs-store';
+import { useObjectsStore } from '@shared/store/objects-store';
 import { FormsTable } from './FormsTable';
 import { FormPanel } from './FormPanel';
 import { NewFormWizard } from './NewFormWizard';
@@ -59,7 +60,8 @@ export function FormsManagementScreen(): JSX.Element | null {
     subscriptionTypes,
     loadSubscriptionTypes,
   } = useFormsStore();
-  const { objects, origins, entries, load: loadRefs } = useFormsRefsStore();
+  const { origins, entries, load: loadRefs } = useFormsRefsStore();
+  const { objects, load: loadObjects } = useObjectsStore();
 
   const [view, setView] = useState<'list' | 'changes'>('list');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -91,14 +93,16 @@ export function FormsManagementScreen(): JSX.Element | null {
     if (!projectId) return;
     void load(projectId);
     void loadRefs(projectId);
+    void loadObjects(projectId);
     void loadSubscriptionTypes(projectId);
-  }, [projectId, load, loadRefs, loadSubscriptionTypes]);
+  }, [projectId, load, loadRefs, loadObjects, loadSubscriptionTypes]);
 
   // Refresca al cambiar el entorno activo (SPEC-0003 §16).
   useHubspotEnvironmentChange(() => {
     if (!projectId) return;
     void load(projectId);
     void loadRefs(projectId);
+    void loadObjects(projectId);
     void loadSubscriptionTypes(projectId);
   });
 

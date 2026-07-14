@@ -9,7 +9,7 @@ import { useShellStore } from '@renderer/app/store/shell-store';
 import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
 import { EmptyState } from '@shared/components/EmptyState';
 import { syncSummaryVars } from '@shared/utils/sync-summary';
-import { useObjectsStore } from '@renderer/features/property-management/store/objects-store';
+import { useObjectsStore } from '@shared/store/objects-store';
 import { useDriveDoc } from '@shared/hooks/useDriveDoc';
 import { useHubspotEnvironmentChange } from '@shared/hooks/useHubspotEnvironmentChange';
 import { DriveDocActions } from '@shared/components/DriveDocActions';

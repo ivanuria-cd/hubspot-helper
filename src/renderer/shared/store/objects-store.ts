@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import type { HubSpotObject } from '@shared/types/properties';
 
+/**
+ * Store compartido de la lista de objetos del portal (SPEC-0006 §55). Única fuente para
+ * propiedades, objetos custom y formularios; evita el import cruzado entre features (SPEC-0000 §6).
+ */
 interface ObjectsState {
   objects: HubSpotObject[];
   loading: boolean;
@@ -17,7 +21,7 @@ export const useObjectsStore = create<ObjectsState>((set) => ({
     try {
       set({ objects: await window.api.objectsList({ projectId }) });
     } catch (error) {
-      // SPEC-0006 §50: evita el unhandled rejection y deja el error consultable.
+      // Deja el error consultable y evita el unhandled rejection (las pantallas cargan con `void`).
       set({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       set({ loading: false });
