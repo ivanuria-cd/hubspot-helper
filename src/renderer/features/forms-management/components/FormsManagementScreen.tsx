@@ -135,8 +135,17 @@ export function FormsManagementScreen(): JSX.Element | null {
   const handleApply = async (changeId: string, environment: HubSpotEnvironment): Promise<void> => {
     setBusy(true);
     try {
-      await applyChange(projectId, changeId, environment);
-      notify({ message: t('forms.syncToastDone'), severity: 'success' });
+      const ok = await applyChange(projectId, changeId, environment);
+      if (ok) {
+        notify({ message: t('forms.syncToastDone'), severity: 'success' });
+      } else {
+        notify({
+          message: t('forms.syncToastError', {
+            error: useFormsStore.getState().error ?? t('common.loadError'),
+          }),
+          severity: 'error',
+        });
+      }
     } catch (error) {
       notify({
         message: t('forms.syncToastError', { error: error instanceof Error ? error.message : '' }),

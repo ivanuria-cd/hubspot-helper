@@ -522,3 +522,26 @@ Análogo a **SPEC-0006 §37.8**: al cambiar el selector SANDBOX/Producción, `Cu
 `useHubspotEnvironmentChange` (`CustomObjectsScreen.tsx:69`) llama a `load(projectId)` + `loadObjects(projectId)`;
 tendría que llamar a `sync`. **No implementado**: prioridad BAJA, se abordará junto con el resto del tema de
 entornos (incluye decidir si los objetos custom deben tener estado por entorno como propiedades).
+
+## 23. Comprobar el resultado de `applyChange` en la UI (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 1. `CustomObjectsScreen.handleApply`
+(`CustomObjectsScreen.tsx:95-111`) ignora el booleano que devuelve `applyChange` (tipado `Promise<boolean>` en
+`custom-objects-store.ts:20-24`). El store fija `error` y devuelve `false` ante un fallo **suave** —HubSpot rechaza
+sin lanzar (400/403/409) o no se cumple una precondición, p. ej. «el objeto no existe aún en ese entorno»
+(`service.ts:164`)—, pero la pantalla muestra siempre `customObjects.syncToastDone` (toast de éxito) salvo
+excepción. Resultado: falso «hecho» cuando no se aplicó nada en HubSpot.
+
+Corrección (alinear con `PropertyManagementScreen.tsx:184`, patrón SPEC-0006 §50): `const ok = await applyChange(...)`;
+si `ok`, toast de éxito; si no, toast de error `customObjects.syncToastError` con el detalle
+`useCustomObjectsStore.getState().error ?? t('common.loadError')`. El refresco de `setSelected` (`:99-101`) se mueve
+a la rama de éxito.
+
+Alcance: cambio local a un handler. No toca store, IPC ni servicio —el booleano ya se devuelve—; sin i18n nueva
+(`customObjects.syncToastError` ya acepta `{error}`, se usa hoy en el `catch`).
+
+Caso límite: el fallback literal `'Error desconocido'` del store (`custom-objects-store.ts:69`) es un hallazgo
+aparte (bloque 1); esta corrección no depende de él porque la pantalla cae a `t('common.loadError')` si el `error`
+del store viniera vacío.
+
+Implementado 2026-07-14 (`CustomObjectsScreen.tsx:95-120`). Requiere rebuild de la app; typecheck/test en la máquina del usuario.

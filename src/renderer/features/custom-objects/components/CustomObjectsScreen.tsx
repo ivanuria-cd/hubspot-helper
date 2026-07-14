@@ -1,14 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Chip,
-  List,
-  ListItemButton,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, Button, Chip, List, ListItemButton, Stack, Typography } from '@mui/material';
 import SyncIcon from '@mui/icons-material/Sync';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -95,14 +86,27 @@ export function CustomObjectsScreen(): JSX.Element | null {
   const handleApply = async (changeId: string, environment: HubSpotEnvironment): Promise<void> => {
     setBusy(true);
     try {
-      await applyChange(projectId, changeId, environment);
-      setSelected((prev) =>
-        prev ? useCustomObjectsStore.getState().definitions.find((d) => d.id === prev.id) ?? null : null,
-      );
-      notify({ message: t('customObjects.syncToastDone'), severity: 'success' });
+      const ok = await applyChange(projectId, changeId, environment);
+      if (ok) {
+        setSelected((prev) =>
+          prev
+            ? (useCustomObjectsStore.getState().definitions.find((d) => d.id === prev.id) ?? null)
+            : null,
+        );
+        notify({ message: t('customObjects.syncToastDone'), severity: 'success' });
+      } else {
+        notify({
+          message: t('customObjects.syncToastError', {
+            error: useCustomObjectsStore.getState().error ?? t('common.loadError'),
+          }),
+          severity: 'error',
+        });
+      }
     } catch (error) {
       notify({
-        message: t('customObjects.syncToastError', { error: error instanceof Error ? error.message : '' }),
+        message: t('customObjects.syncToastError', {
+          error: error instanceof Error ? error.message : '',
+        }),
         severity: 'error',
       });
     } finally {
@@ -185,7 +189,12 @@ export function CustomObjectsScreen(): JSX.Element | null {
                 <ListItemButton
                   key={def.id}
                   onClick={() => setSelected(def)}
-                  sx={{ borderBottom: '1px solid', borderColor: 'divider', display: 'block', py: 1.5 }}
+                  sx={{
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    display: 'block',
+                    py: 1.5,
+                  }}
                 >
                   <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap">
                     <Typography sx={{ fontWeight: 600, minWidth: 160 }}>{def.name}</Typography>
@@ -233,7 +242,9 @@ export function CustomObjectsScreen(): JSX.Element | null {
         }}
         onArchive={async (def) => {
           await requestArchive(projectId, def.id);
-          setSelected(useCustomObjectsStore.getState().definitions.find((d) => d.id === def.id) ?? null);
+          setSelected(
+            useCustomObjectsStore.getState().definitions.find((d) => d.id === def.id) ?? null,
+          );
         }}
         onDelete={async (objectId) => {
           await remove(projectId, objectId);

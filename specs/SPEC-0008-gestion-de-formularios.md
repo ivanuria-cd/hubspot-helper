@@ -867,3 +867,25 @@ Análogo a **SPEC-0006 §37.8**: al cambiar el selector SANDBOX/Producción, `Fo
 `useHubspotEnvironmentChange` (`FormsManagementScreen.tsx:98`) llama a `load(projectId)` + `loadRefs(projectId)` +
 `loadSubscriptionTypes(projectId)`; tendría que llamar a `sync`. **No implementado**: prioridad BAJA, se abordará
 junto con el resto del tema de entornos.
+
+## 34. Comprobar el resultado de `applyChange` en la UI (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 1. `FormsManagementScreen.handleApply`
+(`FormsManagementScreen.tsx:135-148`) ignora el booleano que devuelve `applyChange` (tipado `Promise<boolean>` en
+`forms-store.ts:38-42`). El store fija `error` y devuelve `false` ante un fallo **suave** (HubSpot rechaza sin
+lanzar: 400/403/409), pero la pantalla muestra siempre `forms.syncToastDone` (toast de éxito) salvo excepción.
+Resultado: falso «hecho» cuando no se aplicó nada en HubSpot.
+
+Corrección (alinear con `PropertyManagementScreen.tsx:184`, patrón SPEC-0006 §50): `const ok = await applyChange(...)`;
+si `ok`, toast de éxito; si no, toast de error `forms.syncToastError` con el detalle
+`useFormsStore.getState().error ?? t('common.loadError')`. `FormsManagementScreen` no refresca selección en este
+handler, así que el cambio se limita a la ramificación del toast.
+
+Alcance: cambio local a un handler. No toca store, IPC ni servicio —el booleano ya se devuelve—; sin i18n nueva
+(`forms.syncToastError` ya acepta `{error}`, se usa hoy en el `catch`).
+
+Caso límite: el fallback literal `'Error desconocido'` del store (`forms-store.ts:124`) es un hallazgo aparte
+(bloque 1); la corrección no depende de él porque la pantalla cae a `t('common.loadError')` si el `error` del store
+viniera vacío.
+
+Implementado 2026-07-14 (`FormsManagementScreen.tsx:135-157`). Requiere rebuild de la app; typecheck/test en la máquina del usuario.
