@@ -553,3 +553,83 @@ de `property-management/store/objects-store` —único import cruzado del árbol
 sustituye por el store compartido `@shared/store/objects-store` (ver **SPEC-0006 §55**): cambia la línea de import
 (12) y el sitio de consumo (`:45`) pasa a leer del store compartido; comportamiento idéntico. Implementado
 2026-07-14. Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 25. Relectura del store tras los `await` de red (adopta SPEC-0006 §47) (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 1. `custom-objects/service.ts` era la única de las tres
+features hermanas que persistía sobre el snapshot del store previo a la llamada de red (last-write-wins con
+ediciones concurrentes UI+MCP):
+
+- `applyChange` (`:137-194`): lee `state` (`:138`), hace `await createSchema/updateSchema/deleteSchema`, y escribe
+  con `state.definitions.map(...)` (`:181`).
+- `syncHubspot` (`:118-135`): lee `state` (`:119`), `await listSchemas`, y persiste `result.definitions` (`:131`).
+
+**Corrección (patrón SPEC-0006 §47).** Localizar/reconciliar sobre el snapshot, pero releer
+`const fresh = deps.store.get(input.projectId)` justo antes de persistir y mapear por id:
+
+- `applyChange`: `fresh.definitions.map(...)` en vez de `state.definitions.map(...)`.
+- `syncHubspot`: `reconciledById = new Map(result.definitions.map((d) => [d.id, d]))`; persistir
+  `fresh.definitions.map((d) => reconciledById.get(d.id) ?? d)`.
+
+`reconcileDefinitions` (`reconcile.ts`) es una transformación 1:1 sobre las definiciones locales (no importa
+objetos del portal ni borra), por lo que el mapeo por id preserva las definiciones creadas durante el `await` y no
+reintroduce las borradas.
+
+**Alcance.** Solo `service.ts`; sin cambios de contrato, IPC ni i18n. En un solo flujo el comportamiento es
+idéntico (`fresh` == `state`).
+
+**Casos límite.** (1) Una edición concurrente de la MISMA definición durante su apply se pierde (se sobrescribe
+con `nextDef`, construido desde el snapshot); inherente y compartido con propiedades, fuera de alcance. (2) Si la
+definición fue borrada del store durante el `await`, el map no la reintroduce (correcto). (3) Una definición nueva
+durante `syncHubspot` se preserva con su `status` local y se reconcilia en el siguiente sync.
+
+**Tests.** Añadir a `custom-objects/service.spec.ts` casos de escritura concurrente (un upsert durante
+applyChange/sync no se pierde), sin tocar los existentes (SPEC-0000 §8).
+
+Implementado 2026-07-14 (`service.ts` `applyChange`/`syncHubspot` releen `fresh` y mapean por id; 2 tests de concurrencia en `service.spec.ts`). Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 26. Registrar la guía MCP de objetos custom (completa §20) (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 1. §20 marcó `requiresGuidance: true` en las tools de
+escritura de objetos custom, pero `registerCustomObjectTools` no llama a `guidanceRegistry.register`
+(SPEC-0005 §15.4). El gate obliga a leer `revops_guidance` antes de escribir, pero esa guía no contiene ninguna
+regla de objetos custom (solo propiedades y planning): el agente queda sin reglas operativas de la feature.
+
+**Corrección.** Al inicio de `registerCustomObjectTools` (tras el guard `registry.has('custom_objects_list')`),
+registrar la sección con el patrón de propiedades:
+
+```ts
+guidanceRegistry.register({
+  featureKey: 'custom-objects',
+  title: 'Objetos custom: identificación por entorno y flujo',
+  order: 20,
+  body: CUSTOM_OBJECTS_GUIDANCE,
+});
+```
+
+Texto propuesto (`CUSTOM_OBJECTS_GUIDANCE`):
+
+```
+Los objetos custom se identifican por su `name` DENTRO de cada entorno. El `objectTypeId` es distinto en
+sandbox y en producción: no se reutiliza entre entornos.
+
+Flujo: custom_objects_upsert_draft (crea/edita un borrador local; no escribe en HubSpot) ->
+custom_objects_sync (reconcilia contra el entorno activo y genera los cambios pendientes: `create` si el
+objeto no existe en el portal, `update_schema` si existe pero difiere) -> custom_objects_apply_change
+(escribe en el entorno indicado).
+
+custom_objects_sync NO escribe en HubSpot (solo reconcilia). Solo apply_change escribe.
+
+apply_change de `update_schema` o `archive` exige que el objeto YA exista en ese entorno; si no, falla con
+«el objeto no existe aún en ese entorno; crea primero el objeto en ese entorno». Consecuencia: el `create`
+se aplica en cada entorno por separado (aplicarlo en sandbox no lo crea en producción).
+
+Estados: draft (no existe en el portal), created (existe y coincide), divergent (existe pero difiere ->
+update_schema). custom_objects_delete_draft elimina el borrador local; no afecta a HubSpot.
+```
+
+**Alcance.** Solo `custom-objects/mcp-tools.ts` (import de `guidanceRegistry` + constante + registro). Sin cambios
+de tools ni de contrato. Requiere rebuild del MCP. Al implementar se verifica que `mcp-tools.spec.ts` limpie el
+`guidanceRegistry` entre casos (o no re-registre) para no toparse con «Sección de guía duplicada».
+
+Implementado 2026-07-14 (`custom-objects/mcp-tools.ts` registra la sección `CUSTOM_OBJECTS_GUIDANCE`, order 20; `guidanceRegistry.clear()` añadido al `setup` de `mcp-tools.spec.ts`). Requiere rebuild del MCP; typecheck/test en la máquina del usuario.

@@ -4,14 +4,32 @@
  * no se expone como tool).
  */
 import type { McpRegistry } from '../mcp/registry';
+import { guidanceRegistry } from '../mcp/guidance';
 import type { FormService } from './service';
 import type { FormEditsInput, NewFormDefinition } from '@shared/types/forms';
 
 const SCOPES = ['forms'];
 
+const FORMS_GUIDANCE = `IMPORTANTE: las tools de escritura de formularios solo PREPARAN cambios pendientes (estado local del proyecto). La aplicación en HubSpot NO se hace por MCP: se confirma desde la UI de la app. No existe una tool forms_apply_change.
+
+Flujo: forms_sync (importa/actualiza los formularios del portal, legacy y nueva herramienta) -> forms_create_definition / forms_update_definition / forms_link_origin / forms_add_missing_fields (preparan cambios pendientes) -> el usuario los aplica desde la UI. forms_edit_pending_change edita un cambio aún no aplicado; forms_discard_change lo descarta; forms_pending_changes los lista.
+
+forms_create_definition, forms_link_origin y (en create_form) forms_edit_pending_change: los "originIds" deben existir como orígenes del proyecto (SPEC-0006); se validan y la operación falla si no existen.
+
+forms_update_definition es un PATCH: lo que no se incluya en "edits" (name, fields/fieldGroups, configuration, displayOptions, legalConsentOptions) se conserva del formulario actual.
+
+Los valores de tipo de campo son los identificadores técnicos de la Forms API (p. ej. single_line_text, booleancheckbox); no se traducen. forms_subscription_types lista los tipos de suscripción para el consentimiento legal.`;
+
 export function registerFormTools(registry: McpRegistry, service: FormService): void {
   if (registry.has('forms_list')) return;
   const feature = 'forms-management';
+
+  guidanceRegistry.register({
+    featureKey: feature,
+    title: 'Formularios: preparar cambios (el apply es en la UI)',
+    order: 30,
+    body: FORMS_GUIDANCE,
+  });
 
   registry.register({
     name: 'forms_list',
@@ -157,9 +175,7 @@ export function registerFormTools(registry: McpRegistry, service: FormService): 
     requiredScopes: SCOPES,
     handler: (input, ctx) => {
       const { formId, edits } = (input ?? {}) as { formId: string; edits: FormEditsInput };
-      return Promise.resolve(
-        service.updateDefinition({ projectId: ctx.projectId, formId, edits }),
-      );
+      return Promise.resolve(service.updateDefinition({ projectId: ctx.projectId, formId, edits }));
     },
   });
 
@@ -227,8 +243,7 @@ export function registerFormTools(registry: McpRegistry, service: FormService): 
     inputSchema: { type: 'object', properties: {} },
     featureKey: feature,
     requiredScopes: SCOPES,
-    handler: (_input, ctx) =>
-      service.listSubscriptionTypes({ projectId: ctx.projectId }),
+    handler: (_input, ctx) => service.listSubscriptionTypes({ projectId: ctx.projectId }),
   });
 
   registry.register({

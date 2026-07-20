@@ -4,6 +4,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { McpRegistry } from '../mcp/registry';
+import { guidanceRegistry } from '../mcp/guidance';
 import { registerFormTools } from './mcp-tools';
 import { createFormService } from './service';
 import { createMemoryFormsStore } from './store';
@@ -18,6 +19,7 @@ const origins: DataOrigin[] = [
 ];
 
 function setup() {
+  guidanceRegistry.clear();
   let counter = 0;
   const store = createMemoryFormsStore();
   const api: FormsApi = {
@@ -91,7 +93,13 @@ describe('registerFormTools (tools MCP de formularios)', () => {
         objectType: 'contacts',
         originIds: ['o1'],
         fields: [
-          { hubspotName: 'email', label: 'Email', fieldType: 'email', required: true, hidden: false },
+          {
+            hubspotName: 'email',
+            label: 'Email',
+            fieldType: 'email',
+            required: true,
+            hidden: false,
+          },
         ],
       },
     })) as { id: string; operation: string };

@@ -4,6 +4,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { McpRegistry } from '../mcp/registry';
+import { guidanceRegistry } from '../mcp/guidance';
 import { registerCustomObjectTools } from './mcp-tools';
 import { createCustomObjectService } from './service';
 import { createMemoryCustomObjectStore } from './store';
@@ -14,10 +15,12 @@ import type { McpContext } from '../mcp/types';
 const ctx: McpContext = { projectId: 'p1', sessionId: 's1' };
 
 function setup(schemas: Partial<SchemasApi> = {}) {
+  guidanceRegistry.clear();
   let counter = 0;
   const service = createCustomObjectService({
     store: createMemoryCustomObjectStore(),
-    schemasApiFor: () => ({ listSchemas: vi.fn(() => Promise.resolve([])), ...schemas }) as SchemasApi,
+    schemasApiFor: () =>
+      ({ listSchemas: vi.fn(() => Promise.resolve([])), ...schemas }) as SchemasApi,
     activeEnvironment: () => 'sandbox',
     newId: () => `id-${(counter += 1)}`,
     now: () => '2026-07-02T00:00:00.000Z',
@@ -64,7 +67,9 @@ describe('registerCustomObjectTools (tools MCP de objetos custom)', () => {
 
   it('custom_objects_upsert_draft crea un borrador con estado draft', async () => {
     const { registry } = setup();
-    const created = (await call(registry, 'custom_objects_upsert_draft', { definition: draft })) as {
+    const created = (await call(registry, 'custom_objects_upsert_draft', {
+      definition: draft,
+    })) as {
       id: string;
       status: string;
       name: string;
@@ -76,11 +81,16 @@ describe('registerCustomObjectTools (tools MCP de objetos custom)', () => {
 
   it('custom_objects_list devuelve el borrador y custom_objects_get lo encuentra por nombre', async () => {
     const { registry } = setup();
-    const created = (await call(registry, 'custom_objects_upsert_draft', { definition: draft })) as {
+    const created = (await call(registry, 'custom_objects_upsert_draft', {
+      definition: draft,
+    })) as {
       id: string;
     };
 
-    const listed = (await call(registry, 'custom_objects_list', {})) as { id: string; name: string }[];
+    const listed = (await call(registry, 'custom_objects_list', {})) as {
+      id: string;
+      name: string;
+    }[];
     expect(listed).toHaveLength(1);
     expect(listed[0]?.id).toBe(created.id);
 
@@ -92,11 +102,15 @@ describe('registerCustomObjectTools (tools MCP de objetos custom)', () => {
 
   it('custom_objects_delete_draft elimina el borrador del estado local', async () => {
     const { registry } = setup();
-    const created = (await call(registry, 'custom_objects_upsert_draft', { definition: draft })) as {
+    const created = (await call(registry, 'custom_objects_upsert_draft', {
+      definition: draft,
+    })) as {
       id: string;
     };
 
-    const result = (await call(registry, 'custom_objects_delete_draft', { objectId: created.id })) as {
+    const result = (await call(registry, 'custom_objects_delete_draft', {
+      objectId: created.id,
+    })) as {
       success: boolean;
     };
     expect(result.success).toBe(true);

@@ -902,3 +902,48 @@ cruzado. Tocar formularios solo aporta cerrar la duplicación restante; si se pr
 puede diferirse dejando `forms-refs-store` como está. Incluido por la elección del enfoque C.
 
 Implementado 2026-07-14 (`forms-refs-store.ts` sin `objects`; `FormsManagementScreen.tsx:20,62,90-103` consume el store compartido). Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 36. Registrar la guía MCP de formularios (completa §29) (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 1. §29 marcó `requiresGuidance: true` en las tools de
+escritura de formularios, pero `registerFormTools` no llama a `guidanceRegistry.register` (SPEC-0005 §15.4): la
+guía obligatoria no contiene ninguna regla de formularios, que además tienen un modelo distinto al de las otras
+features (el apply NO se expone por MCP).
+
+**Corrección.** Al inicio de `registerFormTools` (tras el guard `registry.has('forms_list')`), registrar:
+
+```ts
+guidanceRegistry.register({
+  featureKey: 'forms-management',
+  title: 'Formularios: preparar cambios (el apply es en la UI)',
+  order: 30,
+  body: FORMS_GUIDANCE,
+});
+```
+
+Texto propuesto (`FORMS_GUIDANCE`):
+
+```
+IMPORTANTE: las tools de escritura de formularios solo PREPARAN cambios pendientes (estado local del
+proyecto). La aplicación en HubSpot NO se hace por MCP: se confirma desde la UI de la app. No existe una tool
+forms_apply_change.
+
+Flujo: forms_sync (importa/actualiza los formularios del portal — legacy y nueva herramienta) ->
+forms_create_definition / forms_update_definition / forms_link_origin / forms_add_missing_fields (preparan
+cambios pendientes) -> el usuario los aplica desde la UI. forms_edit_pending_change edita un cambio aún no
+aplicado; forms_discard_change lo descarta; forms_pending_changes los lista.
+
+forms_create_definition, forms_link_origin y (en create_form) forms_edit_pending_change: los `originIds` deben
+existir como orígenes del proyecto (SPEC-0006); se validan y la operación falla si no existen.
+
+forms_update_definition es un PATCH: lo que no se incluya en `edits` (name, fields/fieldGroups, configuration,
+displayOptions, legalConsentOptions) se conserva del formulario actual.
+
+Los valores de tipo de campo son los identificadores técnicos de la Forms API (p. ej. single_line_text,
+booleancheckbox); no se traducen. forms_subscription_types lista los tipos de suscripción para el
+consentimiento legal (§24).
+```
+
+**Alcance.** Solo `forms-management/mcp-tools.ts`. Sin cambios de tools ni de contrato. Requiere rebuild del MCP.
+
+Implementado 2026-07-14 (`forms-management/mcp-tools.ts` registra la sección `FORMS_GUIDANCE`, order 30; `guidanceRegistry.clear()` añadido al `setup` de `mcp-tools.spec.ts`). Requiere rebuild del MCP; typecheck/test en la máquina del usuario.
