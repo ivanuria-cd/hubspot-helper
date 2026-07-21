@@ -42,7 +42,7 @@ import { EntryWizard } from './EntryWizard';
 import { EntryPanel } from './EntryPanel';
 import { OriginsModal } from './OriginsModal';
 import { GroupsModal } from './GroupsModal';
-import { PendingChangesView } from './PendingChangesView';
+import { PendingChangesView } from '@shared/components/PendingChangesView';
 import { PlanningMapActions } from './PlanningMapActions';
 
 /** Normaliza para búsqueda: minúsculas y sin acentos. */
@@ -258,8 +258,17 @@ export function PropertyManagementScreen(): JSX.Element | null {
       ) : null}
       {view === 'changes' ? (
         <PendingChangesView
-          entries={entries ?? []}
+          rows={(entries ?? []).flatMap((entry) =>
+            (entry.pendingChanges ?? []).map((change) => ({
+              id: change.id,
+              name: entry.name,
+              summary: change.summary,
+              appliedToSandbox: change.appliedToSandbox,
+              appliedToProduction: change.appliedToProduction,
+            })),
+          )}
           busy={busy}
+          i18nPrefix="properties.changes"
           onApply={handleApply}
           onDiscard={async (changeId) => {
             // SPEC-0006 §53.11: captura homogénea (§50) — sin unhandled rejection al descartar.

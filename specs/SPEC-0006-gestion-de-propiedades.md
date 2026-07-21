@@ -2677,3 +2677,11 @@ pantallas llaman con `void load(...)`) se conserva en el store compartido; `form
 formularios gana esa robustez al adoptarlo.
 
 Implementado 2026-07-14: `shared/store/objects-store.ts` (nuevo, con `catch`), `property-management/store/objects-store.ts` eliminado, imports repuntados en las tres pantallas y `forms-refs-store` sin `objects` (SPEC-0008 §35). Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 56. Adopción de `PendingChangesView` compartido (SPEC-0002 §30) (IMPLEMENTADO, 2026-07-14)
+
+`PropertyManagementScreen` consume `@shared/components/PendingChangesView` (SPEC-0002 §30): aplana `entries` a
+`rows` (`{ id: change.id, name: entry.name, summary, appliedToSandbox, appliedToProduction }`) y pasa
+`i18nPrefix='properties.changes'`. Se elimina `property-management/components/PendingChangesView.tsx`. Sin cambios
+de i18n. Implementado 2026-07-14. Requiere rebuild de la app; typecheck/test en la máquina del
+usuario.

@@ -20,7 +20,7 @@ import { useCustomObjectsStore } from '../store/custom-objects-store';
 import { ObjectStatusBadge } from './ObjectStatusBadge';
 import { ObjectWizard } from './ObjectWizard';
 import { ObjectPanel } from './ObjectPanel';
-import { PendingObjectChangesView } from './PendingObjectChangesView';
+import { PendingChangesView } from '@shared/components/PendingChangesView';
 
 export function CustomObjectsScreen(): JSX.Element | null {
   const { t } = useTranslation('common');
@@ -148,11 +148,30 @@ export function CustomObjectsScreen(): JSX.Element | null {
       ) : null}
 
       {view === 'changes' ? (
-        <PendingObjectChangesView
-          definitions={definitions ?? []}
+        <PendingChangesView
+          rows={(definitions ?? []).flatMap((def) =>
+            (def.pendingChanges ?? []).map((change) => ({
+              id: change.id,
+              name: def.labels.singular,
+              summary: change.summary,
+              appliedToSandbox: change.appliedToSandbox,
+              appliedToProduction: change.appliedToProduction,
+            })),
+          )}
           busy={busy}
+          i18nPrefix="customObjects.changes"
           onApply={handleApply}
-          onDiscard={(changeId) => discardChange(projectId, changeId)}
+          onDiscard={async (changeId) => {
+            // SPEC-0007 §28 / SPEC-0006 §53.11: captura homogénea, sin unhandled rejection al descartar.
+            try {
+              await discardChange(projectId, changeId);
+            } catch (error) {
+              notify({
+                message: error instanceof Error ? error.message : t('common.loadError'),
+                severity: 'error',
+              });
+            }
+          }}
         />
       ) : (
         <>

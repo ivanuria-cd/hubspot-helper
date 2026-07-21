@@ -649,3 +649,11 @@ Del informe de revisión de código 2026-07-14, bloque 1. Dos defectos en `custo
 
 Solo `custom-objects-store.ts`; sin i18n nueva. Implementado 2026-07-14. Requiere rebuild de la
 app; typecheck/test en la máquina del usuario.
+
+## 28. Adopción de `PendingChangesView` compartido (SPEC-0002 §30) (IMPLEMENTADO, 2026-07-14)
+
+`CustomObjectsScreen` consume `@shared/components/PendingChangesView` (SPEC-0002 §30): aplana `definitions` a
+`rows` (`name = def.labels.singular`) y pasa `i18nPrefix='customObjects.changes'`; el `onDiscard` se envuelve en
+`try/catch` (homogéneo con propiedades §53.11). Se elimina `custom-objects/components/PendingObjectChangesView.tsx`.
+Sin cambios de i18n. Implementado 2026-07-14. Requiere rebuild de la app; typecheck/test en la
+máquina del usuario.

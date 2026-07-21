@@ -1013,3 +1013,47 @@ sandbox de Electron en CI, timeouts o dependencias). En vez de mantener un job r
 job `e2e` del workflow**: el CI queda solo con `unit` (typecheck, lint, paridad, test:unit) y la verificación
 e2e se ejecuta en local (`npm run test:e2e`). Si en el futuro se estabiliza el entorno headless en CI, puede
 reintroducirse el job.
+
+## 30. Vista de cambios pendientes compartida `PendingChangesView` (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 2 (duplicidad A1). `property-management/components/
+PendingChangesView.tsx` y `custom-objects/components/PendingObjectChangesView.tsx` eran idénticos byte a byte (81
+líneas) salvo el tipo, el origen del nombre y el prefijo i18n. Se unifican en un componente compartido
+`renderer/shared/components/PendingChangesView.tsx` (mismo patrón que `StatusBadge`/`EmptyState`/`LoadingState`,
+§14).
+
+API:
+
+```ts
+interface PendingChangeRow {
+  id: string;
+  name: string;
+  summary: string;
+  appliedToSandbox: boolean;
+  appliedToProduction: boolean;
+}
+interface PendingChangesViewProps {
+  rows: PendingChangeRow[];
+  busy: boolean;
+  i18nPrefix: string; // 'properties.changes' | 'customObjects.changes'
+  onApply: (id: string, environment: HubSpotEnvironment) => Promise<void>;
+  onDiscard: (id: string) => Promise<void>;
+}
+```
+
+El render (un `Paper` por fila con `[NN] name — summary`, el triplete applySandbox/applyProduction/discard y el
+bloque de estado) es el actual; las etiquetas se resuelven con ``t(`${i18nPrefix}.<clave>`)`` sobre las subclaves
+existentes (`empty`, `applySandbox`, `applyProduction`, `discard`, `state`, `sandboxDone`, `sandboxPending`,
+`productionDone`, `productionPending`). **Sin claves i18n nuevas.** Se borran los dos componentes locales.
+
+Adopción: `PropertyManagementScreen` (SPEC-0006 §56) y `CustomObjectsScreen` (SPEC-0007 §28) aplanan
+`entries`/`definitions` a `rows`, pasan su `i18nPrefix` y homogeneízan el handler `onDiscard` con `try/catch`
+(§53.11 de SPEC-0006).
+
+Fuera de alcance: `FormPendingChangesView` (estructura distinta —`List`/`Chip`, botón editar, `useConfirm`—) no se
+unifica aquí; su homogeneización pertenece al punto de UX del bloque 2.
+
+Caso límite: el prefijo i18n dinámico exige paridad de subclaves entre `properties.changes.*` y
+`customObjects.changes.*` (se cumple hoy; conviene un test de paridad para blindarlo).
+
+Implementado 2026-07-14 (`shared/components/PendingChangesView.tsx`; adopción en SPEC-0006 §56 y SPEC-0007 §28; los dos componentes locales eliminados). Requiere rebuild de la app; typecheck/test en la máquina del usuario.
