@@ -947,3 +947,12 @@ consentimiento legal (§24).
 **Alcance.** Solo `forms-management/mcp-tools.ts`. Sin cambios de tools ni de contrato. Requiere rebuild del MCP.
 
 Implementado 2026-07-14 (`forms-management/mcp-tools.ts` registra la sección `FORMS_GUIDANCE`, order 30; `guidanceRegistry.clear()` añadido al `setup` de `mcp-tools.spec.ts`). Requiere rebuild del MCP; typecheck/test en la máquina del usuario.
+
+## 37. `forms-store` sin literal de error hardcodeado (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 1 (i18n). `forms-store.applyChange` fijaba
+`result.error ?? 'Error desconocido'` (`forms-store.ts:124`) — literal en castellano (SPEC-0000 §3). Fix:
+`result.error ?? null`; el `handleApply` de `FormsManagementScreen` ya traduce el fallback con `common.loadError`
+(§34), mostrando el mensaje real de HubSpot o la clave traducida. Patrón `entries-store` §53.18. Solo
+`forms-store.ts`; sin i18n nueva. Implementado 2026-07-14. Requiere rebuild de la app;
+typecheck/test en la máquina del usuario.

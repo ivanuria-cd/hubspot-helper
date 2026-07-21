@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { McpStatus, McpToolSummary } from '@shared/types/mcp';
 
 export interface UseMcpSettings {
@@ -13,6 +14,7 @@ export interface UseMcpSettings {
 }
 
 export function useMcpSettings(): UseMcpSettings {
+  const { t } = useTranslation('common');
   const [status, setStatus] = useState<McpStatus | null>(null);
   const [token, setToken] = useState('');
   const [tools, setTools] = useState<McpToolSummary[]>([]);
@@ -48,13 +50,13 @@ export function useMcpSettings(): UseMcpSettings {
       setError(null);
       try {
         const result = await window.api.mcpToggle(enabled);
-        if (!result.success) setError(result.error ?? 'Error desconocido');
+        if (!result.success) setError(result.error ?? t('common.loadError'));
         await refresh();
       } finally {
         setBusy(false);
       }
     },
-    [refresh],
+    [refresh, t],
   );
 
   const regenerateToken = useCallback(async () => {

@@ -121,7 +121,7 @@ export const useFormsStore = create<FormsState>((set, get) => ({
   applyChange: async (projectId, changeId, environment) => {
     const result = await window.api.formsApplyChange({ projectId, changeId, environment });
     if (!result.success) {
-      set({ error: result.error ?? 'Error desconocido' });
+      set({ error: result.error ?? null });
       return false;
     }
     await get().load(projectId);

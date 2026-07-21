@@ -633,3 +633,19 @@ de tools ni de contrato. Requiere rebuild del MCP. Al implementar se verifica qu
 `guidanceRegistry` entre casos (o no re-registre) para no toparse con «Sección de guía duplicada».
 
 Implementado 2026-07-14 (`custom-objects/mcp-tools.ts` registra la sección `CUSTOM_OBJECTS_GUIDANCE`, order 20; `guidanceRegistry.clear()` añadido al `setup` de `mcp-tools.spec.ts`). Requiere rebuild del MCP; typecheck/test en la máquina del usuario.
+
+## 27. Manejo de errores del store de objetos custom (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 1. Dos defectos en `custom-objects-store.ts`:
+
+- **`load` sin `catch` (`:34-41`)**: solo `try/finally`; como la pantalla llama con `void load(...)`, un fallo de
+  `objectsListSchemas` escapa como unhandled rejection y no deja `error` consultable. Es el único `load` sin
+  `catch` (el resto —`entries-store`, `forms-store`, el propio `sync` de custom-objects— ya lo tienen). Fix:
+  `catch (error) { set({ error: error instanceof Error ? error.message : String(error) }); }` (mensaje real, no
+  literal), patrón SPEC-0006 §50/§52.
+- **Literal en `applyChange` (`:69`)**: `result.error ?? 'Error desconocido'` (castellano hardcodeado, SPEC-0000
+  §3) → `result.error ?? null`; el `handleApply` de la pantalla ya traduce el fallback con `common.loadError`
+  (§23), así que pasa a mostrarse el mensaje real de HubSpot o la clave traducida. Patrón `entries-store` §53.18.
+
+Solo `custom-objects-store.ts`; sin i18n nueva. Implementado 2026-07-14. Requiere rebuild de la
+app; typecheck/test en la máquina del usuario.

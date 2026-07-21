@@ -531,3 +531,14 @@ los summaries de la UI.
 ### 18.5 Estado
 
 IMPLEMENTADO (2026-07-02). Requiere rebuild del MCP; typecheck/test en la máquina del usuario.
+
+## 19. `useMcpSettings` sin literal de error hardcodeado (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 1 (i18n). `useMcpSettings.toggle` fijaba
+`setError(result.error ?? 'Error desconocido')` (`useMcpSettings.ts:51`) — literal en castellano, prohibido por
+SPEC-0000 §3. El `error` se pinta crudo en un `Alert` de `McpSettingsScreen` (`:102`), donde `null` significa
+«sin error»; por eso NO se puede usar el patrón `?? null` (perdería el aviso ante un fallo sin mensaje).
+Corrección: el hook usa `useTranslation('common')` y fija `result.error ?? t('common.loadError')` (clave ya
+presente en los 7 locales); `t` entra en las dependencias del `useCallback` de `toggle`. Solo
+`useMcpSettings.ts`; sin i18n nueva. Implementado 2026-07-14. Requiere rebuild de la app;
+typecheck/test en la máquina del usuario.
