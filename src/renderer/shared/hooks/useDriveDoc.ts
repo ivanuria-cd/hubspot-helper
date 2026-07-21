@@ -4,6 +4,7 @@
  * pantalla; el hook solo orquesta estado y mensajes.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { DriveDocMeta } from '@shared/types/gdrive';
 import { driveFileUrl } from '@shared/utils/driveFileUrl';
 
@@ -21,7 +22,8 @@ export interface UseDriveDocArgs {
   fetchMeta: () => Promise<DriveDocMeta>;
   update: () => Promise<DriveActionResult>;
   load: () => Promise<DriveActionResult>;
-  messages: {
+  /** Opcional: si se omite, el hook usa las claves `drive.doc.*` de i18n por defecto (SPEC-0004 §29). */
+  messages?: {
     updateSuccess: string;
     updateError: (error: string) => string;
     loadSuccess: string;
@@ -42,8 +44,15 @@ export interface DriveDocController {
 }
 
 export function useDriveDoc(args: UseDriveDocArgs): DriveDocController {
-  const argsRef = useRef(args);
-  argsRef.current = args;
+  const { t } = useTranslation('common');
+  const messages = args.messages ?? {
+    updateSuccess: t('drive.doc.updateSuccess'),
+    updateError: (error: string) => t('drive.doc.updateError', { error }),
+    loadSuccess: t('drive.doc.loadSuccess'),
+    loadError: (error: string) => t('drive.doc.loadError', { error }),
+  };
+  const argsRef = useRef({ ...args, messages });
+  argsRef.current = { ...args, messages };
 
   const [meta, setMeta] = useState<DriveDocMeta>({ lastWrittenAt: null, lastChangedAt: null });
   const [updating, setUpdating] = useState(false);

@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Button, MenuItem, Stack, TextField, Typography } from '@mui/material';
-import SyncIcon from '@mui/icons-material/Sync';
+import { Box, Button, MenuItem, Stack, TextField } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
-import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
+import { LoadingState, useSnackbar } from '@shared/components/feedback';
 import { EmptyState } from '@shared/components/EmptyState';
-import { syncSummaryVars } from '@shared/utils/sync-summary';
+import { FeatureScreenHeader } from '@shared/components/FeatureScreenHeader';
 import { useDriveDoc } from '@shared/hooks/useDriveDoc';
 import { useHubspotEnvironmentChange } from '@shared/hooks/useHubspotEnvironmentChange';
 import { DriveDocActions } from '@shared/components/DriveDocActions';
@@ -81,12 +79,6 @@ export function FormsManagementScreen(): JSX.Element | null {
     fetchMeta: () => window.api.formsDriveMeta({ projectId }),
     update: () => window.api.formsWriteSheets({ projectId }),
     load: () => window.api.formsLoadSheets({ projectId }),
-    messages: {
-      updateSuccess: t('drive.doc.updateSuccess'),
-      updateError: (error) => t('drive.doc.updateError', { error }),
-      loadSuccess: t('drive.doc.loadSuccess'),
-      loadError: (error) => t('drive.doc.loadError', { error }),
-    },
   });
 
   useEffect(() => {
@@ -193,36 +185,15 @@ export function FormsManagementScreen(): JSX.Element | null {
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
-          {view === 'list' ? t('forms.title') : t('forms.changes.title')}
-        </Typography>
-        {view === 'list' ? (
-          <BusyButton
-            variant="outlined"
-            busy={syncing}
-            startIcon={<SyncIcon />}
-            onClick={() => sync(projectId, true)}
-          >
-            {t('forms.syncHs')}
-          </BusyButton>
-        ) : (
-          <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => setView('list')}>
-            {t('forms.changes.back')}
-          </Button>
-        )}
-      </Stack>
-
-      {error ? (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      ) : null}
-      {lastSync && view === 'list' ? (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          {t('forms.syncSummary', syncSummaryVars(lastSync))}
-        </Alert>
-      ) : null}
+      <FeatureScreenHeader
+        i18nPrefix="forms"
+        view={view}
+        syncing={syncing}
+        error={error}
+        lastSync={lastSync}
+        onSync={() => sync(projectId, true)}
+        onBack={() => setView('list')}
+      />
       {view === 'changes' ? (
         <FormPendingChangesView
           changes={changes}

@@ -1057,3 +1057,37 @@ Caso límite: el prefijo i18n dinámico exige paridad de subclaves entre `proper
 `customObjects.changes.*` (se cumple hoy; conviene un test de paridad para blindarlo).
 
 Implementado 2026-07-14 (`shared/components/PendingChangesView.tsx`; adopción en SPEC-0006 §56 y SPEC-0007 §28; los dos componentes locales eliminados). Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 31. Cabecera de feature compartida `FeatureScreenHeader` (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 2 (duplicidad B1). Las tres pantallas maestro-detalle
+(`PropertyManagementScreen`, `CustomObjectsScreen`, `FormsManagementScreen`) repetían ~30 líneas idénticas de
+cabecera: `Typography h4` con el título según `view`, toggle `BusyButton` (sincronizar) / `Button` (volver),
+`Alert` de error y `Alert severity="info"` con `syncSummaryVars(lastSync)`. Solo cambian el prefijo i18n y el
+callback de sync.
+
+Se extrae a `renderer/shared/components/FeatureScreenHeader.tsx`:
+
+```ts
+interface FeatureScreenHeaderProps {
+  i18nPrefix: string; // 'properties' | 'customObjects' | 'forms'
+  view: 'list' | 'changes';
+  syncing: boolean;
+  error: string | null;
+  lastSync: object | null; // se pasa a syncSummaryVars, que acepta cualquier object
+  onSync: () => void;
+  onBack: () => void;
+}
+```
+
+El render es el actual; las claves se resuelven con ``t(`${i18nPrefix}.title`)``, `.changes.title`, `.syncHs`,
+`.changes.back` y `.syncSummary`. **Sin claves i18n nuevas.** Adopción en SPEC-0006 §57, SPEC-0007 §29 y
+SPEC-0008 §38.
+
+Fuera de alcance: la lista, el wizard y el panel de cada pantalla (específicos) no se unifican; solo la cabecera
++ los dos `Alert`.
+
+Caso límite: el prefijo dinámico exige paridad de las subclaves `title`/`changes.title`/`syncHs`/`changes.back`/
+`syncSummary` en las tres familias (se cumple hoy; conviene un test de paridad para blindarlo).
+
+Implementado 2026-07-14 (`shared/components/FeatureScreenHeader.tsx`; adopción en las tres pantallas). Requiere rebuild de la app; typecheck/test en la máquina del usuario.

@@ -1213,3 +1213,14 @@ patrón de estado ocupado transversal (SPEC-0002 §17, `BusyButton`):
 i18n: clave nueva `drive.dirtyGuard.updating` en los 7 locales (es/ca/eu/en/gl/pt/fr). Sin cambios de
 contrato ni IPC. Alcance: `DriveDirtyGuard.tsx` + `locales/*/common.json`. Requiere rebuild de la app;
 typecheck/test en la máquina del usuario.
+
+## 29. `messages` por defecto en `useDriveDoc` (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 2 (duplicidad B1). Las tres pantallas maestro-detalle
+pasaban el mismo bloque `messages` a `useDriveDoc` con las 4 claves `drive.doc.*`
+(`updateSuccess`/`updateError`/`loadSuccess`/`loadError`). Se hace `messages` **opcional**: si no se pasa, el hook
+usa `useTranslation('common')` y esas claves por defecto. Retrocompatible: quien pase `messages` —p. ej.
+`useDriveDoc.spec.tsx`— no cambia. Las tres pantallas dejan de pasar `messages` (adopción en SPEC-0006 §57,
+SPEC-0007 §29, SPEC-0008 §38). Alcance: `shared/hooks/useDriveDoc.ts` + un caso de test del default. Sin i18n
+nueva. Implementado 2026-07-14. Requiere rebuild de la app; typecheck/test en la máquina del
+usuario.

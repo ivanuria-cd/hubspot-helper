@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Box, Button, Chip, List, ListItemButton, Stack, Typography } from '@mui/material';
-import SyncIcon from '@mui/icons-material/Sync';
+import { Box, Button, Chip, List, ListItemButton, Stack, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
-import { BusyButton, LoadingState, useSnackbar } from '@shared/components/feedback';
+import { LoadingState, useSnackbar } from '@shared/components/feedback';
 import { EmptyState } from '@shared/components/EmptyState';
-import { syncSummaryVars } from '@shared/utils/sync-summary';
+import { FeatureScreenHeader } from '@shared/components/FeatureScreenHeader';
 import { useObjectsStore } from '@shared/store/objects-store';
 import { useDriveDoc } from '@shared/hooks/useDriveDoc';
 import { useHubspotEnvironmentChange } from '@shared/hooks/useHubspotEnvironmentChange';
@@ -73,12 +71,6 @@ export function CustomObjectsScreen(): JSX.Element | null {
     fetchMeta: () => window.api.customObjectsDriveMeta({ projectId }),
     update: () => window.api.customObjectsWriteSheets({ projectId }),
     load: () => window.api.customObjectsLoadSheets({ projectId }),
-    messages: {
-      updateSuccess: t('drive.doc.updateSuccess'),
-      updateError: (error) => t('drive.doc.updateError', { error }),
-      loadSuccess: t('drive.doc.loadSuccess'),
-      loadError: (error) => t('drive.doc.loadError', { error }),
-    },
   });
 
   if (!activeProject) return null;
@@ -116,36 +108,15 @@ export function CustomObjectsScreen(): JSX.Element | null {
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
-          {view === 'list' ? t('customObjects.title') : t('customObjects.changes.title')}
-        </Typography>
-        {view === 'list' ? (
-          <BusyButton
-            variant="outlined"
-            busy={syncing}
-            startIcon={<SyncIcon />}
-            onClick={() => sync(projectId)}
-          >
-            {t('customObjects.syncHs')}
-          </BusyButton>
-        ) : (
-          <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => setView('list')}>
-            {t('customObjects.changes.back')}
-          </Button>
-        )}
-      </Stack>
-
-      {error ? (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      ) : null}
-      {lastSync && view === 'list' ? (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          {t('customObjects.syncSummary', syncSummaryVars(lastSync))}
-        </Alert>
-      ) : null}
+      <FeatureScreenHeader
+        i18nPrefix="customObjects"
+        view={view}
+        syncing={syncing}
+        error={error}
+        lastSync={lastSync}
+        onSync={() => sync(projectId)}
+        onBack={() => setView('list')}
+      />
 
       {view === 'changes' ? (
         <PendingChangesView

@@ -948,6 +948,14 @@ consentimiento legal (§24).
 
 Implementado 2026-07-14 (`forms-management/mcp-tools.ts` registra la sección `FORMS_GUIDANCE`, order 30; `guidanceRegistry.clear()` añadido al `setup` de `mcp-tools.spec.ts`). Requiere rebuild del MCP; typecheck/test en la máquina del usuario.
 
+## 38. Adopción de `FeatureScreenHeader` y del default de `useDriveDoc` (IMPLEMENTADO, 2026-07-14)
+
+`FormsManagementScreen` sustituye su cabecera+alerts por
+`<FeatureScreenHeader i18nPrefix="forms" onSync={() => sync(projectId, true)} ... />` (SPEC-0002 §31) y deja de
+pasar `messages` a `useDriveDoc` (SPEC-0004 §29). El `onSync` conserva `includeLegacyV2=true`. Sin cambios de i18n
+ni de comportamiento. Implementado 2026-07-14. Requiere rebuild de la app; typecheck/test en la
+máquina del usuario.
+
 ## 37. `forms-store` sin literal de error hardcodeado (IMPLEMENTADO, 2026-07-14)
 
 Del informe de revisión de código 2026-07-14, bloque 1 (i18n). `forms-store.applyChange` fijaba

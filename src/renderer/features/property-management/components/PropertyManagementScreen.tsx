@@ -13,19 +13,17 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import SyncIcon from '@mui/icons-material/Sync';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SettingsIcon from '@mui/icons-material/Settings';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import { useTranslation } from 'react-i18next';
 import { useShellStore } from '@renderer/app/store/shell-store';
-import { BusyButton, LoadingState, useConfirm, useSnackbar } from '@shared/components/feedback';
+import { LoadingState, useConfirm, useSnackbar } from '@shared/components/feedback';
 import { EmptyState } from '@shared/components/EmptyState';
-import { syncSummaryVars } from '@shared/utils/sync-summary';
+import { FeatureScreenHeader } from '@shared/components/FeatureScreenHeader';
 import { useDriveDoc } from '@shared/hooks/useDriveDoc';
 import { useHubspotEnvironmentChange } from '@shared/hooks/useHubspotEnvironmentChange';
 import { DriveDocActions } from '@shared/components/DriveDocActions';
@@ -99,12 +97,6 @@ export function PropertyManagementScreen(): JSX.Element | null {
     fetchMeta: () => window.api.propertiesDriveMeta({ projectId }),
     update: () => window.api.propertiesWriteSheets({ projectId }),
     load: () => window.api.propertiesLoadSheets({ projectId }),
-    messages: {
-      updateSuccess: t('drive.doc.updateSuccess'),
-      updateError: (error) => t('drive.doc.updateError', { error }),
-      loadSuccess: t('drive.doc.loadSuccess'),
-      loadError: (error) => t('drive.doc.loadError', { error }),
-    },
   });
 
   useEffect(() => {
@@ -226,36 +218,15 @@ export function PropertyManagementScreen(): JSX.Element | null {
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h4" component="h1" sx={{ flexGrow: 1 }}>
-          {view === 'list' ? t('properties.title') : t('properties.changes.title')}
-        </Typography>
-        {view === 'list' ? (
-          <BusyButton
-            variant="outlined"
-            busy={syncing}
-            startIcon={<SyncIcon />}
-            onClick={() => sync(projectId)}
-          >
-            {t('properties.syncHs')}
-          </BusyButton>
-        ) : (
-          <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => setView('list')}>
-            {t('properties.changes.back')}
-          </Button>
-        )}
-      </Stack>
-
-      {error ? (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      ) : null}
-      {lastSync && view === 'list' ? (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          {t('properties.syncSummary', syncSummaryVars(lastSync))}
-        </Alert>
-      ) : null}
+      <FeatureScreenHeader
+        i18nPrefix="properties"
+        view={view}
+        syncing={syncing}
+        error={error}
+        lastSync={lastSync}
+        onSync={() => sync(projectId)}
+        onBack={() => setView('list')}
+      />
       {view === 'changes' ? (
         <PendingChangesView
           rows={(entries ?? []).flatMap((entry) =>

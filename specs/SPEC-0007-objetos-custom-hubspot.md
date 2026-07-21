@@ -657,3 +657,10 @@ app; typecheck/test en la máquina del usuario.
 `try/catch` (homogéneo con propiedades §53.11). Se elimina `custom-objects/components/PendingObjectChangesView.tsx`.
 Sin cambios de i18n. Implementado 2026-07-14. Requiere rebuild de la app; typecheck/test en la
 máquina del usuario.
+
+## 29. Adopción de `FeatureScreenHeader` y del default de `useDriveDoc` (IMPLEMENTADO, 2026-07-14)
+
+`CustomObjectsScreen` sustituye su cabecera+alerts por `<FeatureScreenHeader i18nPrefix="customObjects" ... />`
+(SPEC-0002 §31) y deja de pasar `messages` a `useDriveDoc` (SPEC-0004 §29). Sin cambios de i18n ni de
+comportamiento. Implementado 2026-07-14. Requiere rebuild de la app; typecheck/test en la máquina
+del usuario.

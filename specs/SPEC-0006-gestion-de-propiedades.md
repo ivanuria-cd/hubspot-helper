@@ -2685,3 +2685,10 @@ Implementado 2026-07-14: `shared/store/objects-store.ts` (nuevo, con `catch`), `
 `i18nPrefix='properties.changes'`. Se elimina `property-management/components/PendingChangesView.tsx`. Sin cambios
 de i18n. Implementado 2026-07-14. Requiere rebuild de la app; typecheck/test en la máquina del
 usuario.
+
+## 57. Adopción de `FeatureScreenHeader` y del default de `useDriveDoc` (IMPLEMENTADO, 2026-07-14)
+
+`PropertyManagementScreen` sustituye su cabecera+alerts por `<FeatureScreenHeader i18nPrefix="properties" ... />`
+(SPEC-0002 §31) y deja de pasar `messages` a `useDriveDoc` (SPEC-0004 §29). Sin cambios de i18n ni de
+comportamiento. Implementado 2026-07-14. Requiere rebuild de la app; typecheck/test en la máquina
+del usuario.
