@@ -1,7 +1,6 @@
 /** Handlers IPC de la gestión de formularios (SPEC-0008). Extraído de `index.ts` (SPEC-0002 §23). */
 import { ipcMain } from 'electron';
 import { IpcChannels } from '@shared/types/ipc';
-import type { LoadSheetsResult } from '@shared/types/gdrive';
 import type {
   FormAddMissingFieldsInput,
   FormApplyChangeInput,
@@ -22,6 +21,7 @@ import type { GoogleDriveConnector } from '../connectors/google-drive';
 import type { DriveDocs } from '../drive-docs';
 import { FORMS_FEATURE_KEY } from '../forms-management/sheets-model';
 import { FORMS_STATE_FEATURE_KEY, parseFormsState } from '../forms-management/drive-state';
+import { registerDriveStateIpc } from './drive-state-ipc';
 
 export interface FormsIpcDeps {
   forms: FormService;
@@ -76,28 +76,19 @@ export function registerFormsIpc(deps: FormsIpcDeps): void {
   ipcMain.handle(IpcChannels.formsWriteSheets, (_event, input: FormsListInput) =>
     driveDocs.writeFormsSheets(input.projectId),
   );
-  ipcMain.handle(
-    IpcChannels.formsLoadSheets,
-    async (_event, input: FormsListInput): Promise<LoadSheetsResult> => {
-      const read = await gdrive.readFile({
-        projectId: input.projectId,
-        featureKey: FORMS_STATE_FEATURE_KEY,
-      });
-      if (!read.success || !read.content) {
-        return { success: false, error: read.error ?? 'No hay documento de estado en Drive.' };
-      }
-      try {
-        const state = parseFormsState(read.content);
+  registerDriveStateIpc(
+    { gdrive, driveDocs },
+    {
+      loadChannel: IpcChannels.formsLoadSheets,
+      metaChannel: IpcChannels.formsDriveMeta,
+      stateFeatureKey: FORMS_STATE_FEATURE_KEY,
+      fileFeatureKey: FORMS_FEATURE_KEY,
+      applyContent: (input, content) => {
+        const state = parseFormsState(content);
         forms.applyDriveState(input, { forms: state.forms, links: state.links });
-        return { success: true, schemaVersion: state.schemaVersion };
-      } catch (error) {
-        return { success: false, error: error instanceof Error ? error.message : 'Error al cargar' };
-      }
+        return state.schemaVersion;
+      },
+      getDriveMeta: (input) => forms.getDriveMeta(input),
     },
   );
-  ipcMain.handle(IpcChannels.formsDriveMeta, (_event, input: FormsListInput) => ({
-    ...forms.getDriveMeta(input),
-    fileId: driveDocs.managedSpreadsheetId(input.projectId, FORMS_FEATURE_KEY),
-    configured: Boolean(gdrive.getStatus(input.projectId)?.folderId),
-  }));
 }

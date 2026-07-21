@@ -7,6 +7,7 @@ import type { PropertyService } from './property-management/service';
 import type { CustomObjectService } from './custom-objects/service';
 import type { FormService } from './forms-management/service';
 import type { DriveDocMeta } from '@shared/types/gdrive';
+import type { SheetTab } from './connectors/google-drive/sheets-client';
 import type { RefreshFeature } from './drive-refresh';
 import {
   buildPropertyMapTabs,
@@ -65,28 +66,33 @@ export function createDriveDocs(deps: DriveDocsDeps) {
     meta.lastWrittenAt === null ||
     (meta.lastChangedAt !== null && meta.lastChangedAt > meta.lastWrittenAt);
 
-  async function writePropertiesSheets(projectId: string) {
-    const entries = properties.listEntries({ projectId });
-    const origins = properties.listOrigins({ projectId });
-    // SPEC-0006 §37.6-A: el Sheets visible representa SOLO Producción (estado reconciliado bajo demanda),
-    // mientras que el documento de estado companion conserva el estado persistido (entorno activo) para
-    // que el round-trip de carga sea fiel.
-    const productionEntries = await properties.productionView({ projectId });
-    const tabs = buildPropertyMapTabs(productionEntries, origins, new Date().toISOString());
+  /**
+   * SPEC-0002 §32.2: patrón común de escritura Sheets + Doc de estado atómico (SPEC-0004 §21).
+   * `buildTabs` y `serializeState` van separados porque en propiedades difieren (§37.6-A).
+   */
+  async function writeSheetsWithState(config: {
+    projectId: string;
+    name: string;
+    featureKey: string;
+    schemaVersion: number;
+    buildTabs: () => Promise<SheetTab[]> | SheetTab[];
+    stateFeatureKey: string;
+    serializeState: () => string;
+    markWritten: () => void;
+  }) {
+    const tabs = await config.buildTabs();
     const result = await gdrive.writeSpreadsheet({
-      projectId,
-      name: 'Mapa de propiedades CRM',
-      featureKey: PROPERTY_MAP_FEATURE_KEY,
-      schemaVersion: SHEETS_SCHEMA_VERSION,
+      projectId: config.projectId,
+      name: config.name,
+      featureKey: config.featureKey,
+      schemaVersion: config.schemaVersion,
       tabs,
     });
     if (result.success) {
-      // SPEC-0004 §21: la escritura del par Sheets+estado es atómica para el usuario. Si el documento
-      // de estado no se escribe, no se marca como «al día» y se propaga el error.
       const stateWrite = await gdrive.writeFile({
-        projectId,
-        featureKey: PROPERTY_STATE_FEATURE_KEY,
-        content: serializePropertyState({ entries, origins }),
+        projectId: config.projectId,
+        featureKey: config.stateFeatureKey,
+        content: config.serializeState(),
       });
       if (!stateWrite.success) {
         return {
@@ -94,73 +100,67 @@ export function createDriveDocs(deps: DriveDocsDeps) {
           error: stateWrite.error ?? 'No se pudo escribir el documento de estado en Drive.',
         };
       }
-      properties.markDriveWritten({ projectId });
+      config.markWritten();
     }
     return result;
   }
 
+  async function writePropertiesSheets(projectId: string) {
+    const entries = properties.listEntries({ projectId });
+    const origins = properties.listOrigins({ projectId });
+    return writeSheetsWithState({
+      projectId,
+      name: 'Mapa de propiedades CRM',
+      featureKey: PROPERTY_MAP_FEATURE_KEY,
+      schemaVersion: SHEETS_SCHEMA_VERSION,
+      // SPEC-0006 §37.6-A: el Sheets visible representa SOLO Producción (reconciliado bajo demanda);
+      // el estado companion conserva las entries del entorno activo para un round-trip fiel.
+      buildTabs: async () =>
+        buildPropertyMapTabs(
+          await properties.productionView({ projectId }),
+          origins,
+          new Date().toISOString(),
+        ),
+      stateFeatureKey: PROPERTY_STATE_FEATURE_KEY,
+      serializeState: () => serializePropertyState({ entries, origins }),
+      markWritten: () => properties.markDriveWritten({ projectId }),
+    });
+  }
+
   async function writeCustomObjectsSheets(projectId: string) {
     const objects = customObjects.listDefinitions({ projectId });
-    const tabs = buildCustomObjectsTabs(objects, new Date().toISOString());
-    const result = await gdrive.writeSpreadsheet({
+    return writeSheetsWithState({
       projectId,
       name: 'Objetos custom',
       featureKey: CUSTOM_OBJECTS_FEATURE_KEY,
       schemaVersion: CUSTOM_OBJECTS_SHEETS_SCHEMA_VERSION,
-      tabs,
+      buildTabs: () => buildCustomObjectsTabs(objects, new Date().toISOString()),
+      stateFeatureKey: CUSTOM_OBJECTS_STATE_FEATURE_KEY,
+      serializeState: () => serializeCustomObjectsState({ objects }),
+      markWritten: () => customObjects.markDriveWritten({ projectId }),
     });
-    if (result.success) {
-      // SPEC-0004 §21: escritura atómica del par Sheets+estado (ver writePropertiesSheets).
-      const stateWrite = await gdrive.writeFile({
-        projectId,
-        featureKey: CUSTOM_OBJECTS_STATE_FEATURE_KEY,
-        content: serializeCustomObjectsState({ objects }),
-      });
-      if (!stateWrite.success) {
-        return {
-          success: false,
-          error: stateWrite.error ?? 'No se pudo escribir el documento de estado en Drive.',
-        };
-      }
-      customObjects.markDriveWritten({ projectId });
-    }
-    return result;
   }
 
   async function writeFormsSheets(projectId: string) {
     const formsList = forms.listForms({ projectId });
     const links = forms.listLinks({ projectId });
-    const reports = formsList.flatMap((form) => forms.coverage({ projectId, formId: form.id }));
-    const tabs = buildFormsTabs(
-      formsList,
-      links,
-      reports,
-      properties.listOrigins({ projectId }),
-      new Date().toISOString(),
-    );
-    const result = await gdrive.writeSpreadsheet({
+    return writeSheetsWithState({
       projectId,
       name: 'Formularios HubSpot',
       featureKey: FORMS_FEATURE_KEY,
       schemaVersion: FORMS_SHEETS_SCHEMA_VERSION,
-      tabs,
+      buildTabs: () =>
+        buildFormsTabs(
+          formsList,
+          links,
+          formsList.flatMap((form) => forms.coverage({ projectId, formId: form.id })),
+          properties.listOrigins({ projectId }),
+          new Date().toISOString(),
+        ),
+      stateFeatureKey: FORMS_STATE_FEATURE_KEY,
+      serializeState: () => serializeFormsState({ forms: formsList, links }),
+      markWritten: () => forms.markDriveWritten({ projectId }),
     });
-    if (result.success) {
-      // SPEC-0004 §21: escritura atómica del par Sheets+estado (ver writePropertiesSheets).
-      const stateWrite = await gdrive.writeFile({
-        projectId,
-        featureKey: FORMS_STATE_FEATURE_KEY,
-        content: serializeFormsState({ forms: formsList, links }),
-      });
-      if (!stateWrite.success) {
-        return {
-          success: false,
-          error: stateWrite.error ?? 'No se pudo escribir el documento de estado en Drive.',
-        };
-      }
-      forms.markDriveWritten({ projectId });
-    }
-    return result;
   }
 
   /**

@@ -1,7 +1,6 @@
 /** Handlers IPC de la gestión de propiedades (SPEC-0006). Extraído de `index.ts` (SPEC-0002 §23). */
 import { ipcMain } from 'electron';
 import { IpcChannels } from '@shared/types/ipc';
-import type { LoadSheetsResult } from '@shared/types/gdrive';
 import type {
   ApplyChangeInput,
   ConvertEntryInput,
@@ -30,6 +29,7 @@ import type { GoogleDriveConnector } from '../connectors/google-drive';
 import type { DriveDocs } from '../drive-docs';
 import { PLANNING_MAP_FEATURE_KEY } from '../property-management/planning-model';
 import { PROPERTY_STATE_FEATURE_KEY, parsePropertyState } from '../property-management/drive-state';
+import { registerDriveStateIpc } from './drive-state-ipc';
 
 export interface PropertiesIpcDeps {
   properties: PropertyService;
@@ -103,33 +103,21 @@ export function registerPropertiesIpc(deps: PropertiesIpcDeps): void {
   ipcMain.handle(IpcChannels.propertiesApplyPlanningImport, (_event, input: PlanningApplyInput) =>
     driveDocs.applyPlanningImport(input.projectId, input.resolutions),
   );
-  ipcMain.handle(
-    IpcChannels.propertiesLoadSheets,
-    async (_event, input: ProjectScopedInput): Promise<LoadSheetsResult> => {
-      const read = await gdrive.readFile({
-        projectId: input.projectId,
-        featureKey: PROPERTY_STATE_FEATURE_KEY,
-      });
-      if (!read.success || !read.content) {
-        return { success: false, error: read.error ?? 'No hay documento de estado en Drive.' };
-      }
-      try {
-        const state = parsePropertyState(read.content);
+  registerDriveStateIpc(
+    { gdrive, driveDocs },
+    {
+      loadChannel: IpcChannels.propertiesLoadSheets,
+      metaChannel: IpcChannels.propertiesDriveMeta,
+      stateFeatureKey: PROPERTY_STATE_FEATURE_KEY,
+      fileFeatureKey: PLANNING_MAP_FEATURE_KEY,
+      applyContent: (input, content) => {
+        const state = parsePropertyState(content);
         properties.applyDriveState(input, { entries: state.entries, origins: state.origins });
-        return { success: true, schemaVersion: state.schemaVersion };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Error al cargar',
-        };
-      }
+        return state.schemaVersion;
+      },
+      getDriveMeta: (input) => properties.getDriveMeta(input),
     },
   );
-  ipcMain.handle(IpcChannels.propertiesDriveMeta, (_event, input: ProjectScopedInput) => ({
-    ...properties.getDriveMeta(input),
-    fileId: driveDocs.managedSpreadsheetId(input.projectId, PLANNING_MAP_FEATURE_KEY),
-    configured: Boolean(gdrive.getStatus(input.projectId)?.folderId),
-  }));
   ipcMain.handle(IpcChannels.originsList, (_event, input: ProjectScopedInput) =>
     properties.listOrigins(input),
   );

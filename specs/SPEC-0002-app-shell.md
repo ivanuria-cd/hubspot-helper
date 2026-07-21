@@ -1091,3 +1091,62 @@ Caso límite: el prefijo dinámico exige paridad de las subclaves `title`/`chang
 `syncSummary` en las tres familias (se cumple hoy; conviene un test de paridad para blindarlo).
 
 Implementado 2026-07-14 (`shared/components/FeatureScreenHeader.tsx`; adopción en las tres pantallas). Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 32. Deduplicación del wiring de Drive-state en el main (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 2 (duplicidades D1 y D2). Continúa la modularización del
+wiring del main (§23). Dos bloques triplicados entre propiedades, objetos custom y formularios:
+
+### 32.1 Factoría `registerDriveStateIpc` (D1)
+
+`ipc/properties.ts`, `ipc/custom-objects.ts` e `ipc/forms.ts` repiten los handlers `*LoadSheets` y `*DriveMeta`
+(el segundo, idéntico salvo el `featureKey`; el primero, mismo esqueleto `readFile → parse → applyDriveState →
+schemaVersion`, con los literales `'No hay documento de estado en Drive.'` y `'Error al cargar'` por triplicado).
+Se extrae a `ipc/drive-state-ipc.ts`:
+
+```ts
+interface DriveStateIpcConfig {
+  loadChannel: string;
+  metaChannel: string;
+  stateFeatureKey: string;
+  fileFeatureKey: string; // el del fileId del DriveMeta (en propiedades, PLANNING_MAP_FEATURE_KEY)
+  applyContent: (input: { projectId: string }, content: string) => number; // parsea, aplica y devuelve schemaVersion
+  getDriveMeta: (input: { projectId: string }) => DriveDocMeta;
+}
+
+function registerDriveStateIpc(deps: { gdrive; driveDocs }, config: DriveStateIpcConfig): void;
+```
+
+Cada `ipc/*.ts` la invoca con su config; el mapeo específico de `applyDriveState` (`{objects}` /
+`{entries, origins}` / `{forms, links}`) va en el callback `applyContent` (que parsea con `parseXState` y llama a `applyDriveState`), evitando genéricos y su inferencia.
+
+### 32.2 Helper `writeSheetsWithState` (D2)
+
+`writePropertiesSheets`/`writeCustomObjectsSheets`/`writeFormsSheets` (`drive-docs.ts`) comparten
+"build tabs → `writeSpreadsheet` → si éxito, `writeFile(stateFeatureKey, serializeXState(...))` → si falla el
+estado, error `'No se pudo escribir el documento de estado en Drive.'` → `markDriveWritten`". Se extrae a un
+helper con callbacks que **separan los datos de los tabs de los del estado** (necesario por §37.6-A):
+
+```ts
+async function writeSheetsWithState(config: {
+  projectId: string;
+  name: string;
+  featureKey: string;
+  schemaVersion: number;
+  buildTabs: () => Promise<SheetTab[]> | SheetTab[]; // propiedades: usa productionView (async)
+  stateFeatureKey: string;
+  serializeState: () => string; // propiedades: entries del entorno activo, no productionView
+  markWritten: () => void;
+}): Promise<GoogleDriveOperationResult>;
+```
+
+Así propiedades encaja sin perder su asimetría (Sheets visible = producción; estado companion = entorno activo).
+
+### 32.3 Alcance y casos límite
+
+Sin cambios de canales IPC, de la escritura atómica (mismo orden Sheets → estado → `markWritten`) ni de
+comportamiento; reorganización interna. Casos límite: el `fileFeatureKey` del DriveMeta de propiedades es
+`PLANNING_MAP_FEATURE_KEY` (no el del Sheets); `applyState`/`serializeState` deben conservar su forma exacta para
+no romper el round-trip de carga (SPEC-0004 §15.5). Toca `ipc/{properties,custom-objects,forms}.ts` +
+`drive-docs.ts` + `ipc/drive-state-ipc.ts` (nuevo). Implementado 2026-07-14 (`typecheck` del main en verde en sandbox; 25 specs de servicios en verde). Requiere rebuild de
+la app; typecheck/test en la máquina del usuario.

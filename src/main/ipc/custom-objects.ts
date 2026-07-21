@@ -1,7 +1,6 @@
 /** Handlers IPC de objetos custom (SPEC-0007). Extraído de `index.ts` (SPEC-0002 §23). */
 import { ipcMain } from 'electron';
 import { IpcChannels } from '@shared/types/ipc';
-import type { LoadSheetsResult } from '@shared/types/gdrive';
 import type {
   ObjectApplyChangeInput,
   ObjectDeleteDraftInput,
@@ -18,6 +17,7 @@ import {
   CUSTOM_OBJECTS_STATE_FEATURE_KEY,
   parseCustomObjectsState,
 } from '../custom-objects/drive-state';
+import { registerDriveStateIpc } from './drive-state-ipc';
 
 export interface CustomObjectsIpcDeps {
   customObjects: CustomObjectService;
@@ -55,28 +55,19 @@ export function registerCustomObjectsIpc(deps: CustomObjectsIpcDeps): void {
   ipcMain.handle(IpcChannels.customObjectsWriteSheets, (_event, input: ObjectsListSchemasInput) =>
     driveDocs.writeCustomObjectsSheets(input.projectId),
   );
-  ipcMain.handle(
-    IpcChannels.customObjectsLoadSheets,
-    async (_event, input: ObjectsListSchemasInput): Promise<LoadSheetsResult> => {
-      const read = await gdrive.readFile({
-        projectId: input.projectId,
-        featureKey: CUSTOM_OBJECTS_STATE_FEATURE_KEY,
-      });
-      if (!read.success || !read.content) {
-        return { success: false, error: read.error ?? 'No hay documento de estado en Drive.' };
-      }
-      try {
-        const state = parseCustomObjectsState(read.content);
+  registerDriveStateIpc(
+    { gdrive, driveDocs },
+    {
+      loadChannel: IpcChannels.customObjectsLoadSheets,
+      metaChannel: IpcChannels.customObjectsDriveMeta,
+      stateFeatureKey: CUSTOM_OBJECTS_STATE_FEATURE_KEY,
+      fileFeatureKey: CUSTOM_OBJECTS_FEATURE_KEY,
+      applyContent: (input, content) => {
+        const state = parseCustomObjectsState(content);
         customObjects.applyDriveState(input, { objects: state.objects });
-        return { success: true, schemaVersion: state.schemaVersion };
-      } catch (error) {
-        return { success: false, error: error instanceof Error ? error.message : 'Error al cargar' };
-      }
+        return state.schemaVersion;
+      },
+      getDriveMeta: (input) => customObjects.getDriveMeta(input),
     },
   );
-  ipcMain.handle(IpcChannels.customObjectsDriveMeta, (_event, input: ObjectsListSchemasInput) => ({
-    ...customObjects.getDriveMeta(input),
-    fileId: driveDocs.managedSpreadsheetId(input.projectId, CUSTOM_OBJECTS_FEATURE_KEY),
-    configured: Boolean(gdrive.getStatus(input.projectId)?.folderId),
-  }));
 }
