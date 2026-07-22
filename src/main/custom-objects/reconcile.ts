@@ -6,7 +6,7 @@
 import type { CustomObjectDefinition, CustomObjectsSyncResult } from '@shared/types/custom-objects';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
 import type { RemoteSchema } from '../connectors/hubspot/schemas';
-import { buildCreateChange, diffSchema, type ChangeFactoryDeps } from './changes';
+import { buildCreateChange, diffSchema, preserveIdentity, type ChangeFactoryDeps } from './changes';
 
 export interface ReconcileResult {
   definitions: CustomObjectDefinition[];
@@ -26,7 +26,8 @@ export function reconcileDefinitions(
 
   const result = definitions.map((def) => {
     // Mantenemos los cambios de archivado pendientes sin reclasificar.
-    const archive = (def.pendingChanges ?? []).filter((c) => c.operation === 'archive');
+    const previous = def.pendingChanges ?? [];
+    const archive = previous.filter((c) => c.operation === 'archive');
     const remote = remoteByName.get(def.name);
 
     if (!remote) {
@@ -34,12 +35,15 @@ export function reconcileDefinitions(
       return {
         ...def,
         status: 'draft' as const,
-        pendingChanges: [...archive, buildCreateChange(def, deps)],
+        pendingChanges: preserveIdentity([...archive, buildCreateChange(def, deps)], previous),
       };
     }
 
     const objectTypeId = { ...def.objectTypeId, [environment]: remote.objectTypeId };
-    const fullyQualifiedName = { ...def.fullyQualifiedName, [environment]: remote.fullyQualifiedName };
+    const fullyQualifiedName = {
+      ...def.fullyQualifiedName,
+      [environment]: remote.fullyQualifiedName,
+    };
     const changes = diffSchema(def, remote, deps);
 
     if (changes.length === 0) {
@@ -49,7 +53,7 @@ export function reconcileDefinitions(
         objectTypeId,
         fullyQualifiedName,
         status: 'created' as const,
-        pendingChanges: archive,
+        pendingChanges: preserveIdentity(archive, previous),
       };
     }
     divergent += 1;
@@ -58,7 +62,7 @@ export function reconcileDefinitions(
       objectTypeId,
       fullyQualifiedName,
       status: 'divergent' as const,
-      pendingChanges: [...archive, ...changes],
+      pendingChanges: preserveIdentity([...archive, ...changes], previous),
     };
   });
 

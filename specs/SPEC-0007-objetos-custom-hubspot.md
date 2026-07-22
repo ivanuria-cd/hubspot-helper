@@ -664,3 +664,33 @@ máquina del usuario.
 (SPEC-0002 §31) y deja de pasar `messages` a `useDriveDoc` (SPEC-0004 §29). Sin cambios de i18n ni de
 comportamiento. Implementado 2026-07-14. Requiere rebuild de la app; typecheck/test en la máquina
 del usuario.
+
+## 30. Preservación de identidad de los cambios de schema (adopta SPEC-0006 §54.1) (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 3 (inconsistencia). `reconcileDefinitions`
+(`custom-objects/reconcile.ts`) reconstruye los `pendingChanges` en cada sync: `buildCreateChange`/`diffSchema`
+(`changes.ts`) generan `id` nuevo (`newId()`) y `appliedToSandbox`/`appliedToProduction` en `false` cada vez, sin
+casar con los cambios previos de la definición. Provoca los mismos defectos que propiedades corrigió en
+§54.1/§54.3: `changeId` efímeros (un `custom_objects_apply_change` falla con «Cambio no encontrado» si hubo un
+`sync` intermedio) y pérdida de los flags de aplicación.
+
+**Corrección (patrón SPEC-0006 §54.7.1).** Helper `preserveIdentity(fresh: SchemaChange[], previous:
+SchemaChange[])` en `changes.ts` —idéntico al de propiedades: casa por `operation` y hereda `id`, `createdAt`,
+`appliedToSandbox`, `appliedToProduction`—. `reconcileDefinitions` lo aplica a los `pendingChanges` de cada
+definición contra `def.pendingChanges` previos. `operation` es única por definición (`create` XOR `update_schema`
++ a lo sumo un `archive`), por lo que casar por operación es correcto; el `archive` previo ya conserva su
+identidad (no-op).
+
+**Fuera de alcance (límite del modelo).** Objetos custom reconcilia contra el **entorno activo** (no siempre
+contra producción, como propiedades §37). `preserveIdentity` conserva id/flags **mientras el cambio persista**
+entre reconciliaciones, pero no separa el estado «existe en sandbox» vs «existe en producción»: si un cambio se
+aplica a sandbox, se re-sincroniza contra sandbox (desaparece por coincidir) y luego se va a producción, el flag
+no se recupera. Igualar del todo el modelo (equivalente al §37 de propiedades) queda como punto aparte.
+
+**Tests.** `custom-objects/reconcile.spec.ts`: un segundo `reconcile` conserva `id` y `appliedToSandbox` del
+`create`/`update_schema` (casos nuevos, sin tocar los existentes).
+
+Alcance: `custom-objects/changes.ts` + `reconcile.ts` (+ `reconcile.spec.ts`). Sin cambios de contrato ni de
+tools. Implementado 2026-07-14 (`preserveIdentity` casa por operación y hereda id/createdAt/flags; test de 2º
+reconcile que conserva id + `appliedToSandbox`). typecheck del main, ESLint y 20 specs de objetos custom en verde
+en sandbox. Requiere rebuild de la app; suite en la máquina del usuario.

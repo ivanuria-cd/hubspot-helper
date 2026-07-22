@@ -65,15 +65,39 @@ describe('reconcileDefinitions', () => {
       deps,
     );
     expect(result.definitions[0]?.status).toBe('divergent');
-    expect(result.definitions[0]?.pendingChanges?.some((c) => c.operation === 'update_schema')).toBe(
-      true,
-    );
+    expect(
+      result.definitions[0]?.pendingChanges?.some((c) => c.operation === 'update_schema'),
+    ).toBe(true);
   });
 
   it('identifica por name, no por objectTypeId', () => {
     const local = def({ objectTypeId: { production: '2-999' } });
-    const result = reconcileDefinitions([local], [remote({ objectTypeId: '2-1' })], 'production', deps);
+    const result = reconcileDefinitions(
+      [local],
+      [remote({ objectTypeId: '2-1' })],
+      'production',
+      deps,
+    );
     expect(result.definitions[0]?.status).toBe('created');
     expect(result.definitions[0]?.objectTypeId?.production).toBe('2-1');
+  });
+
+  it('un segundo reconcile conserva id y appliedToSandbox del create (SPEC-0007 §30)', () => {
+    const first = reconcileDefinitions([def()], [], 'sandbox', deps);
+    const createChange = first.definitions[0]!.pendingChanges!.find(
+      (c) => c.operation === 'create',
+    )!;
+    // Simula que el create se aplicó a sandbox.
+    const withApplied = {
+      ...first.definitions[0]!,
+      pendingChanges: [{ ...createChange, appliedToSandbox: true }],
+    };
+    // El objeto sigue ausente del portal: un segundo reconcile regeneraría el create.
+    const second = reconcileDefinitions([withApplied], [], 'sandbox', deps);
+    const secondCreate = second.definitions[0]!.pendingChanges!.find(
+      (c) => c.operation === 'create',
+    )!;
+    expect(secondCreate.id).toBe(createChange.id);
+    expect(secondCreate.appliedToSandbox).toBe(true);
   });
 });

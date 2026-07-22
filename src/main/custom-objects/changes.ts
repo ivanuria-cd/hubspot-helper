@@ -84,7 +84,10 @@ export function updateSchemaBody(def: CustomObjectDefinition): Record<string, un
   return body;
 }
 
-export function buildCreateChange(def: CustomObjectDefinition, deps: ChangeFactoryDeps): SchemaChange {
+export function buildCreateChange(
+  def: CustomObjectDefinition,
+  deps: ChangeFactoryDeps,
+): SchemaChange {
   return {
     id: deps.newId(),
     objectId: def.id,
@@ -97,7 +100,10 @@ export function buildCreateChange(def: CustomObjectDefinition, deps: ChangeFacto
   };
 }
 
-export function buildArchiveChange(def: CustomObjectDefinition, deps: ChangeFactoryDeps): SchemaChange {
+export function buildArchiveChange(
+  def: CustomObjectDefinition,
+  deps: ChangeFactoryDeps,
+): SchemaChange {
   return {
     id: deps.newId(),
     objectId: def.id,
@@ -152,4 +158,25 @@ export function markApplied(change: SchemaChange, environment: HubSpotEnvironmen
     appliedToSandbox: environment === 'sandbox' ? true : change.appliedToSandbox,
     appliedToProduction: environment === 'production' ? true : change.appliedToProduction,
   };
+}
+
+/**
+ * Preserva la identidad del cambio entre reconciliaciones (SPEC-0007 §30, patrón SPEC-0006 §54.7.1):
+ * casa por `operation` y hereda `id`/`createdAt`/flags del cambio previo equivalente. Evita `changeId`
+ * efímeros y la pérdida de `appliedToSandbox`/`appliedToProduction` al re-sincronizar.
+ */
+export function preserveIdentity(fresh: SchemaChange[], previous: SchemaChange[]): SchemaChange[] {
+  const prevByOperation = new Map(previous.map((change) => [change.operation, change]));
+  return fresh.map((change) => {
+    const prior = prevByOperation.get(change.operation);
+    return prior
+      ? {
+          ...change,
+          id: prior.id,
+          createdAt: prior.createdAt,
+          appliedToSandbox: prior.appliedToSandbox,
+          appliedToProduction: prior.appliedToProduction,
+        }
+      : change;
+  });
 }
