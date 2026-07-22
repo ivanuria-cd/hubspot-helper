@@ -17,11 +17,11 @@ export interface ChangeFactoryDeps {
   now: () => string;
 }
 
-/** Descarta opciones vacías y reindexa el orden (HubSpot rechaza label/value vacíos). */
+/** Descarta opciones vacías, reindexa el orden y normaliza `hidden` (HubSpot rechaza label/value vacíos). */
 export function cleanOptions(options?: HsPropertyOption[]): HsPropertyOption[] {
   return (options ?? [])
     .filter((o) => o.label.trim() && o.value.trim())
-    .map((o, i) => ({ ...o, displayOrder: i }));
+    .map((o, i) => ({ ...o, displayOrder: i, hidden: o.hidden ?? false }));
 }
 
 function propertyBody(prop: CustomObjectPropertyDef): Record<string, unknown> {

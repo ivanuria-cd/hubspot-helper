@@ -694,3 +694,15 @@ Alcance: `custom-objects/changes.ts` + `reconcile.ts` (+ `reconcile.spec.ts`). S
 tools. Implementado 2026-07-14 (`preserveIdentity` casa por operación y hereda id/createdAt/flags; test de 2º
 reconcile que conserva id + `appliedToSandbox`). typecheck del main, ESLint y 20 specs de objetos custom en verde
 en sandbox. Requiere rebuild de la app; suite en la máquina del usuario.
+
+## 31. Alinear `cleanOptions` con propiedades (consistencia) (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 3. `custom-objects/changes.ts` `cleanOptions` no normaliza
+`hidden`, mientras `property-management` sí lo hace (§36). **No es un bug en objetos**: su `diffSchema` no compara
+opciones (solo `labels`/`primaryDisplayProperty`/`requiredProperties`/`secondaryDisplayProperties`/
+`searchableProperties`), así que no hay `update` infinito. Por consistencia se alinea el mapeo a
+`({ ...o, displayOrder: i, hidden: o.hidden ?? false })`. Cambio de una línea, sin efecto de comportamiento (el
+`payload` gana `hidden:false` explícito = visible, que es el default); deja las dos `cleanOptions` idénticas y
+previene un futuro bug si objetos empezara a comparar opciones. Alcance: `custom-objects/changes.ts`. Implementado
+2026-07-14 (1 línea + comentario alineado); typecheck del main, ESLint y 31 specs de objetos custom en verde en
+sandbox. Requiere rebuild de la app; suite en la máquina del usuario.
