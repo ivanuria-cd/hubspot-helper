@@ -17,13 +17,13 @@ import type {
   SchemaChange,
 } from '@shared/types/custom-objects';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
-import type { DriveDocMeta } from '@shared/types/gdrive';
 import type { SchemasApi } from '../connectors/hubspot/schemas';
 import { hubspotErrorMessage as sharedHubspotErrorMessage } from '../connectors/hubspot/errors';
 import type { CustomObjectStore } from './store';
 import type { CustomObjectsDriveState } from './drive-state';
 import { buildArchiveChange, cleanOptions, markApplied } from './changes';
 import { reconcileDefinitions } from './reconcile';
+import { createDriveMetaOps } from '../shared/drive-meta-ops';
 
 export interface CustomObjectServiceDeps {
   store: CustomObjectStore;
@@ -55,10 +55,10 @@ export function createCustomObjectService(deps: CustomObjectServiceDeps) {
     return { newId: deps.newId, now: deps.now };
   }
 
-  function markChanged(projectId: string): void {
-    const timestamps = deps.store.getTimestamps(projectId);
-    deps.store.setTimestamps(projectId, { ...timestamps, lastChangedAt: isoNow() });
-  }
+  const { markChanged, getDriveMeta, markDriveWritten, touchWritten } = createDriveMetaOps(
+    deps.store,
+    isoNow,
+  );
 
   function listDefinitions(input: ObjectsListSchemasInput): CustomObjectDefinition[] {
     return deps.store.get(input.projectId).definitions;
@@ -128,7 +128,12 @@ export function createCustomObjectService(deps: CustomObjectServiceDeps) {
           environment,
           changeFactory(),
         );
-        deps.store.set(input.projectId, { definitions: result.definitions });
+        // SPEC-0007 §25: relectura del store tras el await (patrón SPEC-0006 §47).
+        const reconciledById = new Map(result.definitions.map((d) => [d.id, d]));
+        const fresh = deps.store.get(input.projectId);
+        deps.store.set(input.projectId, {
+          definitions: fresh.definitions.map((d) => reconciledById.get(d.id) ?? d),
+        });
         markChanged(input.projectId);
         return result.summary;
       });
@@ -178,7 +183,9 @@ export function createCustomObjectService(deps: CustomObjectServiceDeps) {
     }
 
     const updatedChange = markApplied(change, input.environment);
-    const definitions = state.definitions.map((d) =>
+    // SPEC-0007 §25: relectura del store tras los await de red (patrón SPEC-0006 §47).
+    const fresh = deps.store.get(input.projectId);
+    const definitions = fresh.definitions.map((d) =>
       d.id === def.id
         ? {
             ...nextDef,
@@ -204,19 +211,9 @@ export function createCustomObjectService(deps: CustomObjectServiceDeps) {
     return { success: true };
   }
 
-  function getDriveMeta(input: { projectId: string }): DriveDocMeta {
-    return deps.store.getTimestamps(input.projectId);
-  }
-
-  function markDriveWritten(input: { projectId: string }): void {
-    const timestamps = deps.store.getTimestamps(input.projectId);
-    deps.store.setTimestamps(input.projectId, { ...timestamps, lastWrittenAt: isoNow() });
-  }
-
   function applyDriveState(input: { projectId: string }, state: CustomObjectsDriveState): void {
     deps.store.set(input.projectId, { definitions: state.objects });
-    const now = isoNow();
-    deps.store.setTimestamps(input.projectId, { lastWrittenAt: now, lastChangedAt: now });
+    touchWritten(input.projectId);
   }
 
   return {

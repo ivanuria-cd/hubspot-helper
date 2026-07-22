@@ -44,7 +44,6 @@ import type { ObjectsApi } from '../connectors/hubspot/objects';
 import { hubspotErrorMessage as sharedHubspotErrorMessage } from '../connectors/hubspot/errors';
 import type { PropertyStore } from './store';
 import type { HubSpotPropertyRef } from '@shared/types/properties';
-import type { DriveDocMeta } from '@shared/types/gdrive';
 import { reconcileEntries, type ReconcileResult } from './reconcile';
 import { markApplied, cleanOptions, diffDefinition } from './pending-changes';
 import { EntryValidationError, validateEntryInput } from './entry-validation';
@@ -52,6 +51,7 @@ import { isSystemProperty } from './system-properties';
 import { entryDestName } from './dest-name';
 import { buildOriginExport } from './origin-export';
 import type { PropertyDriveState } from './drive-state';
+import { createDriveMetaOps } from '../shared/drive-meta-ops';
 
 /** Sanea las opciones de la definición destino para no almacenar opciones vacías. */
 function sanitizeRef(ref: HubSpotPropertyRef): HubSpotPropertyRef {
@@ -125,10 +125,10 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     return { newId: deps.newId, now: deps.now };
   }
 
-  function markChanged(projectId: string): void {
-    const timestamps = deps.store.getTimestamps(projectId);
-    deps.store.setTimestamps(projectId, { ...timestamps, lastChangedAt: isoNow() });
-  }
+  const { markChanged, getDriveMeta, markDriveWritten, touchWritten } = createDriveMetaOps(
+    deps.store,
+    isoNow,
+  );
 
   function listObjects(input: ProjectScopedInput): Promise<HubSpotObject[]> {
     return deps.objectsApiFor(input.projectId).listObjects();
@@ -675,19 +675,6 @@ export function createPropertyService(deps: PropertyServiceDeps) {
     return buildOriginExport({ origin, entries: state.entries, now: deps.now });
   }
 
-  function getDriveMeta(input: ProjectScopedInput): DriveDocMeta {
-    const timestamps = deps.store.getTimestamps(input.projectId);
-    return {
-      lastWrittenAt: timestamps.lastWrittenAt,
-      lastChangedAt: timestamps.lastChangedAt,
-    };
-  }
-
-  function markDriveWritten(input: ProjectScopedInput): void {
-    const timestamps = deps.store.getTimestamps(input.projectId);
-    deps.store.setTimestamps(input.projectId, { ...timestamps, lastWrittenAt: isoNow() });
-  }
-
   function applyDriveState(input: ProjectScopedInput, state: PropertyDriveState): void {
     const current = deps.store.get(input.projectId);
     deps.store.set(input.projectId, {
@@ -695,8 +682,7 @@ export function createPropertyService(deps: PropertyServiceDeps) {
       entries: state.entries,
       origins: state.origins,
     });
-    const stamp = isoNow();
-    deps.store.setTimestamps(input.projectId, { lastWrittenAt: stamp, lastChangedAt: stamp });
+    touchWritten(input.projectId);
   }
 
   return {

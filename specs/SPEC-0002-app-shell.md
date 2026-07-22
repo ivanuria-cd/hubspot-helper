@@ -1148,5 +1148,48 @@ Sin cambios de canales IPC, de la escritura atómica (mismo orden Sheets → est
 comportamiento; reorganización interna. Casos límite: el `fileFeatureKey` del DriveMeta de propiedades es
 `PLANNING_MAP_FEATURE_KEY` (no el del Sheets); `applyState`/`serializeState` deben conservar su forma exacta para
 no romper el round-trip de carga (SPEC-0004 §15.5). Toca `ipc/{properties,custom-objects,forms}.ts` +
-`drive-docs.ts` + `ipc/drive-state-ipc.ts` (nuevo). Implementado 2026-07-14 (`typecheck` del main en verde en sandbox; 25 specs de servicios en verde). Verificación e2e: `tests/functional/drive-state-screens.spec.ts` (nuevo) —smoke de montaje de las tres pantallas de feature, que ejercita los tres `*DriveMeta` refactorizados vía `useDriveDoc.fetchMeta` y la cabecera `FeatureScreenHeader` (§31); no cubre `*LoadSheets`/`*WriteSheets` (requieren OAuth de Drive)—; pendiente de ejecutar en la máquina del usuario. Requiere rebuild de
+`drive-docs.ts` + `ipc/drive-state-ipc.ts` (nuevo). Implementado 2026-07-14 (`typecheck` del main en verde en sandbox; 25 specs de servicios en verde). Verificación e2e: `tests/functional/drive-state-screens.spec.ts` (nuevo) —smoke de montaje de las tres pantallas de feature, que ejercita los tres `*DriveMeta` refactorizados vía `useDriveDoc.fetchMeta` y la cabecera `FeatureScreenHeader` (§31); no cubre `*LoadSheets`/`*WriteSheets` (requieren OAuth de Drive)—; pendiente de ejecutar en la máquina del usuario.
+
+## 33. Helpers compartidos de Drive-meta en los servicios (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 2 (helpers de servicio triplicados). Los tres `service.ts`
+(propiedades, objetos custom, formularios) repiten palabra por palabra `markChanged`, `markDriveWritten`,
+`getDriveMeta` y la cola de timestamps de `applyDriveState`, todos sobre `deps.store.getTimestamps/setTimestamps`
++ `isoNow`. Continúa la línea de `createProjectRecord` (§23).
+
+Se extrae a `src/main/shared/drive-meta-ops.ts`:
+
+```ts
+interface DriveTimestampStore {
+  getTimestamps(projectId: string): DriveDocMeta;
+  setTimestamps(projectId: string, meta: DriveDocMeta): void;
+}
+function createDriveMetaOps(
+  store: DriveTimestampStore,
+  isoNow: () => string,
+): {
+  markChanged: (projectId: string) => void;
+  getDriveMeta: (input: { projectId: string }) => DriveDocMeta;
+  markDriveWritten: (input: { projectId: string }) => void;
+  touchWritten: (projectId: string) => void; // lastWrittenAt = lastChangedAt = isoNow()
+};
+```
+
+Cada servicio lo **desestructura** (`const { markChanged, getDriveMeta, markDriveWritten, touchWritten } =
+createDriveMetaOps(deps.store, isoNow)`), conservando los nombres locales: **los call sites de `markChanged(...)`
+(decenas por servicio) no cambian**. `applyDriveState` mantiene su `store.set` específico (los campos del estado
+difieren por feature) y usa `touchWritten` para la cola de timestamps.
+
+**Alcance.** `src/main/shared/drive-meta-ops.ts` (nuevo) + los tres `service.ts`. Sin cambios de comportamiento ni
+de contrato. Adopción en SPEC-0006/0007/0008.
+
+**Casos límite.** (1) `getDriveMeta` de propiedades reconstruye el objeto campo a campo; se unifica a devolver
+`getTimestamps` directo **solo si** es equivalente (si `getTimestamps` ya devuelve exactamente `DriveDocMeta`); si
+filtrara algún campo a propósito, propiedades mantiene su versión. (2) `isoNow` se pasa ya resuelto por cada
+servicio (objetos: `deps.now ?? default`; propiedades/formularios: `deps.now`), conservando su semántica.
+
+Fuera de alcance: `serialize/parse` de `drive-state.ts` (mensajes de error repetidos) y `changeFactory`/
+`markApplied`, puntos aparte más ligados a la lógica de cada feature.
+
+Implementado 2026-07-14 (`src/main/shared/drive-meta-ops.ts` + adopción en los tres servicios; `getDriveMeta` de propiedades unificado tras confirmar equivalencia; imports `DriveDocMeta` huérfanos retirados de los servicios). Verificado en sandbox: typecheck del main, ESLint y 65 specs de servicios en verde. Requiere rebuild de la app; e2e/suite completa en la máquina del usuario. Requiere rebuild de
 la app; typecheck/test en la máquina del usuario.

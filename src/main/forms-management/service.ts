@@ -26,7 +26,6 @@ import type {
   HubSpotForm,
 } from '@shared/types/forms';
 import type { DataOrigin, PropertyEntry } from '@shared/types/properties';
-import type { DriveDocMeta } from '@shared/types/gdrive';
 import type { SubscriptionType } from '@shared/types/forms';
 import type { FormsApi } from '../connectors/hubspot/forms';
 import { hubspotErrorMessage as sharedHubspotErrorMessage } from '../connectors/hubspot/errors';
@@ -46,6 +45,7 @@ import {
   markApplied,
   mergeConsentTemplate,
 } from './pending-changes';
+import { createDriveMetaOps } from '../shared/drive-meta-ops';
 
 export interface FormServiceDeps {
   store: FormsStore;
@@ -70,10 +70,10 @@ export function createFormService(deps: FormServiceDeps) {
     return { newId: deps.newId, now: deps.now };
   }
 
-  function markChanged(projectId: string): void {
-    const timestamps = deps.store.getTimestamps(projectId);
-    deps.store.setTimestamps(projectId, { ...timestamps, lastChangedAt: isoNow() });
-  }
+  const { markChanged, getDriveMeta, markDriveWritten, touchWritten } = createDriveMetaOps(
+    deps.store,
+    isoNow,
+  );
 
   function listForms(input: FormsListInput): HubSpotForm[] {
     return deps.store.get(input.projectId).forms;
@@ -311,7 +311,8 @@ export function createFormService(deps: FormServiceDeps) {
           };
         }
       } else {
-        if (!change.formId) return { success: false, error: 'El cambio no referencia un formulario' };
+        if (!change.formId)
+          return { success: false, error: 'El cambio no referencia un formulario' };
         let payload = change.payload as Record<string, unknown>;
         if (change.operation === 'update_form') {
           const ready = await consentReadyPayload(input.projectId, payload);
@@ -349,20 +350,10 @@ export function createFormService(deps: FormServiceDeps) {
     return { success: true };
   }
 
-  function getDriveMeta(input: { projectId: string }): DriveDocMeta {
-    return deps.store.getTimestamps(input.projectId);
-  }
-
-  function markDriveWritten(input: { projectId: string }): void {
-    const timestamps = deps.store.getTimestamps(input.projectId);
-    deps.store.setTimestamps(input.projectId, { ...timestamps, lastWrittenAt: isoNow() });
-  }
-
   function applyDriveState(input: { projectId: string }, state: FormsDriveState): void {
     const current = deps.store.get(input.projectId);
     deps.store.set(input.projectId, { ...current, forms: state.forms, links: state.links });
-    const now = isoNow();
-    deps.store.setTimestamps(input.projectId, { lastWrittenAt: now, lastChangedAt: now });
+    touchWritten(input.projectId);
   }
 
   return {
