@@ -121,3 +121,22 @@ tres áreas, y reset al cambiar de proyecto. Pendiente de implementación junto 
 Del informe de revisión de código 2026-07-02, hallazgo 8.2. Mismo defecto y misma solución que SPEC-0010 §13:
 patrón `runId` de `useAsyncResource` (SPEC-0002 §17) en `reload`; los `setState` de éxito y error solo se
 aplican si la ejecución sigue vigente. Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+
+## 14. `useCrmOverview` sobre `useAsyncResource` (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 2 (duplicidad). Igual que SPEC-0010 §14: `useCrmOverview`
+reimplementa a mano el guard `runId`, el reset a `INITIAL` y la cancelación de respuestas obsoletas que ya ofrece
+`useAsyncResource` (SPEC-0002 §17). Se refactoriza para delegar:
+
+- El `loader` hace el `Promise.all` y devuelve el **objeto de dominio** (`hubspotConnected`/`areas`), sin
+  `loading`/`error`.
+- `initial` = ese objeto de dominio (`INITIAL_DATA`).
+- El hook devuelve `{ ...data, loading, error, reload }`; el tipo público `CrmOverview` no cambia.
+
+**Casos límite.** (1) El guard `if (!projectId) return` se traslada al `loader` (early-return de `INITIAL_DATA`);
+sin `projectId` `loading` pasa a `false` — irrelevante en la práctica. (2) `reload` pasa de `() => Promise<void>`
+a `() => void`; se adapta `CrmOverviewScreen` si hiciera `await reload()`. El guard §13 queda subsumido.
+
+Alcance: `useCrmOverview.ts` (`CrmOverviewScreen` no requirió ajuste: ya usaba `void overview.reload()`). Sin
+i18n. Implementado 2026-07-14; typecheck y ESLint del renderer en verde en sandbox. Requiere rebuild de la app;
+suite completa en la máquina del usuario.

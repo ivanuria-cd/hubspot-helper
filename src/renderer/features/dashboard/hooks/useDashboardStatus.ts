@@ -1,9 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
+import { useAsyncResource } from '@shared/hooks/useAsyncResource';
 
-export interface DashboardStatus {
-  loading: boolean;
-  error: boolean;
+interface DashboardData {
   hubspot: {
     connected: boolean;
     activeEnvironment?: HubSpotEnvironment;
@@ -15,9 +13,12 @@ export interface DashboardStatus {
   anyConnector: boolean;
 }
 
-const INITIAL: DashboardStatus = {
-  loading: true,
-  error: false,
+export interface DashboardStatus extends DashboardData {
+  loading: boolean;
+  error: boolean;
+}
+
+const INITIAL_DATA: DashboardData = {
   hubspot: { connected: false, environments: [] },
   drive: { connected: false },
   mcp: { running: false, toolCount: 0, port: 0 },
@@ -25,19 +26,11 @@ const INITIAL: DashboardStatus = {
   anyConnector: false,
 };
 
-export function useDashboardStatus(projectId: string): DashboardStatus & { reload: () => Promise<void> } {
-  const [state, setState] = useState<DashboardStatus>(INITIAL);
-  // SPEC-0010 §13: guard de respuesta obsoleta — al cambiar rápido de proyecto, la respuesta
-  // del proyecto anterior no debe pisar la del nuevo (patrón runId de useAsyncResource).
-  const runId = useRef(0);
-
-  const reload = useCallback(async () => {
-    if (!projectId) return;
-    const current = ++runId.current;
-    const isCurrent = (): boolean => runId.current === current;
-    // Reset completo: no arrastrar datos del proyecto anterior durante la recarga (SPEC-0002 §17.2).
-    setState({ ...INITIAL, loading: true });
-    try {
+// SPEC-0010 §14: delega en useAsyncResource (SPEC-0002 §17) el guard de respuesta obsoleta y el reset.
+export function useDashboardStatus(projectId: string): DashboardStatus & { reload: () => void } {
+  const { data, loading, error, reload } = useAsyncResource<DashboardData>(
+    async () => {
+      if (!projectId) return INITIAL_DATA;
       const [hs, drive, mcp, entries, defs, formChanges] = await Promise.all([
         window.api.hubspotGetStatus(projectId),
         window.api.gdriveGetStatus({ projectId }),
@@ -52,31 +45,24 @@ export function useDashboardStatus(projectId: string): DashboardStatus & { reloa
         activeEnvironment: hs?.activeEnvironment,
         environments,
       };
-      const driveStatus = { connected: Boolean(drive?.folderId), folderName: drive?.folderName };
-      const mcpStatus = { running: mcp.running, toolCount: mcp.toolCount, port: mcp.port };
+      const drive2 = { connected: Boolean(drive?.folderId), folderName: drive?.folderName };
+      const mcp2 = { running: mcp.running, toolCount: mcp.toolCount, port: mcp.port };
       const pending = {
         properties: (entries ?? []).reduce((n, e) => n + (e.pendingChanges?.length ?? 0), 0),
         objects: (defs ?? []).reduce((n, d) => n + (d.pendingChanges?.length ?? 0), 0),
         forms: (formChanges ?? []).length,
       };
-      if (!isCurrent()) return;
-      setState({
-        loading: false,
-        error: false,
+      return {
         hubspot,
-        drive: driveStatus,
-        mcp: mcpStatus,
+        drive: drive2,
+        mcp: mcp2,
         pending,
-        anyConnector: hubspot.connected || driveStatus.connected || mcpStatus.running,
-      });
-    } catch {
-      if (isCurrent()) setState((s) => ({ ...s, loading: false, error: true }));
-    }
-  }, [projectId]);
+        anyConnector: hubspot.connected || drive2.connected || mcp2.running,
+      };
+    },
+    [projectId],
+    INITIAL_DATA,
+  );
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
-
-  return { ...state, reload };
+  return { ...data, loading, error, reload };
 }

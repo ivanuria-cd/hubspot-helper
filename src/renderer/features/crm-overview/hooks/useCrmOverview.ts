@@ -1,20 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAsyncResource } from '@shared/hooks/useAsyncResource';
 
 interface AreaCount {
   total: number;
   pending: number;
 }
 
-export interface CrmOverview {
-  loading: boolean;
-  error: boolean;
+interface CrmData {
   hubspotConnected: boolean;
   areas: { properties: AreaCount; objects: AreaCount; forms: AreaCount };
 }
 
-const INITIAL: CrmOverview = {
-  loading: true,
-  error: false,
+export interface CrmOverview extends CrmData {
+  loading: boolean;
+  error: boolean;
+}
+
+const INITIAL_DATA: CrmData = {
   hubspotConnected: false,
   areas: {
     properties: { total: 0, pending: 0 },
@@ -23,18 +24,11 @@ const INITIAL: CrmOverview = {
   },
 };
 
-export function useCrmOverview(projectId: string): CrmOverview & { reload: () => Promise<void> } {
-  const [state, setState] = useState<CrmOverview>(INITIAL);
-  // SPEC-0011 §13: guard de respuesta obsoleta (patrón runId de useAsyncResource).
-  const runId = useRef(0);
-
-  const reload = useCallback(async () => {
-    if (!projectId) return;
-    const current = ++runId.current;
-    const isCurrent = (): boolean => runId.current === current;
-    // Reset completo: no arrastrar datos del proyecto anterior durante la recarga (SPEC-0002 §17.2).
-    setState({ ...INITIAL, loading: true });
-    try {
+// SPEC-0011 §14: delega en useAsyncResource (SPEC-0002 §17) el guard de respuesta obsoleta y el reset.
+export function useCrmOverview(projectId: string): CrmOverview & { reload: () => void } {
+  const { data, loading, error, reload } = useAsyncResource<CrmData>(
+    async () => {
+      if (!projectId) return INITIAL_DATA;
       const [hs, entries, defs, forms, formChanges] = await Promise.all([
         window.api.hubspotGetStatus(projectId),
         window.api.entriesList({ projectId }),
@@ -42,10 +36,7 @@ export function useCrmOverview(projectId: string): CrmOverview & { reload: () =>
         window.api.formsList({ projectId }),
         window.api.formsPendingChanges({ projectId }),
       ]);
-      if (!isCurrent()) return;
-      setState({
-        loading: false,
-        error: false,
+      return {
         hubspotConnected: hs ? Object.keys(hs.environments).length > 0 : false,
         areas: {
           properties: {
@@ -58,15 +49,11 @@ export function useCrmOverview(projectId: string): CrmOverview & { reload: () =>
           },
           forms: { total: (forms ?? []).length, pending: (formChanges ?? []).length },
         },
-      });
-    } catch {
-      if (isCurrent()) setState((s) => ({ ...s, loading: false, error: true }));
-    }
-  }, [projectId]);
+      };
+    },
+    [projectId],
+    INITIAL_DATA,
+  );
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
-
-  return { ...state, reload };
+  return { ...data, loading, error, reload };
 }

@@ -159,3 +159,23 @@ obsoletas: al cambiar rápido de proyecto, la respuesta del anterior podía pisa
 patrón `runId` de `useAsyncResource` (SPEC-0002 §17): contador en ref incrementado por `reload`; los `setState`
 (éxito y error) solo se aplican si la ejecución sigue vigente. Requiere rebuild de la app; typecheck/test en la
 máquina del usuario.
+
+## 14. `useDashboardStatus` sobre `useAsyncResource` (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 2 (duplicidad). `useDashboardStatus` reimplementa a mano el
+guard `runId`, el reset a `INITIAL` y la cancelación de respuestas obsoletas —justo lo que ya ofrece
+`useAsyncResource` (SPEC-0002 §17), como reconoce su propio comentario (§13)—. Se refactoriza para delegar:
+
+- El `loader` hace el `Promise.all` de estado y devuelve el **objeto de dominio** (`hubspot`/`drive`/`mcp`/
+  `pending`/`anyConnector`), sin `loading`/`error`.
+- `initial` = ese objeto de dominio (`INITIAL_DATA`).
+- El hook devuelve `{ ...data, loading, error, reload }`; el tipo público `DashboardStatus` no cambia.
+
+**Casos límite.** (1) El guard `if (!projectId) return` se traslada al `loader` (early-return de `INITIAL_DATA`);
+a diferencia de hoy, sin `projectId` `loading` pasa a `false` — irrelevante, la ruta `/project/:projectId`
+siempre lo trae. (2) `reload` pasa de `() => Promise<void>` a `() => void` (el de `useAsyncResource`); se adapta
+`DashboardScreen` si hiciera `await reload()`. El guard §13 queda subsumido por `useAsyncResource`.
+
+Alcance: `useDashboardStatus.ts` (`DashboardScreen` no requirió ajuste: ya usaba `void status.reload()`). Sin
+i18n. Implementado 2026-07-14; typecheck y ESLint del renderer en verde en sandbox. Requiere rebuild de la app;
+suite completa en la máquina del usuario.
