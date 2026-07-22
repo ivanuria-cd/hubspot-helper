@@ -720,3 +720,45 @@ El `EntryWizard` de propiedades sí captura y notifica. Corrección: importar `u
 Alcance: `custom-objects/components/ObjectWizard.tsx`. Implementado 2026-07-22 (import de `useSnackbar` +
 `catch`/`notify` antes del `finally`); typecheck del renderer y ESLint del fichero en verde en sandbox. Requiere
 rebuild de la app; suite en la máquina del usuario.
+
+## 33. Unificar los endpoints de schemas y migrar a la API 2026-03 (IMPLEMENTADO, 2026-07-22)
+
+Del informe de revisión de código 2026-07-14, bloque 3. Dos módulos del conector golpean el mismo recurso (CRM Object
+Schemas) por rutas distintas y ambas en `v3` (legacy):
+
+- `connectors/hubspot/objects.ts` (catálogo de objetos para SPEC-0006): `GET /crm/v3/schemas`.
+- `connectors/hubspot/schemas.ts` (CRUD, SPEC-0007): base `/crm-object-schemas/v3/schemas` (list/get/create/update/
+  delete).
+
+Verificado en la documentación oficial (API reference 2026-03, cuenta Cloud District vía conector Chrome): la ruta
+vigente es `GET https://api.hubapi.com/crm-object-schemas/2026-03/schemas` (api-name `crm-object-schemas`, versión
+`2026-03`); el esquema por fecha 2026-03 sustituye los paths numéricos `/crm/v3/`. Por la preferencia de versión de
+CLAUDE.md (`2026-03 > v4 > v3`), el destino unificado es **`/crm-object-schemas/2026-03/schemas`** (y
+`.../{objectTypeId}` para get/patch/delete). Es la misma migración ya aplicada a propiedades (SPEC-0006 §28).
+
+Corrección:
+
+- `schemas.ts`: `BASE = '/crm-object-schemas/2026-03/schemas'` (los 5 métodos heredan la base).
+- `objects.ts`: `GET /crm/v3/schemas` → `GET /crm-object-schemas/2026-03/schemas` (solo lista, para el catálogo).
+- Docstrings de ambos módulos + `schemas.spec.ts` (5 asserts) y `objects.spec.ts` (1 assert) al nuevo path.
+
+Consecuencias: una sola ruta canónica para el recurso; alineado con la migración 2026-03 del resto del conector. El
+GET 2026-03 devuelve los mismos campos que ya parsean `RawSchema`/`RemoteSchema` (objectTypeId, fullyQualifiedName,
+name, labels, description, primaryDisplayProperty, secondary/searchable/requiredProperties, archived), así que la
+lectura no cambia.
+
+Casos límite:
+
+- Allowlist del proxy (`ipc/hubspot.ts`: `/crm/`, `/marketing/v3/forms`, `/account-info/`): `/crm-object-schemas/` no
+  empieza por `/crm/`, pero `schemas.ts` y `objects.ts` se ejecutan en MAIN (llaman al `request()` del conector, no al
+  proxy genérico renderer `hubspot:request`), así que NO les afecta y la allowlist no se toca.
+- Body de create/update (POST/PATCH): el date-versioning preserva la forma de la v3; se valida contra el sandbox de
+  HubSpot en la máquina del usuario (como §28).
+- La duplicación objects.ts (lista para catálogo) vs schemas.ts (lista para CRUD) es intencional —responsabilidades
+  distintas, atomicidad de features SPEC-0000 §6—; solo se unifica la ruta, no se fusionan los módulos.
+
+Alcance: `connectors/hubspot/schemas.ts`, `connectors/hubspot/objects.ts`, `schemas.spec.ts`, `objects.spec.ts` (+
+docstrings; también el docstring `Ref API` de `custom-objects/service.ts`). Implementado 2026-07-22 (`BASE` de
+`schemas.ts` y el path de `objects.ts` a `/crm-object-schemas/2026-03/schemas`; specs y docstrings actualizados);
+typecheck del main, ESLint y 7 specs (schemas 4 + objects 3) en verde en sandbox. Requiere rebuild de la app/MCP;
+suite en la máquina del usuario y validación funcional contra sandbox (create/update de schema).

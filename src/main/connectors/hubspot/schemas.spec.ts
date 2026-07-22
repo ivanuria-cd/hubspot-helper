@@ -7,9 +7,11 @@ function okResponse(data: unknown): Promise<HubSpotResponse> {
 }
 
 describe('createSchemasApi', () => {
-  it('listSchemas hace GET sobre /crm-object-schemas/v3/schemas con el entorno', async () => {
+  it('listSchemas hace GET sobre /crm-object-schemas/2026-03/schemas con el entorno', async () => {
     const request = vi.fn(() =>
-      okResponse({ results: [{ objectTypeId: '2-1', name: 'machine', labels: { plural: 'Máquinas' } }] }),
+      okResponse({
+        results: [{ objectTypeId: '2-1', name: 'machine', labels: { plural: 'Máquinas' } }],
+      }),
     );
     const api = createSchemasApi({ request, projectId: 'p1' });
 
@@ -18,7 +20,7 @@ describe('createSchemasApi', () => {
     expect(request).toHaveBeenCalledWith(
       expect.objectContaining({
         method: 'GET',
-        path: '/crm-object-schemas/v3/schemas',
+        path: '/crm-object-schemas/2026-03/schemas',
         environment: 'sandbox',
       }),
     );
@@ -26,7 +28,9 @@ describe('createSchemasApi', () => {
   });
 
   it('createSchema hace POST con el payload y entorno', async () => {
-    const request = vi.fn(() => okResponse({ objectTypeId: '2-9', fullyQualifiedName: 'p1_machine' }));
+    const request = vi.fn(() =>
+      okResponse({ objectTypeId: '2-9', fullyQualifiedName: 'p1_machine' }),
+    );
     const api = createSchemasApi({ request, projectId: 'p1' });
 
     await api.createSchema({ name: 'machine' }, 'production');
@@ -34,7 +38,7 @@ describe('createSchemasApi', () => {
     expect(request).toHaveBeenCalledWith(
       expect.objectContaining({
         method: 'POST',
-        path: '/crm-object-schemas/v3/schemas',
+        path: '/crm-object-schemas/2026-03/schemas',
         environment: 'production',
         body: { name: 'machine' },
       }),
@@ -47,12 +51,15 @@ describe('createSchemasApi', () => {
 
     await api.updateSchema('2-3', { labels: { singular: 'X', plural: 'Xs' } }, 'sandbox');
     expect(request).toHaveBeenCalledWith(
-      expect.objectContaining({ method: 'PATCH', path: '/crm-object-schemas/v3/schemas/2-3' }),
+      expect.objectContaining({ method: 'PATCH', path: '/crm-object-schemas/2026-03/schemas/2-3' }),
     );
 
     await api.deleteSchema('2-3', 'sandbox');
     expect(request).toHaveBeenCalledWith(
-      expect.objectContaining({ method: 'DELETE', path: '/crm-object-schemas/v3/schemas/2-3' }),
+      expect.objectContaining({
+        method: 'DELETE',
+        path: '/crm-object-schemas/2026-03/schemas/2-3',
+      }),
     );
   });
 

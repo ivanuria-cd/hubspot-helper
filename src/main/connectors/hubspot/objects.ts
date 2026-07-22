@@ -1,6 +1,6 @@
 /**
  * Catálogo de objetos de HubSpot: estándar (conocidos) + custom existentes en el portal.
- * Los custom se obtienen de la CRM Schemas API v3 (`GET /crm/v3/schemas`).
+ * Los custom se obtienen de la CRM Object Schemas API 2026-03 (`GET /crm-object-schemas/2026-03/schemas`, SPEC-0007 §33).
  * La creación de objetos custom es competencia de SPEC-0007, no de este módulo.
  */
 import type { HubSpotObject } from '@shared/types/properties';
@@ -41,7 +41,7 @@ export function createObjectsApi(deps: ObjectsApiDeps) {
       const response = await deps.request({
         projectId: deps.projectId,
         method: 'GET',
-        path: '/crm/v3/schemas',
+        path: '/crm-object-schemas/2026-03/schemas',
       });
       const data = response.data as { results?: RawSchema[] };
       custom = (data.results ?? []).map(customObjectFromSchema).filter((o) => o.objectType);

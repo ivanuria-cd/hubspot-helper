@@ -2,7 +2,7 @@
  * Servicio de gestión de objetos custom (SPEC-0007). Orquesta el store local de
  * definiciones, el conector de schemas de HubSpot, la reconciliación y la aplicación
  * de cambios. Nunca aplica cambios en HubSpot sin confirmación explícita y entorno.
- * Ref API: /crm-object-schemas/v3/schemas (SPEC-0007 §2).
+ * Ref API: /crm-object-schemas/2026-03/schemas (SPEC-0007 §2, migrado a 2026-03 en §33).
  */
 import type {
   CustomObjectDefinition,

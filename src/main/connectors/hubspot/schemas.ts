@@ -1,12 +1,12 @@
 /**
- * Acceso a la CRM Object Schemas API v3 de HubSpot (SPEC-0007).
- * Ref: https://developers.hubspot.com/docs/api-reference/legacy/crm/objects/schemas/guide
- * Path base: `/crm-object-schemas/v3/schemas`. Se apoya en el `request()` del conector (SPEC-0003).
+ * Acceso a la CRM Object Schemas API 2026-03 de HubSpot (SPEC-0007 §33).
+ * Ref: https://developers.hubspot.com/docs/api-reference/latest/crm/objects/schemas/get-schemas
+ * Path base: `/crm-object-schemas/2026-03/schemas`. Se apoya en el `request()` del conector (SPEC-0003).
  */
 import type { HubSpotEnvironment, HubSpotResponse } from '@shared/types/hubspot';
 import type { HubSpotRequester } from './properties';
 
-const BASE = '/crm-object-schemas/v3/schemas';
+const BASE = '/crm-object-schemas/2026-03/schemas';
 
 /** Schema tal como lo devuelve HubSpot (subconjunto usado). */
 export interface RemoteSchema {
@@ -80,7 +80,10 @@ export function createSchemasApi(deps: SchemasApiDeps) {
     return toRemoteSchema(response.data as RawSchema);
   }
 
-  function createSchema(payload: unknown, environment: HubSpotEnvironment): Promise<HubSpotResponse> {
+  function createSchema(
+    payload: unknown,
+    environment: HubSpotEnvironment,
+  ): Promise<HubSpotResponse> {
     return deps.request({
       projectId: deps.projectId,
       environment,

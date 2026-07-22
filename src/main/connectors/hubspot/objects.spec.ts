@@ -24,7 +24,7 @@ describe('catálogo de objetos', () => {
     const objects = await api.listObjects();
 
     expect(request).toHaveBeenCalledWith(
-      expect.objectContaining({ method: 'GET', path: '/crm/v3/schemas' }),
+      expect.objectContaining({ method: 'GET', path: '/crm-object-schemas/2026-03/schemas' }),
     );
     expect(objects).toHaveLength(STANDARD_OBJECTS.length + 1);
     const custom = objects.find((o) => o.custom);
