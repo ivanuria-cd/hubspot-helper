@@ -4,6 +4,7 @@
  * salir. La preferencia «no volver a preguntar» se persiste por proyecto + característica.
  */
 import { useCallback, useEffect, useState } from 'react';
+import type { OperationResult } from '@shared/types/common';
 import {
   Button,
   Checkbox,
@@ -26,7 +27,7 @@ interface DriveDirtyGuardProps {
   projectId: string;
   featureKey: string;
   /** Acción de actualizar el archivo (mismo `update` del controlador useDriveDoc). */
-  onUpdate: () => Promise<{ success: boolean; error?: string }>;
+  onUpdate: () => Promise<OperationResult>;
 }
 
 function skipKey(projectId: string, featureKey: string): string {

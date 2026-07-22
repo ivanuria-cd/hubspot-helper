@@ -115,10 +115,7 @@ export interface GoogleDriveReadFileResult {
   error?: string;
 }
 
-export interface GoogleDriveOperationResult {
-  success: boolean;
-  error?: string;
-}
+export type { OperationResult as GoogleDriveOperationResult } from './common';
 
 /**
  * Metadatos del documento Drive de una característica para detectar cambios sin actualizar (§15).

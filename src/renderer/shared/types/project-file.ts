@@ -3,6 +3,8 @@
  * Contenedor ZIP: manifest.json (índice + integridad) + sections/<featureKey>.json.
  */
 
+import type { OperationResult } from './common';
+
 export const PROJECT_FILE_MAGIC = 'revops-project';
 export const PROJECT_FILE_FORMAT_VERSION = 1;
 
@@ -76,10 +78,7 @@ export interface ImportApplyInput {
   strategy: ImportStrategy;
 }
 
-export interface ProjectFileOperationResult {
-  success: boolean;
-  error?: string;
-}
+export type ProjectFileOperationResult = OperationResult;
 
 export interface ExportProjectResult extends ProjectFileOperationResult {
   filePath?: string;

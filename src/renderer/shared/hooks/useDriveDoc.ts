@@ -6,14 +6,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DriveDocMeta } from '@shared/types/gdrive';
+import type { OperationResult } from '@shared/types/common';
 import { driveFileUrl } from '@shared/utils/driveFileUrl';
 
 const SPREADSHEET_MIME = 'application/vnd.google-apps.spreadsheet' as const;
 
-export interface DriveActionResult {
-  success: boolean;
-  error?: string;
-}
+export type DriveActionResult = OperationResult;
 
 export type DriveDocMessage = { kind: 'success' | 'error' | 'info'; text: string } | null;
 

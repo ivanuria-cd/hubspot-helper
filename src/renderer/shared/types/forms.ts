@@ -221,10 +221,7 @@ export interface FormLinkDeleteInput {
   linkId: string;
 }
 
-export interface FormsOperationResult {
-  success: boolean;
-  error?: string;
-}
+export type { OperationResult as FormsOperationResult } from './common';
 
 export interface FormsWriteSheetsResult {
   success: boolean;

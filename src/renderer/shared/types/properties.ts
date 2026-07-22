@@ -283,10 +283,7 @@ export interface DiscardChangeInput {
   changeId: string;
 }
 
-export interface OperationResult {
-  success: boolean;
-  error?: string;
-}
+export type { OperationResult } from './common';
 
 export interface WriteSheetsResult {
   success: boolean;

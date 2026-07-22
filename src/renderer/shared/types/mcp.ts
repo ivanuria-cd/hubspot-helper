@@ -15,10 +15,7 @@ export interface McpToggleInput {
   enabled: boolean;
 }
 
-export interface McpOperationResult {
-  success: boolean;
-  error?: string;
-}
+export type { OperationResult as McpOperationResult } from './common';
 
 export interface McpTokenResult {
   token: string;

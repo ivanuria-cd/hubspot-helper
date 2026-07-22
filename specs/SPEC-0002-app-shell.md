@@ -1216,5 +1216,36 @@ Alcance: `src/main/shared/sheets.ts` (nuevo) + los cuatro ficheros que pasan a r
 `custom-objects/sheets-model` y `forms-management/sheets-model` **usan** el tipo internamente, así que hacen
 `import type` + `export type { ... }` (un re-export puro no trae el nombre al scope); `sheet-name` no lo usa
 internamente, re-export puro. typecheck del main y ESLint en verde en sandbox. Requiere rebuild de la app;
-suite/test en la máquina del usuario. Requiere rebuild de
-la app; typecheck/test en la máquina del usuario.
+suite/test en la máquina del usuario.
+
+## 35. Tipo `OperationResult` común (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 2 (duplicidad). El tipo `{ success: boolean; error?: string }`
+está definido idéntico siete veces —`OperationResult` (`properties.ts`), `HubSpotOperationResult`,
+`GoogleDriveOperationResult`, `McpOperationResult`, `FormsOperationResult`, `ProjectFileOperationResult` y
+`DriveActionResult` (`useDriveDoc`)— más una copia inline en `DriveDirtyGuard.tsx`.
+
+Se crea `@shared/types/common.ts` con `OperationResult` canónico; los nombres nominales por dominio **se conservan**
+como alias/re-export:
+
+```ts
+// hubspot.ts
+export type { OperationResult as HubSpotOperationResult } from './common';
+```
+
+`DriveDirtyGuard` usa el tipo importado en vez de la copia inline. Ningún consumidor cambia (los nombres
+específicos siguen disponibles). Sin cambio funcional: solo se unifica la estructura (7 definiciones → 1 + alias).
+
+**Matiz (como §34).** Los ficheros que **usan** su tipo internamente (p. ej. `useDriveDoc`, que tipa
+`update`/`load` con `DriveActionResult`) harán `import type` + `export type`; los que solo lo exponen, re-export
+puro. El typecheck lo revela.
+
+**Nota de diseño.** Mantener los alias nominales (en vez de colapsar todo a un único `OperationResult`) preserva la
+legibilidad por dominio y permite divergencia futura; el objetivo es solo eliminar la definición repetida. Es el
+punto de menor beneficio del bloque 2 (cosmético); se aborda por completitud.
+
+Alcance: `@shared/types/common.ts` (nuevo) + `hubspot.ts`/`gdrive.ts`/`mcp.ts`/`forms.ts`/`project-file.ts`/
+`properties.ts` (alias) + `useDriveDoc.ts` (import+re-export) + `DriveDirtyGuard.tsx` (sin inline). Implementado
+2026-07-14: `properties`/`hubspot`/`gdrive`/`mcp`/`forms` re-export puro; `project-file` (usa el tipo en
+`ExportProjectResult extends`) y `useDriveDoc` (lo usa en `update`/`load`) con `import type` + alias; typecheck
+node+web y ESLint en verde en sandbox. Requiere rebuild de la app; suite en la máquina del usuario.

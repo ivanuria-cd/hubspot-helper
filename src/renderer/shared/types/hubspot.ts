@@ -51,7 +51,4 @@ export interface HubSpotEnvironmentInput {
   environment: HubSpotEnvironment;
 }
 
-export interface HubSpotOperationResult {
-  success: boolean;
-  error?: string;
-}
+export type { OperationResult as HubSpotOperationResult } from './common';
