@@ -31,7 +31,7 @@ import type {
 } from '@shared/types/custom-objects';
 import type { HubSpotObject } from '@shared/types/properties';
 import { HS_TYPES, fieldTypesFor } from '@shared/constants/hubspotPropertyTypes';
-import { BusyButton, FieldTooltip, useFieldHelp } from '@shared/components/feedback';
+import { BusyButton, FieldTooltip, useFieldHelp, useSnackbar } from '@shared/components/feedback';
 
 interface ObjectWizardProps {
   open: boolean;
@@ -99,7 +99,9 @@ export function ObjectWizard({
     setPlural(definition?.labels.plural ?? '');
     setDescription(definition?.description ?? '');
     setProperties(props);
-    setPrimary(valid.has(definition?.primaryDisplayProperty ?? '') ? definition!.primaryDisplayProperty : '');
+    setPrimary(
+      valid.has(definition?.primaryDisplayProperty ?? '') ? definition!.primaryDisplayProperty : '',
+    );
     setRequired(keep(definition?.requiredProperties));
     setSecondary(keep(definition?.secondaryDisplayProperties));
     setSearchable(keep(definition?.searchableProperties));
@@ -118,6 +120,7 @@ export function ObjectWizard({
   };
 
   const [submitting, setSubmitting] = useState(false);
+  const { notify } = useSnackbar();
 
   const handleSubmit = async (): Promise<void> => {
     // Solo nombres internos de propiedades existentes (descarta referencias obsoletas).
@@ -143,6 +146,11 @@ export function ObjectWizard({
         }),
       });
       onClose();
+    } catch (error) {
+      notify({
+        message: error instanceof Error ? error.message : t('common.loadError'),
+        severity: 'error',
+      });
     } finally {
       setSubmitting(false);
     }
@@ -155,27 +163,29 @@ export function ObjectWizard({
   ): JSX.Element => {
     const value = rawValue.filter((v) => propNames.includes(v));
     return (
-    <Select
-      multiple
-      size="small"
-      displayEmpty
-      value={value}
-      input={<OutlinedInput />}
-      renderValue={(selected) => (selected.length ? selected.map(labelFor).join(', ') : label)}
-      onChange={(event) =>
-        onChange(
-          typeof event.target.value === 'string' ? event.target.value.split(',') : event.target.value,
-        )
-      }
-      sx={{ minWidth: 220 }}
-    >
-      {propNames.map((propName) => (
-        <MenuItem key={propName} value={propName}>
-          <Checkbox checked={value.includes(propName)} />
-          <ListItemText primary={labelFor(propName)} />
-        </MenuItem>
-      ))}
-    </Select>
+      <Select
+        multiple
+        size="small"
+        displayEmpty
+        value={value}
+        input={<OutlinedInput />}
+        renderValue={(selected) => (selected.length ? selected.map(labelFor).join(', ') : label)}
+        onChange={(event) =>
+          onChange(
+            typeof event.target.value === 'string'
+              ? event.target.value.split(',')
+              : event.target.value,
+          )
+        }
+        sx={{ minWidth: 220 }}
+      >
+        {propNames.map((propName) => (
+          <MenuItem key={propName} value={propName}>
+            <Checkbox checked={value.includes(propName)} />
+            <ListItemText primary={labelFor(propName)} />
+          </MenuItem>
+        ))}
+      </Select>
     );
   };
 
@@ -243,7 +253,14 @@ export function ObjectWizard({
           <Divider />
           <Typography variant="subtitle2">{t('customObjects.wizard.properties')}</Typography>
           {properties.map((prop, index) => (
-            <Stack key={prop.uiId} direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Stack
+              key={prop.uiId}
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              flexWrap="wrap"
+              useFlexGap
+            >
               <TextField
                 size="small"
                 label={t('customObjects.wizard.propName')}
@@ -336,7 +353,11 @@ export function ObjectWizard({
             </Stack>
           ))}
           <Box>
-            <Button size="small" startIcon={<AddIcon />} onClick={() => setProperties((prev) => [...prev, emptyProperty()])}>
+            <Button
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => setProperties((prev) => [...prev, emptyProperty()])}
+            >
               {t('customObjects.wizard.addProperty')}
             </Button>
           </Box>
@@ -411,7 +432,13 @@ export function ObjectWizard({
         <Button startIcon={<CloseIcon />} onClick={onClose}>
           {t('customObjects.wizard.cancel')}
         </Button>
-        <BusyButton variant="contained" busy={submitting} startIcon={<SaveIcon />} disabled={!canSubmit} onClick={() => void handleSubmit()}>
+        <BusyButton
+          variant="contained"
+          busy={submitting}
+          startIcon={<SaveIcon />}
+          disabled={!canSubmit}
+          onClick={() => void handleSubmit()}
+        >
           {t('customObjects.wizard.save')}
         </BusyButton>
       </DialogActions>

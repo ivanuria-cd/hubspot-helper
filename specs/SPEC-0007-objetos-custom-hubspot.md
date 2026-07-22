@@ -678,8 +678,9 @@ casar con los cambios previos de la definición. Provoca los mismos defectos que
 SchemaChange[])` en `changes.ts` —idéntico al de propiedades: casa por `operation` y hereda `id`, `createdAt`,
 `appliedToSandbox`, `appliedToProduction`—. `reconcileDefinitions` lo aplica a los `pendingChanges` de cada
 definición contra `def.pendingChanges` previos. `operation` es única por definición (`create` XOR `update_schema`
-+ a lo sumo un `archive`), por lo que casar por operación es correcto; el `archive` previo ya conserva su
-identidad (no-op).
+
+- a lo sumo un `archive`), por lo que casar por operación es correcto; el `archive` previo ya conserva su
+  identidad (no-op).
 
 **Fuera de alcance (límite del modelo).** Objetos custom reconcilia contra el **entorno activo** (no siempre
 contra producción, como propiedades §37). `preserveIdentity` conserva id/flags **mientras el cambio persista**
@@ -706,3 +707,16 @@ opciones (solo `labels`/`primaryDisplayProperty`/`requiredProperties`/`secondary
 previene un futuro bug si objetos empezara a comparar opciones. Alcance: `custom-objects/changes.ts`. Implementado
 2026-07-14 (1 línea + comentario alineado); typecheck del main, ESLint y 31 specs de objetos custom en verde en
 sandbox. Requiere rebuild de la app; suite en la máquina del usuario.
+
+## 32. `catch` en el submit del `ObjectWizard` (IMPLEMENTADO, 2026-07-22)
+
+Del informe de revisión de código 2026-07-14, bloque 3 (E4). `ObjectWizard.handleSubmit` usa `try/finally` sin
+`catch`: si `onSubmit` (crear/editar el borrador de schema) rechaza, el error no se notifica al usuario (fallo
+silencioso; además el `onClick={() => void handleSubmit()}` descarta la promesa, dejando un unhandled rejection).
+El `EntryWizard` de propiedades sí captura y notifica. Corrección: importar `useSnackbar` y añadir
+`catch (error) { notify({ message: error instanceof Error ? error.message : t('common.loadError'), severity:
+'error' }) }` antes del `finally`, patrón idéntico a `EntryWizard`. `ObjectWizard` ya usa `BusyButton` + estado
+`submitting`, por lo que solo falta la captura. Sin i18n nueva (`common.loadError` existe en los 7 locales).
+Alcance: `custom-objects/components/ObjectWizard.tsx`. Implementado 2026-07-22 (import de `useSnackbar` +
+`catch`/`notify` antes del `finally`); typecheck del renderer y ESLint del fichero en verde en sandbox. Requiere
+rebuild de la app; suite en la máquina del usuario.
