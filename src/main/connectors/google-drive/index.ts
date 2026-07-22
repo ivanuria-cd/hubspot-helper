@@ -29,7 +29,13 @@ import {
   type TokenSet,
 } from './auth';
 import { createProjectRecord } from '../../shared/project-record';
-import { createDriveClient, type DriveApi, type DriveClient } from './client';
+import {
+  createDriveClient,
+  MIME_DOCUMENT,
+  MIME_SPREADSHEET,
+  type DriveApi,
+  type DriveClient,
+} from './client';
 import { retried } from './retry';
 import { createSheetsClient, type SheetsClient, type SheetTab } from './sheets-client';
 import type { PlanningWorkbook } from '../../property-management/planning-model';
@@ -339,7 +345,7 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
           files.push({
             driveId,
             name: input.featureKey,
-            mimeType: 'application/vnd.google-apps.document',
+            mimeType: MIME_DOCUMENT,
             featureKey: input.featureKey,
             lastModifiedDrive: reused.modifiedTime,
             lastModifiedLocal: isoNow(),
@@ -358,7 +364,7 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
           files.push({
             driveId,
             name: input.featureKey,
-            mimeType: 'application/vnd.google-apps.document',
+            mimeType: MIME_DOCUMENT,
             featureKey: input.featureKey,
             lastModifiedDrive: created.modifiedTime,
             lastModifiedLocal: isoNow(),
@@ -430,7 +436,7 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
         files.push({
           driveId: spreadsheetId,
           name: input.name,
-          mimeType: 'application/vnd.google-apps.spreadsheet',
+          mimeType: MIME_SPREADSHEET,
           featureKey: input.featureKey,
           lastModifiedDrive: '',
           lastModifiedLocal: isoNow(),
@@ -476,7 +482,7 @@ export function createGoogleDriveConnector(deps: GoogleDriveConnectorDeps) {
         files.push({
           driveId: spreadsheetId,
           name: input.name,
-          mimeType: 'application/vnd.google-apps.spreadsheet',
+          mimeType: MIME_SPREADSHEET,
           featureKey: input.featureKey,
           lastModifiedDrive: '',
           lastModifiedLocal: isoNow(),

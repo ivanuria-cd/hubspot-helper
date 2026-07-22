@@ -1224,3 +1224,14 @@ usa `useTranslation('common')` y esas claves por defecto. Retrocompatible: quien
 SPEC-0007 §29, SPEC-0008 §38). Alcance: `shared/hooks/useDriveDoc.ts` + un caso de test del default. Sin i18n
 nueva. Implementado 2026-07-14. Requiere rebuild de la app; typecheck/test en la máquina del
 usuario.
+
+## 30. Higiene del conector Drive: constantes MIME y aria-label del breadcrumb (IMPLEMENTADO, 2026-07-22)
+
+Del informe de revisión de código 2026-07-14, bloque 4 (higiene). (a) `connectors/google-drive/index.ts` usa las
+cadenas MIME crudas (`'application/vnd.google-apps.document'`/`'...spreadsheet'`, 4 apariciones) en vez de las
+constantes `MIME_DOCUMENT`/`MIME_SPREADSHEET` ya exportadas por `client.ts`; se sustituyen por las constantes. (b)
+`FolderPickerDialog` no pone `aria-label` en sus `Breadcrumbs`, mientras `TopBar` (SPEC-0002) sí; se añade
+`aria-label="breadcrumb"` para igualar (a11y). Sin cambio de comportamiento ni i18n nueva (se replica el literal
+existente de `TopBar`). Alcance: `connectors/google-drive/index.ts` + `FolderPickerDialog.tsx`. Implementado 2026-07-22 (`index.ts` usa `MIME_DOCUMENT`/`MIME_SPREADSHEET`; `FolderPickerDialog` con
+`aria-label="breadcrumb"`); typecheck node+web y ESLint en verde en sandbox. Requiere rebuild de la app;
+suite en la máquina del usuario.

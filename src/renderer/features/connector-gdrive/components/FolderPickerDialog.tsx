@@ -171,7 +171,11 @@ export function FolderPickerDialog({
             ),
             endAdornment: searchActive ? (
               <InputAdornment position="end">
-                <IconButton size="small" aria-label={t('gdrive.folderPicker.clearSearch')} onClick={clearSearch}>
+                <IconButton
+                  size="small"
+                  aria-label={t('gdrive.folderPicker.clearSearch')}
+                  onClick={clearSearch}
+                >
                   <ClearIcon fontSize="small" />
                 </IconButton>
               </InputAdornment>
@@ -180,14 +184,19 @@ export function FolderPickerDialog({
         />
 
         {!searchActive ? (
-          <Breadcrumbs sx={{ mb: 1 }}>
+          <Breadcrumbs sx={{ mb: 1 }} aria-label="breadcrumb">
             {trail.map((folder, index) =>
               index === trail.length - 1 ? (
                 <Typography key={folder.id} color="text.primary">
                   {folder.name}
                 </Typography>
               ) : (
-                <Link key={folder.id} component="button" underline="hover" onClick={() => goTo(index)}>
+                <Link
+                  key={folder.id}
+                  component="button"
+                  underline="hover"
+                  onClick={() => goTo(index)}
+                >
                   {folder.name}
                 </Link>
               ),
