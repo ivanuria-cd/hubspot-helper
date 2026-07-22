@@ -18,7 +18,7 @@ import { cdPalette } from '@renderer/theme';
 import { useShellStore } from '@renderer/app/store/shell-store';
 import { NAV_ITEMS, type NavItem } from './nav-items';
 
-const EXPANDED_WIDTH = 240;
+const EXPANDED_WIDTH = 264;
 const RAIL_WIDTH = 64;
 
 export function Sidebar(): JSX.Element {
@@ -53,8 +53,13 @@ export function Sidebar(): JSX.Element {
         aria-current={active ? 'page' : undefined}
         sx={{
           justifyContent: collapsed ? 'center' : 'flex-start',
+          borderLeft: '3px solid transparent',
           pl: collapsed ? undefined : item.child ? 4 : undefined,
-          '&.Mui-selected': { borderRight: `3px solid ${cdPalette.accent}` },
+          '&.Mui-selected': {
+            borderLeftColor: cdPalette.textOnDark,
+            backgroundColor: 'rgba(255,255,255,0.08)',
+          },
+          '&.Mui-selected:hover': { backgroundColor: 'rgba(255,255,255,0.12)' },
         }}
       >
         <ListItemIcon
@@ -62,7 +67,9 @@ export function Sidebar(): JSX.Element {
         >
           <Icon aria-hidden />
         </ListItemIcon>
-        {collapsed ? null : <ListItemText primary={label} />}
+        {collapsed ? null : (
+          <ListItemText primary={label} primaryTypographyProps={{ noWrap: true }} />
+        )}
       </ListItemButton>
     );
     // Semántica de lista válida (axe `list`/`listitem`, informe e2e 2026-07-03): los hijos del
@@ -73,15 +80,15 @@ export function Sidebar(): JSX.Element {
         key={item.labelKey}
         disablePadding
         divider={item.endsGroup}
-        sx={item.endsGroup ? { '&.MuiListItem-divider': { borderBottomColor: 'rgba(255,255,255,0.12)' } } : undefined}
+        sx={
+          item.endsGroup
+            ? { '&.MuiListItem-divider': { borderBottomColor: 'rgba(255,255,255,0.12)' } }
+            : undefined
+        }
       >
-        {collapsed ? (
-          <Tooltip title={label} placement="right">
-            {button}
-          </Tooltip>
-        ) : (
-          button
-        )}
+        <Tooltip title={label} placement="right">
+          {button}
+        </Tooltip>
       </ListItem>
     );
   };

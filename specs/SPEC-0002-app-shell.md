@@ -1274,3 +1274,15 @@ planning-field-types + spec). Alcance: 5 renames + ~10 imports. Implementado 202
 tocar contenido, encoding intacto— + `sed` de las rutas de import; símbolos exportados sin cambio). typecheck
 node+web, ESLint y los 2 specs movidos (8/8) en verde en sandbox. Requiere rebuild de la app/MCP; suite en la máquina
 del usuario.
+
+## 38. Corrección del menú lateral: indicador de selección y truncado de labels (IMPLEMENTADO, 2026-07-22)
+
+**38.1 Problema.** En `Sidebar.tsx` el item activo se marcaba con `borderRight: 3px solid cdPalette.accent` (lima `#AFFC41`) sobre el fondo oscuro del drawer (`#090017`), incumpliendo SPEC-0000 §4 (lima prohibido como color de elemento sobre oscuro; solo válido como fondo de badge con texto navy) y percibiéndose como una franja desbordada en el límite con el contenido. Además, los labels largos (p. ej. `sidebar.objects` en catalán, «Objectes personalitzats») se cortaban a mitad de palabra: `ListItemText` sin control de overflow, `Drawer` con `whiteSpace: nowrap` + `overflowX: hidden`, ancho 240 px con icono (`mr: 2`) y sangría de hijo (`pl: 4`); el `Tooltip` con el texto completo solo existía en estado colapsado.
+
+**38.2 Diseño.** Indicador de selección conforme a marca: se sustituye el `borderRight` lima por un `borderLeft: '3px solid transparent'` constante (evita el salto de 3 px al seleccionar) que en `&.Mui-selected` pasa a `borderLeftColor: cdPalette.textOnDark` (blanco) + `backgroundColor: rgba(255,255,255,0.08)` (y `0.12` en hover). La barra pasa al lado izquierdo (convención y sin rozar el contenido). Truncado: `ListItemText` con `primaryTypographyProps={{ noWrap: true }}` (elipsis «…»). El `Tooltip` con el label completo se aplica siempre (expandido y colapsado), exponiendo el texto íntegro por hover/foco. Ancho expandido `EXPANDED_WIDTH` 240 → 264 px para que los items de CRM quepan en los idiomas habituales; elipsis + tooltip quedan como red de seguridad.
+
+**38.3 Alcance.** Solo `Sidebar.tsx`. Sin cambios en `nav-items.ts`, i18n (reutiliza las claves `sidebar.*`) ni la paleta. `cdPalette.accent` deja de usarse en el sidebar.
+
+**38.4 Tests.** Nuevo `Sidebar.spec.tsx`: aria-current en el item de la ruta activa; `noWrap` en los labels; el indicador activo no usa el lima (`borderLeftColor` ≠ `rgb(175, 252, 65)`); el label completo se conserva en el DOM en catalán. Sin regresiones en axe (a11y-baseline).
+
+**38.5 Estado.** IMPLEMENTADO (2026-07-22). `npm run typecheck` (node+web) y ESLint del sidebar + su spec en verde en sandbox. El `Sidebar.spec.tsx` y la suite e2e (a11y) se ejecutan en la máquina del usuario: los specs `.tsx` (jsdom + MUI) no completan en el sandbox de 2 CPUs. Requiere rebuild de la app.
