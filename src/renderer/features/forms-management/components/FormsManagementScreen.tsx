@@ -173,13 +173,16 @@ export function FormsManagementScreen(): JSX.Element | null {
     setEditSource(editSourceFromChange(change, change.createContext?.originIds ?? []));
   };
 
-  const handleEditSubmit = (edits: FormEditsInput, originIds: string[] | undefined): void => {
+  const handleEditSubmit = async (
+    edits: FormEditsInput,
+    originIds: string[] | undefined,
+  ): Promise<void> => {
     if (!editTarget) return;
     if (editTarget.kind === 'form') {
-      void updateDefinition(projectId, editTarget.formId, edits);
+      await updateDefinition(projectId, editTarget.formId, edits);
       setView('changes');
     } else {
-      void editPendingChange(projectId, editTarget.changeId, edits, originIds);
+      await editPendingChange(projectId, editTarget.changeId, edits, originIds);
     }
   };
 
@@ -301,7 +304,7 @@ export function FormsManagementScreen(): JSX.Element | null {
         origins={origins}
         entries={entries}
         onClose={() => setWizardOpen(false)}
-        onSubmit={(definition) => void createDefinition(projectId, definition)}
+        onSubmit={(definition) => createDefinition(projectId, definition)}
       />
 
       <LinkOriginModal

@@ -21,7 +21,7 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
-import { FieldTooltip, useFieldHelp } from '@shared/components/feedback';
+import { BusyButton, FieldTooltip, useFieldHelp, useSnackbar } from '@shared/components/feedback';
 import type { NewFormDefinition } from '@shared/types/forms';
 import type { DataOrigin, HubSpotObject, PropertyEntry } from '@shared/types/properties';
 
@@ -43,7 +43,11 @@ function mapFieldType(fieldType: string, hubspotName: string): string {
   return FIELD_TYPE_MAP[fieldType] ?? 'single_line_text';
 }
 
-function entryDest(entry: PropertyEntry): { hubspotName: string; label: string; fieldType: string } {
+function entryDest(entry: PropertyEntry): {
+  hubspotName: string;
+  label: string;
+  fieldType: string;
+} {
   const ref = entry.hubspotProperty;
   const hubspotName = ref.mode === 'existing' ? ref.hubspotName : ref.definition.hubspotName;
   return {
@@ -68,7 +72,7 @@ export interface NewFormWizardProps {
   origins: DataOrigin[];
   entries: PropertyEntry[];
   onClose: () => void;
-  onSubmit: (definition: NewFormDefinition) => void;
+  onSubmit: (definition: NewFormDefinition) => Promise<void>;
 }
 
 export function NewFormWizard({
@@ -80,6 +84,8 @@ export function NewFormWizard({
   onSubmit,
 }: NewFormWizardProps): JSX.Element {
   const { t } = useTranslation('common');
+  const { notify } = useSnackbar();
+  const [submitting, setSubmitting] = useState(false);
   const nameHelp = useFieldHelp('forms.wizard.fieldHelp.name');
   const objectHelp = useFieldHelp('forms.wizard.fieldHelp.object');
   const [name, setName] = useState('');
@@ -124,7 +130,7 @@ export function NewFormWizard({
     setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
   };
 
-  const handleSubmit = (): void => {
+  const handleSubmit = async (): Promise<void> => {
     const fields = rows
       .filter((row) => row.selected)
       .map((row) => ({
@@ -134,8 +140,18 @@ export function NewFormWizard({
         required: row.required,
         hidden: row.hidden,
       }));
-    onSubmit({ name, originIds, objectType, fields });
-    onClose();
+    setSubmitting(true);
+    try {
+      await onSubmit({ name, originIds, objectType, fields });
+      onClose();
+    } catch (error) {
+      notify({
+        message: error instanceof Error ? error.message : t('common.loadError'),
+        severity: 'error',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -251,14 +267,18 @@ export function NewFormWizard({
                       <Checkbox
                         checked={row.required}
                         onChange={(event) => updateRow(index, { required: event.target.checked })}
-                        inputProps={{ 'aria-label': `${t('forms.wizard.required')} — ${row.hubspotName}` }}
+                        inputProps={{
+                          'aria-label': `${t('forms.wizard.required')} — ${row.hubspotName}`,
+                        }}
                       />
                     </TableCell>
                     <TableCell>
                       <Checkbox
                         checked={row.hidden}
                         onChange={(event) => updateRow(index, { hidden: event.target.checked })}
-                        inputProps={{ 'aria-label': `${t('forms.wizard.hidden')} — ${row.hubspotName}` }}
+                        inputProps={{
+                          'aria-label': `${t('forms.wizard.hidden')} — ${row.hubspotName}`,
+                        }}
                       />
                     </TableCell>
                   </TableRow>
@@ -272,14 +292,15 @@ export function NewFormWizard({
         <Button startIcon={<CloseIcon />} onClick={onClose}>
           {t('forms.wizard.cancel')}
         </Button>
-        <Button
+        <BusyButton
+          busy={submitting}
           variant="contained"
           startIcon={<AddIcon />}
           disabled={!name.trim() || rows.filter((r) => r.selected).length === 0}
           onClick={handleSubmit}
         >
           {t('forms.wizard.create')}
-        </Button>
+        </BusyButton>
       </DialogActions>
     </Dialog>
   );

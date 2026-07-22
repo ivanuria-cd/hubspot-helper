@@ -4,6 +4,7 @@ import { I18nextProvider } from 'react-i18next';
 import { ThemeProvider } from '@mui/material';
 import { cdTheme } from '@renderer/theme';
 import { createI18n } from '@renderer/i18n';
+import { SnackbarProvider } from '@shared/components/feedback';
 import type { FormEditsInput } from '@shared/types/forms';
 import { EditFormWizard, type EditFormSource } from './EditFormWizard';
 
@@ -36,18 +37,20 @@ function makeSource(): EditFormSource {
 }
 
 function renderWizard() {
-  const onSubmit = vi.fn();
+  const onSubmit = vi.fn().mockResolvedValue(undefined);
   render(
     <I18nextProvider i18n={i18n}>
       <ThemeProvider theme={cdTheme}>
-        <EditFormWizard
-          open
-          source={makeSource()}
-          origins={[]}
-          subscriptionTypes={[]}
-          onClose={vi.fn()}
-          onSubmit={onSubmit}
-        />
+        <SnackbarProvider>
+          <EditFormWizard
+            open
+            source={makeSource()}
+            origins={[]}
+            subscriptionTypes={[]}
+            onClose={vi.fn()}
+            onSubmit={onSubmit}
+          />
+        </SnackbarProvider>
       </ThemeProvider>
     </I18nextProvider>,
   );

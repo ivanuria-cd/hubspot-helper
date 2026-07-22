@@ -16,7 +16,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import SaveIcon from '@mui/icons-material/Save';
 import { useTranslation } from 'react-i18next';
-import { FieldTooltip, useFieldHelp } from '@shared/components/feedback';
+import { BusyButton, FieldTooltip, useFieldHelp, useSnackbar } from '@shared/components/feedback';
 import type { HubSpotForm, FormOriginLink } from '@shared/types/forms';
 import type { DataOrigin, HubSpotObject } from '@shared/types/properties';
 
@@ -32,7 +32,7 @@ export interface LinkOriginModalProps {
     formId: string;
     originIds: string[];
     objectType: string;
-  }) => void;
+  }) => Promise<void>;
 }
 
 export function LinkOriginModal({
@@ -45,6 +45,8 @@ export function LinkOriginModal({
   onSubmit,
 }: LinkOriginModalProps): JSX.Element {
   const { t } = useTranslation('common');
+  const { notify } = useSnackbar();
+  const [submitting, setSubmitting] = useState(false);
   const objectHelp = useFieldHelp('forms.linkModal.fieldHelp.object');
   const [objectType, setObjectType] = useState('contacts');
   const [originIds, setOriginIds] = useState<string[]>([]);
@@ -59,10 +61,20 @@ export function LinkOriginModal({
     setOriginIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
-  const handleSubmit = (): void => {
+  const handleSubmit = async (): Promise<void> => {
     if (!form || originIds.length === 0) return;
-    onSubmit({ id: link?.id, formId: form.id, originIds, objectType });
-    onClose();
+    setSubmitting(true);
+    try {
+      await onSubmit({ id: link?.id, formId: form.id, originIds, objectType });
+      onClose();
+    } catch (error) {
+      notify({
+        message: error instanceof Error ? error.message : t('common.loadError'),
+        severity: 'error',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -114,9 +126,15 @@ export function LinkOriginModal({
         <Button startIcon={<CloseIcon />} onClick={onClose}>
           {t('forms.linkModal.cancel')}
         </Button>
-        <Button variant="contained" startIcon={<SaveIcon />} disabled={originIds.length === 0} onClick={handleSubmit}>
+        <BusyButton
+          busy={submitting}
+          variant="contained"
+          startIcon={<SaveIcon />}
+          disabled={originIds.length === 0}
+          onClick={handleSubmit}
+        >
           {t('forms.linkModal.save')}
-        </Button>
+        </BusyButton>
       </DialogActions>
     </Dialog>
   );

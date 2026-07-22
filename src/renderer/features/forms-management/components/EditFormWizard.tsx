@@ -28,7 +28,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import SaveIcon from '@mui/icons-material/Save';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useTranslation } from 'react-i18next';
-import { FieldTooltip, useFieldHelp } from '@shared/components/feedback';
+import { BusyButton, FieldTooltip, useFieldHelp, useSnackbar } from '@shared/components/feedback';
 import type {
   FormChange,
   FormEditsInput,
@@ -130,7 +130,11 @@ function consentFromLco(
   lco: Record<string, unknown>,
 ): Pick<
   EditFormSource,
-  'consentType' | 'privacyText' | 'consentToProcessText' | 'communicationConsentText' | 'communicationsCheckboxes'
+  | 'consentType'
+  | 'privacyText'
+  | 'consentToProcessText'
+  | 'communicationConsentText'
+  | 'communicationsCheckboxes'
 > {
   return {
     consentType: String(lco.type ?? 'none'),
@@ -183,7 +187,7 @@ export interface EditFormWizardProps {
   origins: DataOrigin[];
   subscriptionTypes: SubscriptionType[];
   onClose: () => void;
-  onSubmit: (edits: FormEditsInput, originIds: string[] | undefined) => void;
+  onSubmit: (edits: FormEditsInput, originIds: string[] | undefined) => Promise<void>;
 }
 
 export function EditFormWizard({
@@ -195,6 +199,8 @@ export function EditFormWizard({
   onSubmit,
 }: EditFormWizardProps): JSX.Element {
   const { t } = useTranslation('common');
+  const { notify } = useSnackbar();
+  const [submitting, setSubmitting] = useState(false);
   const nameHelp = useFieldHelp('forms.editWizard.fieldHelp.name');
   const consentTypeHelp = useFieldHelp('forms.editWizard.fieldHelp.consentType');
   const submitButtonHelp = useFieldHelp('forms.editWizard.fieldHelp.submitButton');
@@ -285,7 +291,7 @@ export function EditFormWizard({
     setCheckboxes((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSave = (): void => {
+  const handleSave = async (): Promise<void> => {
     if (!source) return;
     const edits: FormEditsInput = {
       fields: fields
@@ -317,12 +323,23 @@ export function EditFormWizard({
             })),
         };
         if (consentToProcessText.trim()) lco.consentToProcessText = consentToProcessText;
-        if (communicationConsentText.trim()) lco.communicationConsentText = communicationConsentText;
+        if (communicationConsentText.trim())
+          lco.communicationConsentText = communicationConsentText;
         edits.legalConsentOptions = lco;
       }
     }
-    onSubmit(edits, source.showOrigins ? originIds : undefined);
-    onClose();
+    setSubmitting(true);
+    try {
+      await onSubmit(edits, source.showOrigins ? originIds : undefined);
+      onClose();
+    } catch (error) {
+      notify({
+        message: error instanceof Error ? error.message : t('common.loadError'),
+        severity: 'error',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const title = source?.showName
@@ -395,7 +412,9 @@ export function EditFormWizard({
                       placeholder={t('forms.editWizard.fieldName')}
                       // SPEC-0008 §32: aria-label compuesto por fila (los headers de la tabla no
                       // etiquetan los inputs para lectores de pantalla).
-                      inputProps={{ 'aria-label': `${t('forms.editWizard.fieldName')} ${index + 1}` }}
+                      inputProps={{
+                        'aria-label': `${t('forms.editWizard.fieldName')} ${index + 1}`,
+                      }}
                     />
                   </TableCell>
                   <TableCell>
@@ -403,7 +422,9 @@ export function EditFormWizard({
                       size="small"
                       value={field.label}
                       onChange={(event) => patchField(index, { label: event.target.value })}
-                      inputProps={{ 'aria-label': `${t('forms.editWizard.label')} ${field.name || index + 1}` }}
+                      inputProps={{
+                        'aria-label': `${t('forms.editWizard.label')} ${field.name || index + 1}`,
+                      }}
                     />
                   </TableCell>
                   <TableCell>
@@ -430,7 +451,9 @@ export function EditFormWizard({
                     <Checkbox
                       checked={field.required}
                       onChange={(event) => patchField(index, { required: event.target.checked })}
-                      inputProps={{ 'aria-label': `${t('forms.editWizard.required')} ${field.name}` }}
+                      inputProps={{
+                        'aria-label': `${t('forms.editWizard.required')} ${field.name}`,
+                      }}
                     />
                   </TableCell>
                   <TableCell align="center" padding="checkbox">
@@ -469,7 +492,12 @@ export function EditFormWizard({
               ))}
             </TableBody>
           </Table>
-          <Button variant="text" startIcon={<AddIcon />} onClick={addField} sx={{ alignSelf: 'flex-start' }}>
+          <Button
+            variant="text"
+            startIcon={<AddIcon />}
+            onClick={addField}
+            sx={{ alignSelf: 'flex-start' }}
+          >
             {t('forms.editWizard.addField')}
           </Button>
 
@@ -560,7 +588,9 @@ export function EditFormWizard({
                     inputProps={{ 'aria-describedby': consentToProcessHelp.describedById }}
                     InputProps={{
                       endAdornment: (
-                        <InputAdornment position="end">{consentToProcessHelp.tooltip}</InputAdornment>
+                        <InputAdornment position="end">
+                          {consentToProcessHelp.tooltip}
+                        </InputAdornment>
                       ),
                     }}
                   />
@@ -651,9 +681,14 @@ export function EditFormWizard({
         <Button startIcon={<CloseIcon />} onClick={onClose}>
           {t('forms.editWizard.cancel')}
         </Button>
-        <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave}>
+        <BusyButton
+          busy={submitting}
+          variant="contained"
+          startIcon={<SaveIcon />}
+          onClick={handleSave}
+        >
           {t('forms.editWizard.save')}
-        </Button>
+        </BusyButton>
       </DialogActions>
     </Dialog>
   );

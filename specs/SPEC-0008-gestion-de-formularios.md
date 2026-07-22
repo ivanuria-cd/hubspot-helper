@@ -964,3 +964,43 @@ Del informe de revisión de código 2026-07-14, bloque 1 (i18n). `forms-store.ap
 (§34), mostrando el mensaje real de HubSpot o la clave traducida. Patrón `entries-store` §53.18. Solo
 `forms-store.ts`; sin i18n nueva. Implementado 2026-07-14. Requiere rebuild de la app;
 typecheck/test en la máquina del usuario.
+
+## 39. Contrato de wizards de formularios: `Promise<void>` + `BusyButton` + `catch`/`notify` (IMPLEMENTADO, 2026-07-22)
+
+Del informe de revisión de código 2026-07-14, bloque 3 (E3). Los tres wizards de formularios rompen el contrato de
+wizard establecido por `EntryWizard` (SPEC-0006) y `ObjectWizard` (SPEC-0007 §32):
+
+- `NewFormWizard`, `EditFormWizard` y `LinkOriginModal` declaran `onSubmit: (...) => void`; sus
+  `handleSubmit`/`handleSave` llaman `onSubmit(...)` seguido de `onClose()` sin `await`, con `Button` plano, sin
+  estado `submitting` ni `BusyButton`, sin `try/catch`/`notify`.
+- `FormsManagementScreen` descarta las promesas: `onSubmit={(definition) => void createDefinition(...)}`,
+  `handleEditSubmit` hace `void updateDefinition(...)`/`void editPendingChange(...)` con `setView('changes')`
+  optimista; el handler de `LinkOriginModal` es `async` pero sin `try/catch`.
+- Las acciones del store (`createDefinition`/`updateDefinition`/`editPendingChange`/`upsertLink`) no capturan (a
+  diferencia de `load`/`sync`/`applyChange`), así que la promesa rechaza.
+
+Consecuencia: si falla crear/editar/vincular (IPC o HubSpot), el diálogo se cierra igual, sin Snackbar, y la vista
+cambia igual → fallo silencioso + unhandled rejection; además no hay spinner y es posible el doble submit.
+
+Corrección (alinear al contrato):
+
+1. Los tres wizards: `onSubmit: (...) => Promise<void>`, importan `useSnackbar` + `BusyButton`, añaden estado
+   `submitting`, y su handler pasa a `async`: `setSubmitting(true); try { await onSubmit(...); onClose(); } catch
+   (error) { notify({ message: error instanceof Error ? error.message : t('common.loadError'), severity: 'error' }) }
+   finally { setSubmitting(false); }`. El `Button` de guardar pasa a `BusyButton busy={submitting}`.
+2. `FormsManagementScreen`: los handlers devuelven la promesa (sin `void`) y mueven `setView('changes')`
+   (EditFormWizard, solo al editar un form) y `loadCoverage` (LinkOriginModal) a después del `await` (solo en éxito).
+   `handleEditSubmit` pasa a `async`.
+
+Casos límite: `EditFormWizard` tiene doble destino (form vs cambio pendiente); el `setView('changes')` solo aplica al
+form. `LinkOriginModal` encadena `upsertLink`+`loadCoverage`: ambos quedan bajo el mismo `catch` del wizard.
+`EditFormWizard.spec.tsx` debe envolverse en `<SnackbarProvider>` (el wizard usa ahora `useSnackbar`) y su `onSubmit`
+pasa a `vi.fn().mockResolvedValue(undefined)` (patrón de `EntryWizard.spec`). Sin i18n nueva (`common.loadError` en
+los 7 locales). `NewFormWizard`/`LinkOriginModal` no tienen spec (sin cobertura nueva en este cambio).
+
+Alcance: `NewFormWizard.tsx`, `EditFormWizard.tsx`, `LinkOriginModal.tsx`, `FormsManagementScreen.tsx`. Implementado
+2026-07-22 (los 3 wizards con `onSubmit: (...) => Promise<void>`, estado `submitting`, `BusyButton`,
+`try/catch(notify)/finally` y `onClose()` solo en éxito; `FormsManagementScreen` devuelve la promesa —sin `void`— y
+`handleEditSubmit` pasa a `async` moviendo `setView('changes')` tras el `await`). typecheck del renderer y ESLint de
+los 4 ficheros en verde en sandbox; los specs del renderer no corren en el sandbox por el tiempo de arranque
+(jsdom+MUI), se ejecutan en la máquina del usuario. Requiere rebuild de la app.
