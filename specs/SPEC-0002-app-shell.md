@@ -1191,5 +1191,30 @@ servicio (objetos: `deps.now ?? default`; propiedades/formularios: `deps.now`), 
 Fuera de alcance: `serialize/parse` de `drive-state.ts` (mensajes de error repetidos) y `changeFactory`/
 `markApplied`, puntos aparte más ligados a la lógica de cada feature.
 
-Implementado 2026-07-14 (`src/main/shared/drive-meta-ops.ts` + adopción en los tres servicios; `getDriveMeta` de propiedades unificado tras confirmar equivalencia; imports `DriveDocMeta` huérfanos retirados de los servicios). Verificado en sandbox: typecheck del main, ESLint y 65 specs de servicios en verde. Requiere rebuild de la app; e2e/suite completa en la máquina del usuario. Requiere rebuild de
+Implementado 2026-07-14 (`src/main/shared/drive-meta-ops.ts` + adopción en los tres servicios; `getDriveMeta` de propiedades unificado tras confirmar equivalencia; imports `DriveDocMeta` huérfanos retirados de los servicios). Verificado en sandbox: typecheck del main, ESLint y 65 specs de servicios en verde. Requiere rebuild de la app; e2e/suite completa en la máquina del usuario.
+
+## 34. Tipo `SheetTab`/`CellValue` compartido (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 2 (duplicidad). `CellValue` (`string | number | boolean`) y
+`SheetTab` (`{ title: string; rows: CellValue[][] }`) están definidos —idénticos byte a byte— cuatro veces: el
+canónico en `connectors/google-drive/sheets-client.ts` y réplicas en `property-management/sheet-name.ts`,
+`custom-objects/sheets-model.ts` y `forms-management/sheets-model.ts`.
+
+Se crea `src/main/shared/sheets.ts` con la definición única, y los cuatro sitios pasan a **re-exportar**:
+
+```ts
+export type { CellValue, SheetTab } from '<ruta>/shared/sheets';
+```
+
+Ningún consumidor cambia: `sheets-client`, `sheet-name`, los `sheets-model`, `planning-model` y sus `.spec`
+siguen importando `SheetTab`/`CellValue` de donde ya lo hacían (la cadena de re-exports se mantiene). El conector
+re-exporta desde `main/shared` (capa base; sin ciclo, porque `shared` no importa del conector). Sin cambio
+funcional ni de contrato.
+
+Alcance: `src/main/shared/sheets.ts` (nuevo) + los cuatro ficheros que pasan a re-exportar. Continúa la línea de
+`main/shared` (§23 `createProjectRecord`, §33 `createDriveMetaOps`). Implementado 2026-07-14. Matiz: `sheets-client`,
+`custom-objects/sheets-model` y `forms-management/sheets-model` **usan** el tipo internamente, así que hacen
+`import type` + `export type { ... }` (un re-export puro no trae el nombre al scope); `sheet-name` no lo usa
+internamente, re-export puro. typecheck del main y ESLint en verde en sandbox. Requiere rebuild de la app;
+suite/test en la máquina del usuario. Requiere rebuild de
 la app; typecheck/test en la máquina del usuario.

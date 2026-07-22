@@ -8,12 +8,8 @@ import type { CustomObjectDefinition } from '@shared/types/custom-objects';
 export const CUSTOM_OBJECTS_FEATURE_KEY = 'custom-objects';
 export const CUSTOM_OBJECTS_SHEETS_SCHEMA_VERSION = 1;
 
-export type CellValue = string | number | boolean;
-
-export interface SheetTab {
-  title: string;
-  rows: CellValue[][];
-}
+import type { CellValue, SheetTab } from '../shared/sheets';
+export type { CellValue, SheetTab };
 
 export function buildCustomObjectsTabs(
   objects: CustomObjectDefinition[],
@@ -26,7 +22,9 @@ export function buildCustomObjectsTabs(
       ['schema_version', CUSTOM_OBJECTS_SHEETS_SCHEMA_VERSION],
       ['Generado', generatedAt],
       [],
-      ['Hoja generada por RevOps Assistant. No edites las zonas de datos: se regeneran en cada volcado.'],
+      [
+        'Hoja generada por RevOps Assistant. No edites las zonas de datos: se regeneran en cada volcado.',
+      ],
       ['Objetos', objects.length],
     ],
   };

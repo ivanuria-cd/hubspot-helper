@@ -8,12 +8,8 @@ import { buildStyleRequests, type SheetMeta } from './sheets-style';
 import { buildPlanningStyleRequests } from './planning-style';
 import type { PlanningWorkbook } from '../../property-management/planning-model';
 
-export type CellValue = string | number | boolean;
-
-export interface SheetTab {
-  title: string;
-  rows: CellValue[][];
-}
+import type { CellValue, SheetTab } from '../../shared/sheets';
+export type { CellValue, SheetTab };
 
 export interface SpreadsheetWriteInput {
   folderId: string;

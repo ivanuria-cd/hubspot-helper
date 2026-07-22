@@ -3,12 +3,7 @@
  * (sheets-model), el del mapa editable (planning-model) y el import (planning-import). Fuente unica
  * (SPEC-0006 §53.8). ASCII intencionado (evita el truncado del espejo del sandbox).
  */
-export type CellValue = string | number | boolean;
-
-export interface SheetTab {
-  title: string;
-  rows: CellValue[][];
-}
+export type { CellValue, SheetTab } from '../shared/sheets';
 
 export const SHEET_NAME_MAX = 100;
 export const INVALID_SHEET_CHARS = /[:\\/?*[\]]/g;

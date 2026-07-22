@@ -9,12 +9,8 @@ import type { DataOrigin } from '@shared/types/properties';
 export const FORMS_SHEETS_SCHEMA_VERSION = 1;
 export const FORMS_FEATURE_KEY = 'forms-management';
 
-export type CellValue = string | number | boolean;
-
-export interface SheetTab {
-  title: string;
-  rows: CellValue[][];
-}
+import type { CellValue, SheetTab } from '../shared/sheets';
+export type { CellValue, SheetTab };
 
 export function buildFormsTabs(
   forms: HubSpotForm[],
@@ -33,7 +29,9 @@ export function buildFormsTabs(
       ['schema_version', FORMS_SHEETS_SCHEMA_VERSION],
       ['Generado', generatedAt],
       [],
-      ['Hoja generada por RevOps Assistant. No edites las zonas de datos: se regeneran en cada volcado.'],
+      [
+        'Hoja generada por RevOps Assistant. No edites las zonas de datos: se regeneran en cada volcado.',
+      ],
       ['Formularios', forms.length],
       ['Asociaciones', links.length],
     ],
