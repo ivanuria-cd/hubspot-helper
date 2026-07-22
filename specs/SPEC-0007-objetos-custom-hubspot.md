@@ -586,7 +586,7 @@ durante `syncHubspot` se preserva con su `status` local y se reconcilia en el si
 **Tests.** Añadir a `custom-objects/service.spec.ts` casos de escritura concurrente (un upsert durante
 applyChange/sync no se pierde), sin tocar los existentes (SPEC-0000 §8).
 
-Implementado 2026-07-14 (`service.ts` `applyChange`/`syncHubspot` releen `fresh` y mapean por id; 2 tests de concurrencia en `service.spec.ts`). Requiere rebuild de la app; typecheck/test en la máquina del usuario.
+Implementado 2026-07-14 (`service.ts` `applyChange`/`syncHubspot` releen `fresh` y mapean por id; 2 tests de concurrencia en `service.spec.ts`). Los 2 tests declaran `const service` (prefer-const; el closure del mock captura el binding y se invoca tras la asignación, sin TDZ); corregido 2026-07-22. Requiere rebuild de la app; typecheck/test en la máquina del usuario.
 
 ## 26. Registrar la guía MCP de objetos custom (completa §20) (IMPLEMENTADO, 2026-07-14)
 

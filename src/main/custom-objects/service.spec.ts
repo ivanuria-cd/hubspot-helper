@@ -5,7 +5,10 @@ import type { SchemasApi } from '../connectors/hubspot/schemas';
 import type { ObjectUpsertDraftInput } from '@shared/types/custom-objects';
 
 let counter = 0;
-function makeService(schemas: Partial<SchemasApi>, environment: 'sandbox' | 'production' = 'sandbox') {
+function makeService(
+  schemas: Partial<SchemasApi>,
+  environment: 'sandbox' | 'production' = 'sandbox',
+) {
   const store = createMemoryCustomObjectStore();
   const service = createCustomObjectService({
     store,
@@ -45,7 +48,10 @@ describe('createCustomObjectService', () => {
 
   it('applyChange create guarda el objectTypeId del entorno y no marca el otro', async () => {
     const createSchema = vi.fn(() =>
-      Promise.resolve({ status: 201, data: { objectTypeId: '2-7', fullyQualifiedName: 'p1_machine' } }),
+      Promise.resolve({
+        status: 201,
+        data: { objectTypeId: '2-7', fullyQualifiedName: 'p1_machine' },
+      }),
     );
     const { service } = makeService(
       { listSchemas: vi.fn(() => Promise.resolve([])), createSchema },
@@ -171,5 +177,52 @@ describe('createCustomObjectService', () => {
     const meta = service.getDriveMeta({ projectId: 'p1' });
     expect(meta.lastWrittenAt).toBe('2026-06-16T00:00:00.000Z');
     expect(meta.lastChangedAt).toBe('2026-06-16T00:00:00.000Z');
+  });
+
+  it('syncHubspot no pisa un upsert concurrente durante el await (SPEC-0007 §25)', async () => {
+    const store = createMemoryCustomObjectStore();
+    const listSchemas = vi.fn(async () => {
+      // Escritura concurrente (otra feature/MCP) mientras la llamada de red está en vuelo.
+      service.upsertDraft({ projectId: 'p1', definition: { ...draft, name: 'gadget' } });
+      return [];
+    });
+    const service = createCustomObjectService({
+      store,
+      schemasApiFor: () => ({ listSchemas }) as unknown as SchemasApi,
+      activeEnvironment: () => 'sandbox',
+      newId: () => `id-${(counter += 1)}`,
+      now: () => '2026-06-16T00:00:00.000Z',
+    });
+    service.upsertDraft({ projectId: 'p1', definition: draft });
+    await service.syncHubspot({ projectId: 'p1' });
+    const names = service
+      .listDefinitions({ projectId: 'p1' })
+      .map((d) => d.name)
+      .sort();
+    expect(names).toEqual(['gadget', 'machine']);
+  });
+
+  it('applyChange no pisa un upsert concurrente durante el await (SPEC-0007 §25)', async () => {
+    const store = createMemoryCustomObjectStore();
+    const createSchema = vi.fn(async () => {
+      service.upsertDraft({ projectId: 'p1', definition: { ...draft, name: 'gadget' } });
+      return { status: 201, data: { objectTypeId: '2-9', fullyQualifiedName: 'p1_machine' } };
+    });
+    const service = createCustomObjectService({
+      store,
+      schemasApiFor: () =>
+        ({ listSchemas: vi.fn(async () => []), createSchema }) as unknown as SchemasApi,
+      activeEnvironment: () => 'sandbox',
+      newId: () => `id-${(counter += 1)}`,
+      now: () => '2026-06-16T00:00:00.000Z',
+    });
+    service.upsertDraft({ projectId: 'p1', definition: draft });
+    await service.syncHubspot({ projectId: 'p1' });
+    const machine = service.listDefinitions({ projectId: 'p1' }).find((d) => d.name === 'machine')!;
+    const changeId = machine.pendingChanges![0]!.id;
+    await service.applyChange({ projectId: 'p1', changeId, environment: 'sandbox' });
+    const defs = service.listDefinitions({ projectId: 'p1' });
+    expect(defs.map((d) => d.name).sort()).toEqual(['gadget', 'machine']);
+    expect(defs.find((d) => d.name === 'machine')!.status).toBe('created');
   });
 });
