@@ -1148,5 +1148,5 @@ Sin cambios de canales IPC, de la escritura atómica (mismo orden Sheets → est
 comportamiento; reorganización interna. Casos límite: el `fileFeatureKey` del DriveMeta de propiedades es
 `PLANNING_MAP_FEATURE_KEY` (no el del Sheets); `applyState`/`serializeState` deben conservar su forma exacta para
 no romper el round-trip de carga (SPEC-0004 §15.5). Toca `ipc/{properties,custom-objects,forms}.ts` +
-`drive-docs.ts` + `ipc/drive-state-ipc.ts` (nuevo). Implementado 2026-07-14 (`typecheck` del main en verde en sandbox; 25 specs de servicios en verde). Requiere rebuild de
+`drive-docs.ts` + `ipc/drive-state-ipc.ts` (nuevo). Implementado 2026-07-14 (`typecheck` del main en verde en sandbox; 25 specs de servicios en verde). Verificación e2e: `tests/functional/drive-state-screens.spec.ts` (nuevo) —smoke de montaje de las tres pantallas de feature, que ejercita los tres `*DriveMeta` refactorizados vía `useDriveDoc.fetchMeta` y la cabecera `FeatureScreenHeader` (§31); no cubre `*LoadSheets`/`*WriteSheets` (requieren OAuth de Drive)—; pendiente de ejecutar en la máquina del usuario. Requiere rebuild de
 la app; typecheck/test en la máquina del usuario.
