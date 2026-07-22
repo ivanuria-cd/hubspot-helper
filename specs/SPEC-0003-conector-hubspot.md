@@ -387,3 +387,23 @@ Del informe de revisión de código 2026-07-02, hallazgo 7.3. El efecto de carga
 infinito) más un unhandled rejection. Ahora la cadena lleva `.catch` (aplica `status=null`, la pantalla muestra
 el estado desconectado) y `.finally` que baja `loading`, ambos con el guard `cancelled`. Requiere rebuild de la
 app; typecheck/test en la máquina del usuario.
+
+## 21. `verifyToken` usa el cliente compartido (evita fuga del PAT en logs) (IMPLEMENTADO, 2026-07-14)
+
+Del informe de revisión de código 2026-07-14, bloque 3. `verifyToken` (`verify.ts`) hace `axios.get` directo con
+`Authorization: Bearer <token>` en su `fetchInfo` por defecto, sin el interceptor de `redactToken` del cliente
+compartido (`client.ts:67`). Ante un fallo (401 / red / timeout), el `AxiosError` (config con el header + mensaje)
+puede filtrar el PAT al loguearse — el mismo riesgo que se corrigió en Drive (§24 de SPEC-0004) y coherente con el
+endurecimiento §17/§18.
+
+Corrección: el `fetchInfo` por defecto usa `createHubSpotClient({ token })` y hace
+`client.get('/account-info/2026-03/details')`, heredando el interceptor que redacta el token en `error.message`
+(y de paso el retry 429/5xx). Se elimina el `axios.get` directo y los imports de `axios`/`HUBSPOT_BASE_URL` (el
+cliente usa el `baseURL` por defecto). `deps.fetchInfo` (inyectable en tests) se mantiene.
+
+Casos límite: el 401 (token inválido) no es retriable → falla rápido (correcto al verificar); misma URL y timeout
+(30 s). Sin cambio de comportamiento observable.
+
+Alcance: `connectors/hubspot/verify.ts`. Implementado 2026-07-14 (`createHubSpotClient` en el `fetchInfo` por
+defecto; imports `axios`/`HUBSPOT_BASE_URL` retirados). typecheck del main, ESLint y `verify.spec`/`client.spec`
+(8 casos) en verde en sandbox. Requiere rebuild de la app; suite en la máquina del usuario.

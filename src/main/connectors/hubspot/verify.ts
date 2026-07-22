@@ -1,5 +1,4 @@
-import axios from 'axios';
-import { HUBSPOT_BASE_URL } from './client';
+import { createHubSpotClient } from './client';
 
 /** Respuesta de `GET https://api.hubapi.com/account-info/2026-03/details` (campos usados). */
 export interface AccessTokenInfo {
@@ -15,7 +14,7 @@ export interface VerifyResult {
 export function parseAccessTokenInfo(info: AccessTokenInfo): VerifyResult {
   return {
     portalId: String(info.portalId),
-    portalName: info.portalName
+    portalName: info.portalName,
   };
 }
 
@@ -26,12 +25,10 @@ export interface VerifyDeps {
 export async function verifyToken(token: string, deps: VerifyDeps = {}): Promise<VerifyResult> {
   const fetchInfo =
     deps.fetchInfo ??
+    // SPEC-0003 §21: usa el cliente compartido (interceptor `redactToken` + retry) para no filtrar el PAT.
     (async (value: string) => {
-      const res = await axios.get<AccessTokenInfo>(
-        `${HUBSPOT_BASE_URL}/account-info/2026-03/details`,        
-        { headers: { "Authorization": `Bearer ${value}` },
-          timeout: 30_000 }
-      );
+      const client = createHubSpotClient({ token: value });
+      const res = await client.get<AccessTokenInfo>('/account-info/2026-03/details');
       return res.data;
     });
   return parseAccessTokenInfo(await fetchInfo(token));
