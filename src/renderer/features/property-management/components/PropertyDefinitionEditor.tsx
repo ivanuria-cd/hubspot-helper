@@ -24,7 +24,7 @@ import {
   NUMBER_DISPLAY_HINTS,
   TEXT_DISPLAY_HINTS,
   defaultFieldType,
-} from '@shared/constants/hubspotPropertyTypes';
+} from '@shared/constants/hubspot-property-types';
 
 interface PropertyDefinitionEditorProps {
   /** `true` en modo «nueva»: permite editar el nombre técnico y el valor único. */

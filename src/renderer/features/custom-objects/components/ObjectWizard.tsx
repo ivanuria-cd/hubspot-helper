@@ -30,7 +30,7 @@ import type {
   ObjectUpsertDraftInput,
 } from '@shared/types/custom-objects';
 import type { HubSpotObject } from '@shared/types/properties';
-import { HS_TYPES, fieldTypesFor } from '@shared/constants/hubspotPropertyTypes';
+import { HS_TYPES, fieldTypesFor } from '@shared/constants/hubspot-property-types';
 import { BusyButton, FieldTooltip, useFieldHelp, useSnackbar } from '@shared/components/feedback';
 
 interface ObjectWizardProps {

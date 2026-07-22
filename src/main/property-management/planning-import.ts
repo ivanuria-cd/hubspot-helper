@@ -25,7 +25,7 @@ import {
   isAmbiguous,
   resolveUserFriendlyType,
   userFriendlyFieldType,
-} from '@shared/constants/planningFieldTypes';
+} from '@shared/constants/planning-field-types';
 import { entryDestName as destName } from './dest-name';
 import { PLANNING_META_TITLE } from './planning-meta';
 import { defOf, typeDisplay } from './planning-defs';

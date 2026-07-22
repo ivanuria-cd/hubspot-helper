@@ -8,7 +8,7 @@
  */
 import type { DataOrigin, HubSpotPropertyDef, PropertyEntry } from '@shared/types/properties';
 import type { PlanningAssociation } from '@shared/types/planning';
-import { USER_FRIENDLY_FIELD_TYPES } from '@shared/constants/planningFieldTypes';
+import { USER_FRIENDLY_FIELD_TYPES } from '@shared/constants/planning-field-types';
 import { entryDestName as destName } from './dest-name';
 import { PLANNING_META_TITLE, PLANNING_META_HEADER } from './planning-meta';
 import { defOf, typeDisplay } from './planning-defs';

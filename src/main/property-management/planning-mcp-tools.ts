@@ -7,7 +7,7 @@
 import type { McpRegistry } from '../mcp/registry';
 import { guidanceRegistry } from '../mcp/guidance';
 import type { PropertyService } from './service';
-import { configsFor } from '@shared/constants/planningFieldTypes';
+import { configsFor } from '@shared/constants/planning-field-types';
 import { SCOPES, WRITE_SCOPES } from './mcp-scopes';
 import type {
   PlanningApplyResult,

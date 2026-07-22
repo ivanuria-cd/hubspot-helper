@@ -12,7 +12,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { driveFileUrl } from '@shared/utils/driveFileUrl';
+import { driveFileUrl } from '@shared/utils/drive-file-url';
 import FolderIcon from '@mui/icons-material/Folder';
 import HubIcon from '@mui/icons-material/Hub';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
@@ -51,7 +51,10 @@ export function GoogleDriveConnectorScreen(): JSX.Element | null {
       await sync();
       notify({ message: t('gdrive.syncDone'), severity: 'success' });
     } catch (error) {
-      notify({ message: t('gdrive.authError', { error: error instanceof Error ? error.message : '' }), severity: 'error' });
+      notify({
+        message: t('gdrive.authError', { error: error instanceof Error ? error.message : '' }),
+        severity: 'error',
+      });
     }
   };
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -147,8 +150,8 @@ export function GoogleDriveConnectorScreen(): JSX.Element | null {
               <Stack direction="row" spacing={2} alignItems="center">
                 <Typography color="text.primary">
                   {status.lastSyncAt
-                    // SPEC-0000 §3: la fecha se formatea con el idioma activo, no con el del SO.
-                    ? t('gdrive.lastSync', {
+                    ? // SPEC-0000 §3: la fecha se formatea con el idioma activo, no con el del SO.
+                      t('gdrive.lastSync', {
                         date: new Intl.DateTimeFormat(i18n.language, {
                           dateStyle: 'short',
                           timeStyle: 'short',

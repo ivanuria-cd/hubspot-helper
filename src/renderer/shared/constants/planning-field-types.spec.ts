@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { FIELD_TYPES_BY_TYPE } from '@shared/constants/hubspotPropertyTypes';
+import { FIELD_TYPES_BY_TYPE } from '@shared/constants/hubspot-property-types';
 import {
   USER_FRIENDLY_FIELD_TYPES,
   configsFor,
   isAmbiguous,
   isConfigConsistent,
   resolveUserFriendlyType,
-} from './planningFieldTypes';
+} from './planning-field-types';
 
 describe('catalogo de tipos user-friendly (SPEC-0016 D6)', () => {
   it('resuelve automaticamente los tipos con una unica configuracion', () => {

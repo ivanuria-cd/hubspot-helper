@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { driveFileUrl } from './driveFileUrl';
+import { driveFileUrl } from './drive-file-url';
 
 describe('driveFileUrl', () => {
   it('construye la URL de un Google Sheets', () => {
@@ -15,6 +15,8 @@ describe('driveFileUrl', () => {
   });
 
   it('respeta ids con caracteres especiales', () => {
-    expect(driveFileUrl('1A_b-Cd', 'application/vnd.google-apps.spreadsheet')).toContain('/d/1A_b-Cd/edit');
+    expect(driveFileUrl('1A_b-Cd', 'application/vnd.google-apps.spreadsheet')).toContain(
+      '/d/1A_b-Cd/edit',
+    );
   });
 });

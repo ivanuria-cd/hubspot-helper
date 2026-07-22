@@ -2,7 +2,7 @@
  * Catalogo de tipos user-friendly -> configuracion(es) de HubSpot (SPEC-0016 D6).
  * Se apoya en FIELD_TYPES_BY_TYPE (SPEC-0006 16.3) para no divergir del mapeo type/fieldType.
  */
-import { FIELD_TYPES_BY_TYPE } from '@shared/constants/hubspotPropertyTypes';
+import { FIELD_TYPES_BY_TYPE } from '@shared/constants/hubspot-property-types';
 import type {
   HubSpotFieldConfig,
   UserFriendlyFieldType,

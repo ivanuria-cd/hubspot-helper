@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DriveDocMeta } from '@shared/types/gdrive';
 import type { OperationResult } from '@shared/types/common';
-import { driveFileUrl } from '@shared/utils/driveFileUrl';
+import { driveFileUrl } from '@shared/utils/drive-file-url';
 
 const SPREADSHEET_MIME = 'application/vnd.google-apps.spreadsheet' as const;
 

@@ -9,7 +9,7 @@ import { EntryValidationError } from './entry-validation';
 import { buildBlocker } from './reconcile';
 import type { ChangeOperation, EntryUpsertInput } from '@shared/types/properties';
 import type { HubSpotEnvironment } from '@shared/types/hubspot';
-import { USER_FRIENDLY_FIELD_TYPES, isAmbiguous } from '@shared/constants/planningFieldTypes';
+import { USER_FRIENDLY_FIELD_TYPES, isAmbiguous } from '@shared/constants/planning-field-types';
 import { SCOPES, WRITE_SCOPES } from './mcp-scopes';
 
 const PROPERTY_GUIDANCE = `Una entrada del mapa apunta a una propiedad de HubSpot en uno de dos modos:

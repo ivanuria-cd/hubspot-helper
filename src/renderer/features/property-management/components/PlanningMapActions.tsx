@@ -21,7 +21,7 @@ import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import { useTranslation } from 'react-i18next';
 import { BusyButton, useSnackbar } from '@shared/components/feedback';
-import { driveFileUrl } from '@shared/utils/driveFileUrl';
+import { driveFileUrl } from '@shared/utils/drive-file-url';
 import type { HubSpotFieldConfig, PlanningChangelog } from '@shared/types/planning';
 
 const SPREADSHEET_MIME = 'application/vnd.google-apps.spreadsheet';
