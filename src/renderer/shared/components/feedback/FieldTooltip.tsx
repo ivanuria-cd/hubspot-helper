@@ -2,15 +2,7 @@ import { useId } from 'react';
 import { Box, IconButton, Tooltip } from '@mui/material';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { useTranslation } from 'react-i18next';
-
-const visuallyHidden = {
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-} as const;
+import { visuallyHidden } from './visually-hidden';
 
 interface FieldTooltipProps {
   helpKey: string;
@@ -23,7 +15,11 @@ interface FieldTooltipProps {
  * (operable por teclado, `Esc` cierra) cuyo texto se resuelve por i18n; si se pasa
  * `describedById`, expone además una descripción oculta para enlazar por `aria-describedby`.
  */
-export function FieldTooltip({ helpKey, describedById, ns = 'common' }: FieldTooltipProps): JSX.Element {
+export function FieldTooltip({
+  helpKey,
+  describedById,
+  ns = 'common',
+}: FieldTooltipProps): JSX.Element {
   const { t } = useTranslation(ns);
   const text = t(helpKey);
   return (

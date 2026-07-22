@@ -1249,3 +1249,26 @@ Alcance: `@shared/types/common.ts` (nuevo) + `hubspot.ts`/`gdrive.ts`/`mcp.ts`/`
 2026-07-14: `properties`/`hubspot`/`gdrive`/`mcp`/`forms` re-export puro; `project-file` (usa el tipo en
 `ExportProjectResult extends`) y `useDriveDoc` (lo usa en `update`/`load`) con `import type` + alias; typecheck
 node+web y ESLint en verde en sandbox. Requiere rebuild de la app; suite en la máquina del usuario.
+
+## 36. `visuallyHidden` compartido (dedup) (IMPLEMENTADO, 2026-07-22)
+
+Del informe de revisión de código 2026-07-14, bloque 4 (higiene). El estilo `visuallyHidden` (ocultar visualmente
+conservando el nombre accesible) está duplicado en `feedback/FieldTooltip.tsx` y `feedback/LoadingState.tsx`. Se
+extrae a `shared/components/feedback/visually-hidden.ts` (const único) e importan ambos; se re-exporta por el barrel
+`feedback/index.ts`. Sin cambio visual ni de comportamiento (mismo objeto de estilos). Alcance: nuevo
+`visually-hidden.ts` + `FieldTooltip.tsx` + `LoadingState.tsx` + `feedback/index.ts`. Implementado 2026-07-22 (const
+en `visually-hidden.ts`, importado por ambos y re-exportado por el barrel); typecheck del renderer y ESLint en verde
+en sandbox. Requiere rebuild de la app; suite en la máquina del usuario.
+
+## 37. Naming kebab-case en `shared/constants` y `shared/utils` (BORRADOR, 2026-07-22)
+
+Del informe de revisión de código 2026-07-14, bloque 4 (higiene). Tres ficheros no-componente en camelCase incumplen
+la convención kebab-case (SPEC-0000 §6): `shared/constants/hubspotPropertyTypes.ts`,
+`shared/constants/planningFieldTypes.ts`, `shared/utils/driveFileUrl.ts` (con sus `.spec.ts`). Se renombran a
+`hubspot-property-types.ts`, `planning-field-types.ts`, `drive-file-url.ts` y se actualizan los imports
+(`@shared/constants/...`, `@shared/utils/...` y los relativos de los specs). Los hooks `use*.ts` se mantienen
+(convención de hooks). Sin cambio de API, tipos ni comportamiento (solo rutas de import). Fan-out: `driveFileUrl`
+(useDriveDoc, PlanningMapActions, GoogleDriveConnectorScreen + spec), `planningFieldTypes` (mcp-tools, planning-model,
+planning-import, planning-mcp-tools + spec), `hubspotPropertyTypes` (PropertyDefinitionEditor, ObjectWizard,
+planning-field-types + spec). Alcance: 5 renames + ~10 imports. Pendiente de validación e implementación. Requiere
+rebuild de la app/MCP; typecheck/test en la máquina del usuario.
