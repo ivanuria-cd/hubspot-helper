@@ -1283,6 +1283,16 @@ del usuario.
 
 **38.3 Alcance.** Solo `Sidebar.tsx`. Sin cambios en `nav-items.ts`, i18n (reutiliza las claves `sidebar.*`) ni la paleta. `cdPalette.accent` deja de usarse en el sidebar.
 
-**38.4 Tests.** Nuevo `Sidebar.spec.tsx`: aria-current en el item de la ruta activa; `noWrap` en los labels; el indicador activo no usa el lima (`borderLeftColor` ≠ `rgb(175, 252, 65)`); el label completo se conserva en el DOM en catalán. Sin regresiones en axe (a11y-baseline).
+**38.4 Tests.** Nuevo `Sidebar.spec.tsx`: aria-current en el item de la ruta activa; `noWrap` en los labels; el indicador activo no usa el lima (`borderLeftColor` ≠ `rgb(175, 252, 65)`); el label completo se conserva en el DOM en catalán. El `Tooltip` siempre-activo interactúa con `a11y-baseline`: se abre al enfocar el item tras navegar y axe lo captura a mitad de fundido; se resuelve descartándolo antes de escanear (§38.6).
 
 **38.5 Estado.** IMPLEMENTADO (2026-07-22). `npm run typecheck` (node+web) y ESLint del sidebar + su spec en verde en sandbox. El `Sidebar.spec.tsx` y la suite e2e (a11y) se ejecutan en la máquina del usuario: los specs `.tsx` (jsdom + MUI) no completan en el sandbox de 2 CPUs. Requiere rebuild de la app.
+
+**38.6 Corrección a11y-baseline (2026-07-23).** El `Tooltip` de §38.2 se abre al quedar el ítem enfocado (el test
+navega con `.click()`, que deja el botón con foco). `runAxe` lo capturaba a mitad de fundido (`opacity`/`transform`
+en `transition`) y axe compone un gris translúcido (fg `#eeeeee` sobre bg `#bcbcbc`, 1.63 < 4.5 → `color-contrast`
+serio). Asentado, el tooltip usa los colores por defecto de MUI (≈`#6c6c6c` con blanco, 4.97:1, cumple AA): es un
+artefacto de timing, no de paleta —tematizarlo no ayuda, a mitad de fundido cualquier color colapsa el contraste—. Fix
+solo en `a11y-baseline.spec.ts`: tras verificar el `heading` y antes de `runAxe`, se descarta el tooltip transitorio
+(hover del heading para sacar el ratón del sidebar + `blur()` del elemento activo) y se espera `.MuiTooltip-tooltip` a
+count 0, escaneando el estado asentado. Sin cambios en `Sidebar.tsx`. Verificación e2e en la máquina del usuario (el
+sandbox no ejecuta Playwright/Electron).

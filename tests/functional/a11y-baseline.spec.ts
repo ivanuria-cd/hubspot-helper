@@ -40,9 +40,11 @@ async function runAxe(window: Page): Promise<AxeResult> {
   }, axeSource);
 
   return (await window.evaluate(async () => {
-    const runner = (globalThis as unknown as {
-      axe: { run: (ctx: Document, opts: unknown) => Promise<AxeResult> };
-    }).axe;
+    const runner = (
+      globalThis as unknown as {
+        axe: { run: (ctx: Document, opts: unknown) => Promise<AxeResult> };
+      }
+    ).axe;
     return runner.run(document, {
       runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
     });
@@ -92,9 +94,14 @@ test('axe-core no reporta violaciones WCAG 2.1 AA en las pantallas del proyecto'
 
   for (const screen of screens) {
     await sidebar.getByRole('button', { name: screen.nav, exact: true }).click();
-    await expect(
-      window.getByRole('heading', { level: 1, name: screen.heading }),
-    ).toBeVisible();
+    await expect(window.getByRole('heading', { level: 1, name: screen.heading })).toBeVisible();
+
+    // El Tooltip del ítem del menú (SPEC-0002 §38) se abre al quedar el botón enfocado tras el
+    // click; axe lo capturaría a mitad de fundido (§38.6). Se descarta antes de escanear el
+    // estado asentado: sacar el ratón del sidebar (hover del heading) + soltar el foco.
+    await window.getByRole('heading', { level: 1, name: screen.heading }).hover();
+    await window.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await expect(window.locator('.MuiTooltip-tooltip')).toHaveCount(0);
 
     const results = await runAxe(window);
     expect(results.violations, `violaciones axe en «${screen.nav}»`).toEqual([]);
