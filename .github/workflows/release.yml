@@ -1,0 +1,49 @@
+# Release del proyecto (SPEC-0017).
+# Compila y publica los instaladores en GitHub Releases:
+#   - Windows (nsis) en windows-latest
+#   - macOS (dmg, arm64) en macos-latest
+# Sin firma de codigo (SPEC-0017 §2): SmartScreen/Gatekeeper mostraran aviso.
+# Disparo: push de tag v* (p. ej. v1.0.0) o ejecucion manual (workflow_dispatch).
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      # En serie: evita la carrera del draft del release entre los dos jobs.
+      max-parallel: 1
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Package & publish (Windows)
+        if: matrix.os == 'windows-latest'
+        run: npm run release:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package & publish (macOS)
+        if: matrix.os == 'macos-latest'
+        run: npm run release:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Sin firma: evita que electron-builder intente firmar y falle.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
